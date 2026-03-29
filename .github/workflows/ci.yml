@@ -127,16 +127,14 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           set -euo pipefail
-          # Always enter the module root explicitly (do not rely on working-directory quirks).
           cd "${GITHUB_WORKSPACE}/control-plane"
           test -f go.mod
+          test -f pkg/api/enums.go
           if [[ '${{ matrix.suffix }}' == 'armv7' ]]; then export GOARM=7; fi
           go mod download
-          # Build into a packaging directory so the tarball root is just `pluribus-mcp`.
           rm -rf dist pkg
           mkdir -p pkg
           go build -trimpath -ldflags="-s -w" -o pkg/pluribus-mcp ./cmd/pluribus-mcp
-
           mkdir -p dist
           tar -czf "dist/pluribus-mcp-linux-${{ matrix.suffix }}.tar.gz" -C pkg pluribus-mcp
 
