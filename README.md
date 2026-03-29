@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/Pluribus_logo.png" alt="Pluribus" width="280">
+<img src="Pluribus_logo.png" alt="Pluribus" width="280">
 
 </div>
 
