@@ -126,13 +126,26 @@ func TestREST_recallCompile_returnsShapedBundle(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&bundle); err != nil {
 		t.Fatalf("decode bundle: %v", err)
 	}
-	// Shaped product boundary: grouped slices exist (may be empty).
-	if bundle.GoverningConstraints == nil || bundle.Decisions == nil || bundle.KnownFailures == nil || bundle.ApplicablePatterns == nil {
-		t.Fatalf("expected non-nil legacy buckets, got %+v", bundle)
+	// Product wire: empty buckets may be JSON null → decoded as nil slices; do not require non-nil empties.
+	// Assert the seeded constraint appears in compile output (legacy and/or grouped views).
+	const needle = "REST compile test"
+	var items []recall.MemoryItem
+	items = append(items, bundle.GoverningConstraints...)
+	items = append(items, bundle.Decisions...)
+	items = append(items, bundle.KnownFailures...)
+	items = append(items, bundle.ApplicablePatterns...)
+	items = append(items, bundle.Continuity...)
+	items = append(items, bundle.Constraints...)
+	items = append(items, bundle.Experience...)
+	found := false
+	for _, it := range items {
+		if strings.Contains(it.Statement, needle) {
+			found = true
+			break
+		}
 	}
-	if bundle.Continuity == nil || bundle.Constraints == nil || bundle.Experience == nil {
-		t.Fatalf("expected non-nil continuity/constraints/experience groups, got cont=%v cons=%v exp=%v",
-			bundle.Continuity, bundle.Constraints, bundle.Experience)
+	if !found {
+		t.Fatalf("expected seeded constraint in compile bundle (legacy or grouped), got %+v", bundle)
 	}
 }
 

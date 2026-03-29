@@ -437,38 +437,8 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 		b.SemanticRetrieval = semRetrievalDbg
 		fillGroupedViews(b, scored, objs, weights != nil, maxPerKind, req.Mode)
 	}
-	normalizeBundleSlices(b)
 	populateAgentGrounding(b)
 	return b, nil
-}
-
-// normalizeBundleSlices turns nil slices into empty slices so JSON encodes [] not null
-// and integration tests can rely on stable non-nil bucket shapes.
-func normalizeBundleSlices(b *RecallBundle) {
-	if b == nil {
-		return
-	}
-	if b.GoverningConstraints == nil {
-		b.GoverningConstraints = []MemoryItem{}
-	}
-	if b.Decisions == nil {
-		b.Decisions = []MemoryItem{}
-	}
-	if b.KnownFailures == nil {
-		b.KnownFailures = []MemoryItem{}
-	}
-	if b.ApplicablePatterns == nil {
-		b.ApplicablePatterns = []MemoryItem{}
-	}
-	if b.Continuity == nil {
-		b.Continuity = []MemoryItem{}
-	}
-	if b.Constraints == nil {
-		b.Constraints = []MemoryItem{}
-	}
-	if b.Experience == nil {
-		b.Experience = []MemoryItem{}
-	}
 }
 
 func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.MemoryObject, hasRanking bool, maxPerKind int, mode string) {

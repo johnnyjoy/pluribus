@@ -1,5 +1,9 @@
 # Recall repo — release/test-drive automation entrypoints.
-.PHONY: test regression eval stress-eval api-test integration-test test-drive image
+#
+# GitHub CI runs: (1) cd control-plane && go test ./...  (2) make regression.
+# Plain `go test ./...` does NOT compile //go:build integration tests — use `make regression`
+# or `make ci-local` before pushing to match CI.
+.PHONY: test regression ci-local eval stress-eval api-test integration-test test-drive image
 
 COMPOSE_REGRESSION := docker compose -p recall-regression -f docker-compose.regression.yml
 ARTIFACTS_DIR ?= artifacts
@@ -26,6 +30,9 @@ regression:
 # Core unit and package tests for the authoritative module.
 test:
 	$(MAKE) -C control-plane test
+
+# Local gate matching .github/workflows/ci.yml (unit tests + Docker integration suite).
+ci-local: test regression
 
 # Run deterministic evaluation harness and emit lightweight artifacts.
 eval:
