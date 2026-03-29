@@ -55,6 +55,10 @@ func TestProofHarnessREST_Postgres(t *testing.T) {
 		_ = pgdb.Close()
 		t.Fatalf("ping postgres: %v", err)
 	}
+	if err := migrate.MaybeResetPublicSchemaForIntegrationTests(context.Background(), pgdb); err != nil {
+		_ = pgdb.Close()
+		t.Fatal(err)
+	}
 	if err := migrate.RequireProofHarnessCleanPostgres(context.Background(), pgdb); err != nil {
 		_ = pgdb.Close()
 		t.Fatal(err)

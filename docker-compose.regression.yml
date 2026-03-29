@@ -24,8 +24,8 @@ services:
 
   regression-runner:
     build:
-      context: ./control-plane
-      dockerfile: Dockerfile.regression
+      context: .
+      dockerfile: control-plane/Dockerfile.regression
     depends_on:
       regression-postgres:
         condition: service_healthy
