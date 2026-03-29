@@ -1,6 +1,14 @@
-# Recall — governed AI memory
+<div align="center">
 
-**Recall** is a model for **durable, governed agent memory**: constraints, decisions, patterns, and failures that survive when a context window ends. **Pluribus** is the **control-plane** service that implements it—**Postgres-backed** memory, **situation-shaped recall**, **pre-change enforcement**, and **curation**—without treating chat or logs as source of truth.
+<img src="docs/assets/Pluribus_logo.png" alt="Pluribus" width="280">
+
+</div>
+
+# Pluribus
+
+**Pluribus** is the **open control plane** for governed AI memory: **Postgres-backed** durable rows, **situation-shaped recall**, **pre-change enforcement**, and **curation**—without treating chat or logs as source of truth.
+
+**Recall** is the name of the **model and doctrine** this repository embodies (constraints, decisions, patterns, failures, and related kinds that outlast any single session). Pluribus is the **runnable service**—HTTP API, MCP, shared global memory pool—described in [docs/memory-doctrine.md](docs/memory-doctrine.md).
 
 ---
 
