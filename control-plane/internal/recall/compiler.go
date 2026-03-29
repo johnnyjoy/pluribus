@@ -82,10 +82,10 @@ type Compiler struct {
 
 // SemanticRecallConfig gates compile-time semantic candidate merge (defaults from recall.semantic_retrieval YAML).
 type SemanticRecallConfig struct {
-	Enabled               bool
-	MaxCandidates         int
-	MinCosineSimilarity   float64
-	LogSemanticMatches    bool
+	Enabled             bool
+	MaxCandidates       int
+	MinCosineSimilarity float64
+	LogSemanticMatches  bool
 }
 
 // Compile produces a bundle from tags, retrieval_query, and the shared memory pool (RIE limits, optional ranking).
@@ -390,16 +390,16 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 			b.SlowPathApplied = true
 			b.SlowPathReasons = req.SlowPathReasons
 			b.BaseLimits = &BucketLimits{
-				Constraints:   maxPerKind,
-				Decisions:     maxPerKind,
-				Failures:      maxPerKind,
-				Patterns:      maxPerKind,
+				Constraints: maxPerKind,
+				Decisions:   maxPerKind,
+				Failures:    maxPerKind,
+				Patterns:    maxPerKind,
 			}
 			b.ExpandedLimits = &BucketLimits{
-				Constraints:   constraintLimit,
-				Decisions:     decisionLimit,
-				Failures:      failureLimit,
-				Patterns:      patternLimit,
+				Constraints: constraintLimit,
+				Decisions:   decisionLimit,
+				Failures:    failureLimit,
+				Patterns:    patternLimit,
 			}
 		}
 		// Task 101: symbol diagnostics from pattern payload symbols in bundle.
@@ -437,8 +437,38 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 		b.SemanticRetrieval = semRetrievalDbg
 		fillGroupedViews(b, scored, objs, weights != nil, maxPerKind, req.Mode)
 	}
+	normalizeBundleSlices(b)
 	populateAgentGrounding(b)
 	return b, nil
+}
+
+// normalizeBundleSlices turns nil slices into empty slices so JSON encodes [] not null
+// and integration tests can rely on stable non-nil bucket shapes.
+func normalizeBundleSlices(b *RecallBundle) {
+	if b == nil {
+		return
+	}
+	if b.GoverningConstraints == nil {
+		b.GoverningConstraints = []MemoryItem{}
+	}
+	if b.Decisions == nil {
+		b.Decisions = []MemoryItem{}
+	}
+	if b.KnownFailures == nil {
+		b.KnownFailures = []MemoryItem{}
+	}
+	if b.ApplicablePatterns == nil {
+		b.ApplicablePatterns = []MemoryItem{}
+	}
+	if b.Continuity == nil {
+		b.Continuity = []MemoryItem{}
+	}
+	if b.Constraints == nil {
+		b.Constraints = []MemoryItem{}
+	}
+	if b.Experience == nil {
+		b.Experience = []MemoryItem{}
+	}
 }
 
 func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.MemoryObject, hasRanking bool, maxPerKind int, mode string) {
@@ -630,18 +660,18 @@ func situationKeywords(query string) []string {
 
 func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int) map[api.MemoryKind][]MemoryItem {
 	bucket := map[api.MemoryKind][]MemoryItem{
-		api.MemoryKindConstraint:   nil,
-		api.MemoryKindDecision:     nil,
-		api.MemoryKindFailure:      nil,
-		api.MemoryKindPattern:      nil,
+		api.MemoryKindConstraint: nil,
+		api.MemoryKindDecision:   nil,
+		api.MemoryKindFailure:    nil,
+		api.MemoryKindPattern:    nil,
 	}
 	for _, s := range scored {
 		o := s.Object
 		item := MemoryItem{
-			ID:        o.ID.String(),
-			Kind:      string(o.Kind),
-			Statement: o.Statement,
-			Authority: o.Authority,
+			ID:            o.ID.String(),
+			Kind:          string(o.Kind),
+			Statement:     o.Statement,
+			Authority:     o.Authority,
 			Justification: &JustificationMeta{Reason: s.Reason, Score: s.Score},
 			RIU:           s.RIU,
 		}
@@ -661,10 +691,10 @@ func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int) map[api.M
 
 func (c *Compiler) bucketUnsorted(objs []memory.MemoryObject, maxPerKind int) map[api.MemoryKind][]MemoryItem {
 	bucket := map[api.MemoryKind][]MemoryItem{
-		api.MemoryKindConstraint:   nil,
-		api.MemoryKindDecision:     nil,
-		api.MemoryKindFailure:      nil,
-		api.MemoryKindPattern:      nil,
+		api.MemoryKindConstraint: nil,
+		api.MemoryKindDecision:   nil,
+		api.MemoryKindFailure:    nil,
+		api.MemoryKindPattern:    nil,
 	}
 	for _, o := range objs {
 		item := MemoryItem{

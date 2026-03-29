@@ -373,7 +373,9 @@ func runProofSimulatedMultiAgentContinuity(t *testing.T, base string) {
 		t.Fatalf("Agent A recall: expected marker in bundle, constraints=%+v", bundleA.GoverningConstraints)
 	}
 
-	searchBody := fmt.Sprintf(`{"query":%q,"tags":["%s"]}`, marker, tag)
+	// POST /v1/memory/search uses memory.SearchRequest (tags/status/max/kinds only — no query field).
+	// Tag is unique to this proof run; sufficient to retrieve the marker memory.
+	searchBody := fmt.Sprintf(`{"tags":["%s"]}`, tag)
 	respSearch := postJSONClient(t, agentB, base+"/v1/memory/search", searchBody)
 	defer respSearch.Body.Close()
 	if respSearch.StatusCode != http.StatusOK {

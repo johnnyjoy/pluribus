@@ -249,7 +249,8 @@ func TestREST_enforcementEvaluate_fullRouter(t *testing.T) {
 	defer srv.Close()
 
 	tag := "rest:enforce:" + uuid.NewString()
-	stmt := "REST boundary enforcement: never disable tests in CI."
+	// Enforcement normativeConflict (rule-based v1) detects Postgres-vs-SQLite clashes; keep the test aligned with evaluator.go.
+	stmt := "Production must use Postgres only for durable data."
 	createBody := fmt.Sprintf(`{"kind":"constraint","statement":%q,"authority":9,"tags":[%q]}`, stmt, tag)
 	resp, err := http.Post(srv.URL+"/v1/memories", "application/json", strings.NewReader(createBody))
 	if err != nil {
@@ -261,7 +262,7 @@ func TestREST_enforcementEvaluate_fullRouter(t *testing.T) {
 		t.Fatalf("create: status=%d %s", resp.StatusCode, string(b))
 	}
 
-	evBody := `{"proposal_text":"We will disable all CI tests to ship faster.","intent":"change"}`
+	evBody := `{"proposal_text":"We will use SQLite for durable data in production.","intent":"datastore"}`
 	resp, err = http.Post(srv.URL+"/v1/enforcement/evaluate", "application/json", strings.NewReader(evBody))
 	if err != nil {
 		t.Fatalf("POST evaluate: %v", err)
