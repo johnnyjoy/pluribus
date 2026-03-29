@@ -1,0 +1,69 @@
+{
+  "id": "stress-mixed-task-001",
+  "scenario_type": "mixed_task",
+  "goal": "Ensure unrelated tasks do not contaminate recall behavior",
+  "context": "STATE: Task A migration uses transactional postgres migrations\nSTATE: Task B webhook delivery uses retry queue with dead-letter routing\nSTATE: Task C docs refresh is static site generation only\nDECISION: keep migration and webhook incident processes isolated\nCONSTRAINT: never apply webhook retry policy to migration SQL execution\nPATTERN: task-tagged runbooks prevent cross-task contamination",
+  "trap": "FAILURE: prior incident mixed webhook retry logic into migration orchestration",
+  "success_condition": "Each interleaved task uses only relevant memory",
+  "expected_extraction": {
+    "state": [
+      "Task A migration uses transactional postgres migrations",
+      "Task B webhook delivery uses retry queue with dead-letter routing",
+      "Task C docs refresh is static site generation only"
+    ],
+    "decision": ["keep migration and webhook incident processes isolated"],
+    "failure": ["prior incident mixed webhook retry logic into migration orchestration"],
+    "pattern": ["task-tagged runbooks prevent cross-task contamination"],
+    "constraint": ["never apply webhook retry policy to migration SQL execution"]
+  },
+  "recall_expectations": {
+    "query": "How to avoid cross-task contamination?",
+    "must_include": [
+      "constraints::never apply webhook retry policy to migration SQL execution"
+    ]
+  },
+  "behavior_expectations": {
+    "new_task": "Execute interleaved task queue",
+    "must_avoid": ["reuse webhook retry policy in migration SQL path"],
+    "must_apply": ["task-tagged runbooks"]
+  },
+  "steps": [
+    {
+      "task": "migration",
+      "agent": "A",
+      "action": "run migration phase",
+      "query": "what rules apply to migration only",
+      "new_task": "Run migration task A",
+      "must_avoid": ["reuse webhook retry policy in migration SQL path"],
+      "must_apply": ["task-tagged runbooks"],
+      "must_include": [
+        "continuity::Task A migration uses transactional postgres migrations",
+        "constraints::never apply webhook retry policy to migration SQL execution"
+      ]
+    },
+    {
+      "task": "webhook",
+      "agent": "B",
+      "action": "run webhook retry sweep",
+      "query": "what state applies to webhook delivery only",
+      "new_task": "Run webhook task B",
+      "must_avoid": ["reuse webhook retry policy in migration SQL path"],
+      "must_apply": ["task-tagged runbooks"],
+      "must_include": [
+        "continuity::Task B webhook delivery uses retry queue with dead-letter routing"
+      ]
+    },
+    {
+      "task": "docs",
+      "agent": "C",
+      "action": "publish docs refresh",
+      "query": "what state applies to docs only",
+      "new_task": "Run docs task C",
+      "must_avoid": ["reuse webhook retry policy in migration SQL path"],
+      "must_apply": ["task-tagged runbooks"],
+      "must_include": [
+        "continuity::Task C docs refresh is static site generation only"
+      ]
+    }
+  ]
+}

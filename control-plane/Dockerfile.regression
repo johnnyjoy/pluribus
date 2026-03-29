@@ -1,0 +1,11 @@
+# One-shot test image: run control-plane unit + integration tests against a linked Postgres (compose).
+# Build context: control-plane/ (same as main API Dockerfile layout).
+FROM golang:1.22-bookworm
+WORKDIR /src
+ENV CGO_ENABLED=0
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+# -tags=integration compiles integration tests in cmd/controlplane; other packages unchanged.
+# -count=1 avoids cache surprises in CI-style runs.
+CMD ["go", "test", "-tags=integration", "-count=1", "./..."]

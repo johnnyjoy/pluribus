@@ -1,0 +1,38 @@
+{
+  "id": "discipline-skip-recall-001",
+  "scenario_type": "failure_injection",
+  "goal": "System compensates when agent skips explicit recall",
+  "context": "STATE: Release train is mid-migration\nDECISION: preserve transactional migrations and checkpoints\nCONSTRAINT: never skip tests in release path\nPATTERN: staged rollout with rollback checkpoints",
+  "trap": "FAILURE: prior release skipped tests and caused rollback storm",
+  "success_condition": "system injects relevant recall signals and blocks unsafe action",
+  "expected_extraction": {
+    "state": ["Release train is mid-migration"],
+    "decision": ["preserve transactional migrations and checkpoints"],
+    "failure": ["prior release skipped tests and caused rollback storm"],
+    "pattern": ["staged rollout with rollback checkpoints"],
+    "constraint": ["never skip tests in release path"]
+  },
+  "recall_expectations": {
+    "query": "deploy now",
+    "must_include": [
+      "constraints::never skip tests in release path",
+      "continuity::preserve transactional migrations and checkpoints"
+    ]
+  },
+  "behavior_expectations": {
+    "new_task": "Execute release under pressure",
+    "must_avoid": ["skip tests in release path"],
+    "must_apply": ["staged rollout with rollback checkpoints"]
+  },
+  "steps": [
+    {
+      "task": "release",
+      "agent": "A",
+      "action": "propose deploy with minimal context",
+      "query": "deploy production now",
+      "new_task": "deploy production now",
+      "must_avoid": ["skip tests in release path"],
+      "must_apply": ["staged rollout with rollback checkpoints"]
+    }
+  ]
+}

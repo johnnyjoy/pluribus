@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Mechanical check: recall bundle includes PostgreSQL constraint text. Requires curl, jq.
+# Usage: PROJECT_ID=uuid ./scripts/pluribus-benefit-eval-check.sh
+#    or: ./scripts/pluribus-benefit-eval-check.sh <project_uuid>
+set -euo pipefail
+
+BASE="${CONTROL_PLANE_URL:-http://127.0.0.1:8123}"
+BASE="${BASE%/}"
+PID="${1:-${PROJECT_ID:-}}"
+if [[ -z "$PID" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  if [[ -f "${SCRIPT_DIR}/.benefit-eval-last-project" ]]; then
+    PID="$(cat "${SCRIPT_DIR}/.benefit-eval-last-project")"
+  fi
+fi
+if [[ -z "$PID" ]]; then
+  echo "usage: PROJECT_ID=uuid $0 [project_uuid]" >&2
+  exit 2
+fi
+
+URL="${BASE}/v1/recall/?project_id=${PID}"
+BODY="$(curl -sS "$URL")"
+if echo "$BODY" | jq -e . >/dev/null 2>&1; then
+  :
+else
+  echo "Invalid JSON from recall: ${BODY:0:200}" >&2
+  exit 1
+fi
+
+# Look for seeded constraint text in full JSON (constraints may be nested)
+if echo "$BODY" | grep -q "PostgreSQL"; then
+  echo "OK: recall response mentions PostgreSQL (mechanical check)"
+  exit 0
+fi
+echo "FAIL: expected 'PostgreSQL' in recall bundle for project ${PID}" >&2
+echo "$BODY" | jq '.governing_constraints, .decisions' >&2
+exit 1

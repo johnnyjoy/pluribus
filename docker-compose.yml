@@ -1,0 +1,63 @@
+# Recall stack — one command from repo root:
+#   docker compose up -d
+# Starts: postgres, redis, controlplane (:8123). Migrations run when controlplane starts.
+#
+# Databases only (run controlplane on the host instead):
+#   docker compose up -d postgres redis
+
+services:
+  postgres:
+    restart: unless-stopped
+    # pgvector image for optional semantic recall (schema: control-plane/migrations/0001_memory_baseline.sql + boot)
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_DB: controlplane
+      POSTGRES_USER: controlplane
+      POSTGRES_PASSWORD: controlplane
+    ports:
+      - "5432:5432"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - recall_pgdata:/var/lib/postgresql/data/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U controlplane -d controlplane"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    restart: unless-stopped
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  controlplane:
+    restart: unless-stopped
+    build:
+      context: ./control-plane
+      dockerfile: Dockerfile
+    ports:
+      - "8123:8123"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      CONFIG: /config/config.yaml
+      # Optional: PLURIBUS_API_KEY=sk-...  (require X-API-Key on API; see docs/api-contract.md)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  recall_pgdata:

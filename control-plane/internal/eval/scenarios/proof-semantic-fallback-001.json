@@ -1,0 +1,37 @@
+{
+  "id": "proof-semantic-fallback-001",
+  "suite": "semantic",
+  "description": "When semantic embedding path is unavailable, compile logs [SEMANTIC FALLBACK] and exposes semantic_retrieval on the bundle; lexical search still finds tagged memory.",
+  "steps": [
+    {
+      "id": "seed_lexical_marker",
+      "method": "POST",
+      "path": "/v1/memories",
+      "body": {"kind":"constraint","statement":"PROOF_SEM_FALLBACK_X7K9 mandatory marker {{RUN_ID}} for semantic fallback proof.","authority":9,"tags":["proof:semfb:{{RUN_ID}}"]},
+      "expect_status": 200
+    },
+    {
+      "id": "lexical_search_finds_marker",
+      "method": "POST",
+      "path": "/v1/memories/search",
+      "body": {"query":"PROOF_SEM_FALLBACK_X7K9","tags":["proof:semfb:{{RUN_ID}}"]},
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "PROOF_SEM_FALLBACK_X7K9"}
+      ]
+    },
+    {
+      "id": "compile_with_fallback",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {"tags":["proof:semfb:{{RUN_ID}}"],"retrieval_query":"Locate PROOF_SEM_FALLBACK_X7K9 guidance {{RUN_ID}} for the UI.","max_per_kind":10,"max_total":50},
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"semantic_retrieval\""},
+        {"kind": "body_contains", "value": "\"path\":\"lexical_only\""},
+        {"kind": "body_contains", "value": "\"fallback_reason\""},
+        {"kind": "body_contains_any", "values": ["dimension_mismatch", "no_embedder", "embedding_failed", "semantic_retrieval_disabled"]}
+      ]
+    }
+  ]
+}

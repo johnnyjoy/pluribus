@@ -1,0 +1,119 @@
+# Control-plane defaults for docker-compose (postgres + redis service names).
+# Image default: CONFIG=/config/config.yaml (see Dockerfile). For host-local overrides, use config.local.yaml (gitignored) and set CONFIG.
+
+server:
+  bind: ":8123"
+
+# MCP: POST /v1/mcp (default on). Uncomment to disable:
+# mcp:
+#   disabled: true
+
+# Optional backend synthesis for run-multi. Default off — see docs/backend-synthesis.md
+synthesis:
+  enabled: false
+
+startup:
+  db_wait_timeout_seconds: 60
+  db_wait_interval_millis: 1000
+
+postgres:
+  dsn: "postgres://controlplane:controlplane@postgres:5432/controlplane?sslmode=disable"
+
+redis:
+  enabled: true
+  addr: "redis:6379"
+  password: ""
+  db: 0
+  default_ttl_seconds: 300
+
+evidence:
+  root_path: "/tmp/evidence"
+  authority_factor: 0.1
+
+recall:
+  default_max_items_per_kind: 5
+  default_max_total: 0
+  default_max_tokens: 0
+  cache_ttl_seconds: 300
+  ranking:
+    weight_authority: 1.0
+    weight_recency: 0.5
+    weight_scope_match: 1.0
+    weight_tag_match: 1.0
+    weight_failure_overlap: 0.5
+    weight_symbol_overlap: 0.5
+    weight_pattern_priority: 0.0
+    weight_lexical_similarity: 0.15
+    weight_cross_context_salience: 0.12
+    weight_cross_agent_salience: 0.12
+    weight_semantic_similarity: 0.4
+  semantic_retrieval:
+    enabled: true
+  # evidence_in_bundle:
+  #   enabled: false
+  #   max_per_memory: 2
+  #   max_per_bundle: 12
+  #   summary_max_chars: 256
+
+memory:
+  lifecycle:
+    authority_positive_delta: 0.1
+    authority_negative_delta: 0.2
+    expiration_authority_threshold: 2
+  # Exact canonical dedup on POST /v1/memory (Phase C). Omit or enabled: true = reject duplicates with 409.
+  dedup:
+    enabled: true
+    # Phase F: recall bundle near-dup collapse (Jaccard on canonical); 0 = near-dup off (exact key collapse still on when ranking).
+    near_dup_jaccard_threshold: 0.92
+
+slow_path:
+  enabled: false
+  high_risk_threshold: 1.0
+  expand_constraints_by: 4
+  expand_failures_by: 4
+  expand_patterns_by: 2
+  require_second_drift_check: true
+  extra_variants_when_slow: 0
+
+drift:
+  failure_fuzzy_threshold: 0
+  pattern_high_blocks: true
+
+lsp:
+  enabled: false
+  recall_symbol_boost: 0.5
+  reference_expansion_limit: 0
+  high_risk_reference_threshold: 0
+  auto_symbol_max: 64
+
+promotion:
+  require_evidence: false
+  min_evidence_links: 0
+  min_evidence_score: 0
+  require_review: false   # true => promoted rows status pending; see config.example.yaml
+  min_promote_confidence: 0
+  # min_policy_composite / weight_* / signal_norm_divisor — see config.example.yaml
+
+curation:
+  candidate_threshold: 0.5
+  review_threshold: 0.7
+  promote_threshold: 0.85
+  digest_max_proposals: 5
+  digest_work_summary_max_bytes: 8192
+  digest_statement_max_bytes: 2048
+  digest_reason_max_bytes: 1024
+
+# Pre-change enforcement (RC1 default on when section omitted). Uncomment to disable:
+# enforcement:
+#   enabled: false
+#   min_binding_authority: 7
+#   max_binding_memories: 120
+#   include_global_binding: true
+
+# Pluribus: advisory episodes — lexical/tag resemblance (default off).
+# similarity:
+#   enabled: false
+#   max_summary_bytes: 2048
+#   max_episodes_scan: 500
+#   max_results: 5
+#   min_resemblance: 0.08

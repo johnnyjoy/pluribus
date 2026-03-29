@@ -1,0 +1,31 @@
+{
+  "id": "proof-cross-context-001",
+  "suite": "cross-context",
+  "description": "Same durable pattern is recalled under different tag subsets (soft context, not hard partition).",
+  "steps": [
+    {
+      "id": "seed_dual_tag_pattern",
+      "method": "POST",
+      "path": "/v1/memories",
+      "body": {"kind":"pattern","statement":"PROOF CROSS CTX PATTERN {{RUN_ID}}","authority":7,"tags":["ctxa:{{RUN_ID}}","ctxb:{{RUN_ID}}"]},
+      "expect_status": 200
+    },
+    {
+      "id": "compile_ctx_a",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {"retrieval_query":"CROSS CTX PATTERN proof {{RUN_ID}}","tags":["ctxa:{{RUN_ID}}"],"max_per_kind":8,"max_total":40},
+      "expect_status": 200,
+      "store_as": "bundle_ctx_a"
+    },
+    {
+      "id": "compile_ctx_b",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {"retrieval_query":"CROSS CTX PATTERN proof {{RUN_ID}}","tags":["ctxb:{{RUN_ID}}"],"max_per_kind":8,"max_total":40},
+      "expect_status": 200,
+      "store_as": "bundle_ctx_b"
+    }
+  ],
+  "after_invariants": ["cross_context_reuse"]
+}

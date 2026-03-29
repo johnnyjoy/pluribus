@@ -1,0 +1,61 @@
+{
+  "id": "stress-resume-001",
+  "scenario_type": "resume",
+  "goal": "Resume correctly after interruption and time gap",
+  "context": "STATE: Webhook dedupe migration paused after schema rollout\nDECISION: keep idempotency key based replay protection\nCONSTRAINT: do not replay already acknowledged events\nPATTERN: restore from persisted cursor before processing new events",
+  "trap": "FAILURE: replaying old events caused duplicate billing",
+  "success_condition": "Resume from cursor and avoid replay drift",
+  "expected_extraction": {
+    "state": ["Webhook dedupe migration paused after schema rollout"],
+    "decision": ["keep idempotency key based replay protection"],
+    "failure": ["replaying old events caused duplicate billing"],
+    "pattern": ["restore from persisted cursor before processing new events"],
+    "constraint": ["do not replay already acknowledged events"]
+  },
+  "recall_expectations": {
+    "query": "How do we resume webhook processing safely?",
+    "must_include": [
+      "continuity::Webhook dedupe migration paused after schema rollout",
+      "constraints::do not replay already acknowledged events"
+    ]
+  },
+  "behavior_expectations": {
+    "new_task": "Resume webhook migration",
+    "must_avoid": ["replay old events"],
+    "must_apply": ["restore from persisted cursor"]
+  },
+  "steps": [
+    {
+      "task": "webhook-migration",
+      "agent": "A",
+      "action": "run partial migration",
+      "query": "what state and decisions are active",
+      "new_task": "Continue from existing migration cursor",
+      "must_avoid": ["restart from offset 0"],
+      "must_apply": ["persisted cursor"],
+      "must_include": [
+        "continuity::Webhook dedupe migration paused after schema rollout",
+        "continuity::keep idempotency key based replay protection"
+      ]
+    },
+    {
+      "task": "webhook-migration",
+      "agent": "B",
+      "action": "resume after delay",
+      "query": "after interruption what must be restored first",
+      "new_task": "Resume processing after gap",
+      "must_avoid": ["replay old events"],
+      "must_apply": ["restore from persisted cursor"],
+      "must_include": [
+        "constraints::do not replay already acknowledged events",
+        "experience::restore from persisted cursor before processing new events"
+      ]
+    }
+  ],
+  "resume_points": [
+    {
+      "step": 2,
+      "gap": "18h interruption"
+    }
+  ]
+}

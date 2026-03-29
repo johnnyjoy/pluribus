@@ -1,0 +1,23 @@
+{
+  "id": "proof-noise-suppress-001",
+  "suite": "noise",
+  "description": "Irrelevant bulk memories under a different tag do not enter recall when compile filters on the signal tag only (soft context, not container partition).",
+  "steps": [
+    {"id": "noise_1", "method": "POST", "path": "/v1/memories", "body": {"kind":"state","statement":"zzz noise proof filler one {{RUN_ID}}","authority":1,"tags":["proof:noisejunk:{{RUN_ID}}"]}, "expect_status": 200},
+    {"id": "noise_2", "method": "POST", "path": "/v1/memories", "body": {"kind":"state","statement":"zzz noise proof filler two {{RUN_ID}}","authority":1,"tags":["proof:noisejunk:{{RUN_ID}}"]}, "expect_status": 200},
+    {"id": "noise_3", "method": "POST", "path": "/v1/memories", "body": {"kind":"state","statement":"zzz noise proof filler three {{RUN_ID}}","authority":1,"tags":["proof:noisejunk:{{RUN_ID}}"]}, "expect_status": 200},
+    {"id": "signal", "method": "POST", "path": "/v1/memories", "body": {"kind":"decision","statement":"PROOF SIGNAL HUB UNIQUE {{RUN_ID}}","authority":9,"tags":["proof:signals:{{RUN_ID}}"]}, "expect_status": 200},
+    {
+      "id": "compile_focused",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {"retrieval_query":"PROOF SIGNAL HUB UNIQUE {{RUN_ID}}","tags":["proof:signals:{{RUN_ID}}"],"max_per_kind":10,"max_total":50},
+      "expect_status": 200,
+      "store_as": "bundle_noise",
+      "asserts": [
+        {"kind": "body_contains", "value": "PROOF SIGNAL HUB UNIQUE"}
+      ]
+    }
+  ],
+  "after_invariants": ["noise_suppression"]
+}

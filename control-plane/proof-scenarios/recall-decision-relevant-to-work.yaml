@@ -1,0 +1,19 @@
+id: recall-decision-relevant-to-work
+version: 1
+title: Recall surfaces a prior decision for task-scoped compile
+mode: integration
+category: recall
+benefit_claim: >-
+  Past decisions tied to the project/task are retrievable into the recall bundle,
+  reducing rediscovery and preserving continuity across tasks.
+tags:
+  - recall
+  - task
+seed:
+  description: Decision memory plus a task in the same project.
+stimulus:
+  type: recall_compile
+  scope: task
+expected:
+  bundle_contains_kind: decision
+  bundle_statement_substring: feature flags

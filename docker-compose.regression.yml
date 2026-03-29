@@ -1,0 +1,35 @@
+# Ephemeral regression stack: Postgres (no host ports) + Go test runner.
+# Project name is fixed so `down -v` never touches your dev stack (recall_default).
+# From repo root:
+#   make regression
+# Or:
+#   docker compose -f docker-compose.regression.yml run --rm --build regression-runner
+#   docker compose -f docker-compose.regression.yml down -v --remove-orphans
+
+name: recall-regression
+
+services:
+  regression-postgres:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_DB: controlplane
+      POSTGRES_USER: controlplane
+      POSTGRES_PASSWORD: controlplane
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U controlplane -d controlplane"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    # Intentionally no `ports:` — DB is reachable only on the compose network.
+
+  regression-runner:
+    build:
+      context: ./control-plane
+      dockerfile: Dockerfile.regression
+    depends_on:
+      regression-postgres:
+        condition: service_healthy
+    environment:
+      TEST_PG_DSN: postgres://controlplane:controlplane@regression-postgres:5432/controlplane?sslmode=disable
+      TEST_PG_RESET_SCHEMA: "1"
+    # Full control-plane suite including //go:build integration tests (real DB over internal network).

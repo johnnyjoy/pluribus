@@ -1,0 +1,31 @@
+{
+  "id": "proof-paraphrase-001",
+  "suite": "paraphrase",
+  "description": "Two paraphrased retrieval queries recall overlapping memory ids (situational recall, global pool + tags).",
+  "steps": [
+    {
+      "id": "seed_memory",
+      "method": "POST",
+      "path": "/v1/memories",
+      "body": {"kind":"constraint","statement":"PROOF OAUTH2 API AUTH POLICY {{RUN_ID}}","authority":8,"tags":["proof:para:{{RUN_ID}}"]},
+      "expect_status": 200
+    },
+    {
+      "id": "compile_variant_a",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {"retrieval_query":"OAuth2 proof API tokens {{RUN_ID}}","tags":["proof:para:{{RUN_ID}}"],"max_per_kind":8,"max_total":40},
+      "expect_status": 200,
+      "store_as": "bundle_a"
+    },
+    {
+      "id": "compile_variant_b",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {"retrieval_query":"API authentication OAuth2 proof {{RUN_ID}}","tags":["proof:para:{{RUN_ID}}"],"max_per_kind":8,"max_total":40},
+      "expect_status": 200,
+      "store_as": "bundle_b"
+    }
+  ],
+  "after_invariants": ["paraphrase_invariance"]
+}

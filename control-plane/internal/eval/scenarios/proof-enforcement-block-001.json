@@ -1,0 +1,27 @@
+{
+  "id": "proof-enforcement-block-001",
+  "suite": "conflict",
+  "description": "Binding constraint memory blocks a proposal that violates normative rules (Postgres vs SQLite heuristic — same REST contract as RC1 enforcement).",
+  "steps": [
+    {
+      "id": "seed_constraint",
+      "method": "POST",
+      "path": "/v1/memories",
+      "body": {"kind":"constraint","statement":"All durable project data must use Postgres; SQLite is not permitted.","authority":9,"tags":["proof:enf:{{RUN_ID}}"]},
+      "expect_status": 200
+    },
+    {
+      "id": "evaluate_violation",
+      "method": "POST",
+      "path": "/v1/enforcement/evaluate",
+      "body": {"proposal_text":"We will migrate durable storage to SQLite for simplicity.","intent":"datastore"},
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains_any", "values": ["\"decision\":\"block\"", "\"decision\":\"require_review\"", "\"decision\":\"block_overrideable\""]},
+        {"kind": "body_contains", "value": "triggered_memories"},
+        {"kind": "body_contains", "value": "rule_based_heuristic_v1"},
+        {"kind": "body_contains", "value": "normative_conflict"}
+      ]
+    }
+  ]
+}

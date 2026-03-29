@@ -1,0 +1,23 @@
+{
+  "id": "proof-authority-reuse-001",
+  "suite": "reuse",
+  "description": "Duplicate POST /v1/memory with dedup enabled reinforces authority (+1) deterministically.",
+  "steps": [
+    {
+      "id": "first_create",
+      "method": "POST",
+      "path": "/v1/memory",
+      "body": {"kind":"decision","statement":"PROOF REUSE AUTH LINE {{RUN_ID}}","authority":5,"tags":["proof:reuse:{{RUN_ID}}"]},
+      "expect_status": 200,
+      "asserts": [{"kind": "body_contains", "value": "\"authority\":5"}]
+    },
+    {
+      "id": "second_reinforce",
+      "method": "POST",
+      "path": "/v1/memory",
+      "body": {"kind":"decision","statement":"PROOF REUSE AUTH LINE {{RUN_ID}}","authority":5,"tags":["proof:reuse:{{RUN_ID}}"]},
+      "expect_status": 200,
+      "asserts": [{"kind": "body_contains", "value": "\"authority\":6"}]
+    }
+  ]
+}

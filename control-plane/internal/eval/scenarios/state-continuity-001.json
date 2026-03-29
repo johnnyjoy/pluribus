@@ -1,0 +1,27 @@
+{
+  "id": "state-continuity-001",
+  "goal": "Resume interrupted migration task correctly",
+  "context": "STATE: Mid-migration from legacy auth table to unified accounts\nDECISION: migrate in batches of 500 records",
+  "trap": "PATTERN: checkpoint table every batch allows safe resume",
+  "success_condition": "Second run resumes exact state with checkpoint pattern",
+  "expected_extraction": {
+    "state": ["Mid-migration from legacy auth table to unified accounts"],
+    "decision": ["migrate in batches of 500 records"],
+    "failure": [],
+    "pattern": ["checkpoint table every batch allows safe resume"],
+    "constraint": []
+  },
+  "recall_expectations": {
+    "query": "Where did we stop and how do we continue?",
+    "must_include": [
+      "continuity::Mid-migration from legacy auth table to unified accounts",
+      "continuity::migrate in batches of 500 records",
+      "experience::checkpoint table every batch allows safe resume"
+    ]
+  },
+  "behavior_expectations": {
+    "new_task": "Continue the interrupted migration",
+    "must_avoid": ["restart migration from scratch"],
+    "must_apply": ["checkpoint table every batch"]
+  }
+}

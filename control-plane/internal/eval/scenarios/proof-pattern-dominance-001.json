@@ -1,0 +1,18 @@
+{
+  "id": "proof-pattern-dominance-001",
+  "suite": "conflict",
+  "description": "Higher-authority pattern appears before lower-authority pattern in merged experience slices for the same situation.",
+  "steps": [
+    {"id": "low_pattern", "method": "POST", "path": "/v1/memories", "body": {"kind":"pattern","statement":"PROOF_PATTERN_LOW_AUTH minor tip {{RUN_ID}}","authority":4,"tags":["proof:pat:{{RUN_ID}}"]}, "expect_status": 200},
+    {"id": "high_pattern", "method": "POST", "path": "/v1/memories", "body": {"kind":"pattern","statement":"PROOF_PATTERN_HIGH_AUTH critical runbook {{RUN_ID}}","authority":9,"tags":["proof:pat:{{RUN_ID}}"]}, "expect_status": 200},
+    {
+      "id": "compile",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {"retrieval_query":"PROOF_PATTERN runbook proof {{RUN_ID}}","tags":["proof:pat:{{RUN_ID}}"],"max_per_kind":10,"max_total":50},
+      "expect_status": 200,
+      "store_as": "bundle_pat_dom"
+    }
+  ],
+  "after_invariants": ["pattern_dominance"]
+}

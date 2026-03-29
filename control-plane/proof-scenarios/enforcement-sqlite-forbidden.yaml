@@ -1,0 +1,20 @@
+id: enforcement-sqlite-forbidden
+version: 1
+title: Block forbidden SQLite durable-store proposal
+mode: integration
+category: enforcement
+benefit_claim: >-
+  Prevents contradiction of a trusted binding constraint (Postgres-only) before implementation
+  lands — the system materially blocks reintroduction of a forbidden datastore choice.
+tags:
+  - postgres
+  - enforcement
+seed:
+  description: Project with binding constraint memory requiring Postgres for durable data.
+stimulus:
+  type: enforcement_evaluate
+  proposal_text: We will migrate durable storage to SQLite.
+  intent: datastore
+expected:
+  decision: block
+  first_trigger_reason_code: normative_conflict

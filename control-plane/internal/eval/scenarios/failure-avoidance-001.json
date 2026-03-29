@@ -1,0 +1,27 @@
+{
+  "id": "failure-avoidance-001",
+  "goal": "Prevent repeat deployment failure",
+  "context": "STATE: Deploy pipeline hardening\nDECISION: Keep transactional postgres migrations",
+  "trap": "FAILURE: skipping tests broke deploy\nCONSTRAINT: never skip tests in release path\nPATTERN: staged rollout with retries avoids blast radius",
+  "success_condition": "Second run does not repeat skip-tests failure",
+  "expected_extraction": {
+    "state": ["Deploy pipeline hardening"],
+    "decision": ["Keep transactional postgres migrations"],
+    "failure": ["skipping tests broke deploy"],
+    "pattern": ["staged rollout with retries avoids blast radius"],
+    "constraint": ["never skip tests in release path"]
+  },
+  "recall_expectations": {
+    "query": "How should we deploy safely?",
+    "must_include": [
+      "continuity::Deploy pipeline hardening",
+      "constraints::never skip tests in release path",
+      "experience::staged rollout with retries avoids blast radius"
+    ]
+  },
+  "behavior_expectations": {
+    "new_task": "Ship the next release candidate",
+    "must_avoid": ["skip tests"],
+    "must_apply": ["staged rollout with retries"]
+  }
+}

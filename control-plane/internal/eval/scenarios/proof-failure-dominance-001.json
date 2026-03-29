@@ -1,0 +1,18 @@
+{
+  "id": "proof-failure-dominance-001",
+  "suite": "conflict",
+  "description": "High-authority known failure is present in recall; weak constraint does not outrank it on authority in the bundle.",
+  "steps": [
+    {"id": "seed_failure", "method": "POST", "path": "/v1/memories", "body": {"kind":"failure","statement":"PROOF_FAILURE_DOMINANT outage when skipping backups {{RUN_ID}}","authority":9,"tags":["proof:fdom:{{RUN_ID}}"]}, "expect_status": 200},
+    {"id": "seed_weak_constraint", "method": "POST", "path": "/v1/memories", "body": {"kind":"constraint","statement":"PROOF_WEAK_CONSTRAINT_ONLY prefer dark themes {{RUN_ID}}","authority":2,"tags":["proof:fdom:{{RUN_ID}}"]}, "expect_status": 200},
+    {
+      "id": "compile",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {"retrieval_query":"backups outage proof {{RUN_ID}}","tags":["proof:fdom:{{RUN_ID}}"],"max_per_kind":10,"max_total":50},
+      "expect_status": 200,
+      "store_as": "bundle_fail_dom"
+    }
+  ],
+  "after_invariants": ["failure_dominance"]
+}

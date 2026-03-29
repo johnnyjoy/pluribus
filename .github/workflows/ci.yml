@@ -1,0 +1,190 @@
+# Beta gate: (1) control-plane unit tests, (2) authoritative control-plane Docker regression,
+# (3) Dockerfile smoke build, (4) multi-arch publish to GHCR on main/master/version tags only.
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  control-plane-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Control-plane unit tests
+        run: cd control-plane && go test ./...
+
+  controlplane-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Control-plane regression (ephemeral Postgres + integration tests)
+        run: make regression
+
+  # Fast smoke: Dockerfile must produce a runnable image (single-arch); blocks broken Docker packaging on PRs.
+  validate-controlplane-dockerfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker build (control-plane image)
+        run: docker build -t recall-controlplane-ci --build-arg VERSION=ci -f control-plane/Dockerfile control-plane
+
+  # Publication is regression-gated and never runs on pull_request.
+  publish-pluribus:
+    needs: [control-plane-unit, controlplane-regression, validate-controlplane-dockerfile]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Platforms = intersection of official postgres:18-alpine and redis:7 (see docker-compose.yml).
+      # Excluded: e.g. linux/riscv64 (Postgres only), linux/mips64le (Redis only), linux/arm/v5|v6 (not in both).
+      - name: Build and push multi-arch image
+        run: |
+          set -euo pipefail
+          OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${OWNER_LC}/pluribus"
+          REF="${{ github.ref }}"
+          SHA="${{ github.sha }}"
+          TAGS=()
+          if [[ "$REF" == refs/tags/v* ]]; then
+            TAG="${REF#refs/tags/}"
+            TAGS+=(-t "${IMAGE}:${TAG}" -t "${IMAGE}:latest")
+          else
+            BRANCH="${REF#refs/heads/}"
+            TAGS+=(-t "${IMAGE}:${BRANCH}" -t "${IMAGE}:sha-${SHA:0:7}")
+          fi
+          docker buildx build \
+            --platform linux/386,linux/amd64,linux/arm/v7,linux/arm64,linux/ppc64le,linux/s390x \
+            --push \
+            "${TAGS[@]}" \
+            -f control-plane/Dockerfile \
+            control-plane
+
+  build-pluribus-mcp-artifacts:
+    needs: [control-plane-unit, controlplane-regression, validate-controlplane-dockerfile]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suffix: amd64
+            goarch: amd64
+          - suffix: arm64
+            goarch: arm64
+          - suffix: armv7
+            goarch: arm
+            goarm: 7
+          - suffix: '386'
+            goarch: 386
+          - suffix: ppc64le
+            goarch: ppc64le
+          - suffix: s390x
+            goarch: s390x
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build pluribus-mcp for ${{ matrix.suffix }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd control-plane
+
+          export CGO_ENABLED=0
+          export GOOS=linux
+          export GOARCH='${{ matrix.goarch }}'
+          export GOARM='${{ matrix.goarm || '' }}'
+
+          # Only set GOARM when building for armv7.
+          if [[ -z "${GOARM}" ]]; then
+            unset GOARM || true
+          fi
+
+          # Build into a packaging directory so the tarball root is just `pluribus-mcp`.
+          rm -rf dist pkg
+          mkdir -p pkg
+          go build -trimpath -ldflags="-s -w" -o pkg/pluribus-mcp ./cmd/pluribus-mcp
+
+          mkdir -p dist
+          tar -czf "dist/pluribus-mcp-linux-${{ matrix.suffix }}.tar.gz" -C pkg pluribus-mcp
+
+      - name: Upload artifacts (tar.gz)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-${{ matrix.suffix }}
+          path: control-plane/dist/*.tar.gz
+
+  publish-pluribus-mcp-github-release:
+    needs: [build-pluribus-mcp-artifacts]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all matrix artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: mcp-*
+          merge-multiple: true
+
+      - name: Create combined SHA256SUMS
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          shopt -s globstar
+          mkdir -p dist
+          # Collect tarballs regardless of whether artifact download kept `control-plane/dist/`
+          # or created artifact-named subfolders.
+          tars=(**/pluribus-mcp-linux-*.tar.gz)
+          if [[ "${#tars[@]}" -eq 0 ]]; then
+            echo "No pluribus-mcp tar.gz files found after downloading artifacts" >&2
+            exit 1
+          fi
+          cp -f "${tars[@]}" dist/
+          sha256sum dist/*.tar.gz > dist/SHA256SUMS.txt
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            dist/pluribus-mcp-linux-386.tar.gz
+            dist/pluribus-mcp-linux-amd64.tar.gz
+            dist/pluribus-mcp-linux-armv7.tar.gz
+            dist/pluribus-mcp-linux-arm64.tar.gz
+            dist/pluribus-mcp-linux-ppc64le.tar.gz
+            dist/pluribus-mcp-linux-s390x.tar.gz
+            dist/SHA256SUMS.txt

@@ -1,0 +1,23 @@
+id: mcp-prompt-resource-discipline-manual
+version: 1
+title: MCP prompt and resource discipline checklist (manual release gate)
+mode: manual
+category: mcp_discipline
+benefit_claim: >-
+  Release operators confirm prompts/resources copy and SurfaceVersion align with
+  shipped HTTP tool semantics before tagging a Pluribus build.
+tags:
+  - mcp
+  - prompts
+  - resources
+seed:
+  doc_audit: docs/mcp-prompt-resource-audit.md
+  doc_proof: docs/mcp-prompt-resource-proof.md
+  doc_versioning: docs/mcp-prompt-resource-versioning.md
+stimulus:
+  operator_steps: >-
+    1) List prompts/resources via MCP or read embedded files under internal/mcp.
+    2) Verify locked lifecycle mnemonic and six resource URIs match docs.
+    3) Cross-check tool names vs mcp-poc-contract.md.
+expected:
+  surface_bundle_matches_docs: true

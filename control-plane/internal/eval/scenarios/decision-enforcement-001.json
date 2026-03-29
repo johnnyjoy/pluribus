@@ -1,0 +1,26 @@
+{
+  "id": "decision-enforcement-001",
+  "goal": "Keep architectural decision stable under pressure",
+  "context": "STATE: Build memory index service\nDECISION: use postgres as durable store for control-plane",
+  "trap": "FAILURE: ad-hoc sqlite switch fragmented production data",
+  "success_condition": "Second run aligns with durable-store decision",
+  "expected_extraction": {
+    "state": ["Build memory index service"],
+    "decision": ["use postgres as durable store for control-plane"],
+    "failure": ["ad-hoc sqlite switch fragmented production data"],
+    "pattern": [],
+    "constraint": []
+  },
+  "recall_expectations": {
+    "query": "Should we switch storage engine now?",
+    "must_include": [
+      "continuity::use postgres as durable store for control-plane",
+      "constraints::ad-hoc sqlite switch fragmented production data"
+    ]
+  },
+  "behavior_expectations": {
+    "new_task": "Propose the next storage change",
+    "must_avoid": ["switch to sqlite"],
+    "must_apply": ["use postgres as durable store for control-plane"]
+  }
+}

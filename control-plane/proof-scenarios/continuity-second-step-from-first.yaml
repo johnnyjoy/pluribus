@@ -1,0 +1,16 @@
+id: continuity-second-step-from-first
+version: 1
+title: Second-step recall benefits from first-step materialized learning
+mode: integration
+category: continuity
+benefit_claim: >-
+  Continuity: a second retrieval step in the same project still sees memory created
+  in an earlier step — learning persists across steps within one proof flow.
+tags:
+  - continuity
+seed:
+  description: Single project; digest/materialize then two recall compiles.
+stimulus:
+  type: two_step_recall
+expected:
+  both_steps_see_decision: true

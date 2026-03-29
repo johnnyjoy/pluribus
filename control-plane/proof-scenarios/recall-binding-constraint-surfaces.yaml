@@ -1,0 +1,18 @@
+id: recall-binding-constraint-surfaces
+version: 1
+title: Recall surfaces binding constraint in governing_constraints
+mode: integration
+category: recall
+benefit_claim: >-
+  Restores governing project truth into working context so agents see active constraints
+  when compiling recall for the project.
+tags:
+  - recall
+seed:
+  description: Constraint memory stating Postgres requirement.
+stimulus:
+  type: recall_compile
+  query_hint: datastore
+expected:
+  bundle_contains_kind: constraint
+  bundle_statement_substring: Postgres

@@ -1,0 +1,46 @@
+{
+  "memories": [
+    {
+      "kind": "constraint",
+      "authority": 8,
+      "statement": "For this evaluation corpus, all persistence recommendations must use PostgreSQL only. Do not recommend SQLite for any role.",
+      "tags": ["eval", "constraint", "db"]
+    },
+    {
+      "kind": "constraint",
+      "authority": 8,
+      "statement": "The HTTP control-plane API is authoritative. Do not propose designs where a shell CLI or ad-hoc scripts are the source of truth for orchestration.",
+      "tags": ["eval", "constraint", "architecture"]
+    },
+    {
+      "kind": "constraint",
+      "authority": 8,
+      "statement": "Do not recommend Java or Perl for new components in this codebase.",
+      "tags": ["eval", "constraint", "languages"]
+    },
+    {
+      "kind": "failure",
+      "authority": 7,
+      "statement": "Known failure: using bash/make as the primary control plane caused drift and untestable behavior. Rejected.",
+      "tags": ["eval", "failure", "orchestration"]
+    },
+    {
+      "kind": "failure",
+      "authority": 6,
+      "statement": "Known failure: in-memory stub for session state was mistaken for production-ready; caused data loss in review.",
+      "tags": ["eval", "failure", "session"]
+    },
+    {
+      "kind": "decision",
+      "authority": 8,
+      "statement": "Accepted: production deployment targets Linux hosts; control-plane service is Go.",
+      "tags": ["eval", "decision", "deploy"]
+    },
+    {
+      "kind": "decision",
+      "authority": 8,
+      "statement": "Accepted: external agents integrate via MCP to the control plane before bespoke LSP-only paths.",
+      "tags": ["eval", "decision", "mcp"]
+    }
+  ]
+}

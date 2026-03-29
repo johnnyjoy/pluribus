@@ -1,0 +1,13 @@
+# golangci-lint for the control-plane module. Run: cd control-plane && golangci-lint run ./...
+run:
+  timeout: 5m
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - ineffassign
+    - gofmt
+linters-settings:
+  govet:
+    enable-all: true

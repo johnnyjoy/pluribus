@@ -1,0 +1,597 @@
+=== RUN   TestEvaluationHarness
+2026/03/27 09:02:37 INFO [TRIGGER] types="[decision similarity]" reasons="[phrasing:or situational_context_rich:token_count=21]" effective_query="How should we configure API credentials? decisions tradeoffs patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[67e91176-2f06-447f-a85d-a15d3a89f10e:never commit credentials to repository]" failures="[184d4ec4-9eaa-4d4a-acd9-a6ccdb6f3160:checked-in token required incident rotation]" patterns="[854e6367-4d24-4aa4-8cef-623a4c1b22ce:env injection from vault at runtime is safe]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk decision]" reasons="[keyword:production phrasing:or]" effective_query="Should we switch storage engine now? risks constraints failures decisions tradeoffs" dedupe_skipped=true
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints=[] failures="[d40e5f2f-10e9-41b7-bffc-2b9f46b4e39d:ad-hoc sqlite switch fragmented production data]" patterns=[]
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk decision]" reasons="[keyword:deploy phrasing:or]" effective_query="deploy now risks constraints failures decisions tradeoffs" dedupe_skipped=true
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[6023d739-d5dd-468e-b9d2-f612581bd5c2:never skip tests in release path]" failures="[2ee368e4-d4ac-4791-b5c2-6b6f58f28fc7:prior release skipped tests and caused rollback storm]" patterns="[b1fa6510-ddde-4abc-bd76-bae4845b7237:staged rollout with rollback checkpoints]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk similarity]" reasons="[keyword:deploy situational_context_rich:token_count=7]" effective_query="deploy production now risks constraints failures patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[6023d739-d5dd-468e-b9d2-f612581bd5c2:never skip tests in release path]" failures="[2ee368e4-d4ac-4791-b5c2-6b6f58f28fc7:prior release skipped tests and caused rollback storm]" patterns="[b1fa6510-ddde-4abc-bd76-bae4845b7237:staged rollout with rollback checkpoints]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk decision]" reasons="[keyword:production phrasing:or]" effective_query="switch storage quickly risks constraints failures decisions tradeoffs" dedupe_skipped=true
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[44d8093f-8ae1-48f3-a777-f25a5cb9ab98:never replace postgres durable store with sqlite in production]" failures="[e90615e5-9cbc-4bf4-a4eb-dfa3c337b4cf:ad-hoc sqlite switch fragmented production data]" patterns="[e101642a-544b-4786-bc84-ceb1fd0b8948:validate migration plan before storage changes]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[decision similarity]" reasons="[phrasing:or situational_context_rich:token_count=10]" effective_query="use sqlite now maybe easier decisions tradeoffs patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[44d8093f-8ae1-48f3-a777-f25a5cb9ab98:never replace postgres durable store with sqlite in production]" failures="[e90615e5-9cbc-4bf4-a4eb-dfa3c337b4cf:ad-hoc sqlite switch fragmented production data]" patterns="[e101642a-544b-4786-bc84-ceb1fd0b8948:validate migration plan before storage changes]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk decision]" reasons="[keyword:deploy phrasing:should we]" effective_query="How should we deploy safely? risks constraints failures decisions tradeoffs" dedupe_skipped=true
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[9a3be660-963e-4a63-8332-0156610f3fa0:never skip tests in release path]" failures="[32bb4808-7b58-4093-a77a-5741eb73f59c:skipping tests broke deploy]" patterns="[96a5fb63-26ae-4450-94c5-d853de38d56f:staged rollout with retries avoids blast radius]"
+2026/03/27 09:02:37 INFO [TRIGGER] types=[similarity] reasons="[situational_context_rich:token_count=20]" effective_query="How do we process webhook retries? patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints=[] failures="[64dbe393-5aab-4742-af53-815cebfd3d43:direct handler writes created duplicate charges]" patterns="[1a33a103-ff63-435d-9d04-28bbccf677c9:idempotency keys plus retry queue stabilized webhook ingestion]"
+2026/03/27 09:02:37 INFO [TRIGGER] types=[similarity] reasons="[situational_context_rich:token_count=12]" effective_query="Where did we stop and how do we continue? patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints=[] failures=[] patterns="[4411f7b0-dbb1-4b84-8bcc-cf5e48383d06:checkpoint table every batch allows safe resume]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk similarity]" reasons="[keyword:deploy situational_context_rich:token_count=15]" effective_query="How do we handle conflicting deployment signals safely? risks constraints failures patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[7d54a303-cfde-4c6f-829f-ec8f87b63cd5:never deploy if critical checks are missing]" failures="[bba4239c-ac3c-4825-be88-8bb75409a952:conflict between rushed hotfix and migration lock caused downtime]" patterns="[5ee4f1d4-ad13-47c8-a421-e108d101f1bd:validate constraints then execute staged rollout]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk similarity]" reasons="[keyword:deploy situational_context_rich:token_count=11]" effective_query="deploy now maybe skip some checks risks constraints failures patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[7d54a303-cfde-4c6f-829f-ec8f87b63cd5:never deploy if critical checks are missing]" failures="[bba4239c-ac3c-4825-be88-8bb75409a952:conflict between rushed hotfix and migration lock caused downtime]" patterns="[5ee4f1d4-ad13-47c8-a421-e108d101f1bd:validate constraints then execute staged rollout]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk decision]" reasons="[keyword:deploy phrasing:or]" effective_query="hotfix says deploy now but migration lock says wait risks constraints failures decisions tradeoffs" dedupe_skipped=true
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[7d54a303-cfde-4c6f-829f-ec8f87b63cd5:never deploy if critical checks are missing]" failures="[bba4239c-ac3c-4825-be88-8bb75409a952:conflict between rushed hotfix and migration lock caused downtime]" patterns="[5ee4f1d4-ad13-47c8-a421-e108d101f1bd:validate constraints then execute staged rollout]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk similarity]" reasons="[keyword:release situational_context_rich:token_count=12]" effective_query="How do we continue the migration safely? risks constraints failures patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[32fa2766-509e-4bf7-b153-d2e22884b00c:never skip validation before release]" failures="[07ee36aa-0ac5-4d83-bdec-c4301a768f11:skipping validation caused rollback loop in previous release]" patterns="[206721fc-4fcd-49de-b34a-b1e702d5bc25:checkpoint each batch and verify row counts before continue]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk similarity]" reasons="[keyword:migration situational_context_rich:token_count=10]" effective_query="where did migration stop and what must stay fixed risks constraints failures patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[32fa2766-509e-4bf7-b153-d2e22884b00c:never skip validation before release]" failures="[07ee36aa-0ac5-4d83-bdec-c4301a768f11:skipping validation caused rollback loop in previous release]" patterns="[206721fc-4fcd-49de-b34a-b1e702d5bc25:checkpoint each batch and verify row counts before continue]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk decision]" reasons="[keyword:release phrasing:or]" effective_query="what must happen before release risks constraints failures decisions tradeoffs" dedupe_skipped=true
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[32fa2766-509e-4bf7-b153-d2e22884b00c:never skip validation before release]" failures="[07ee36aa-0ac5-4d83-bdec-c4301a768f11:skipping validation caused rollback loop in previous release]" patterns="[206721fc-4fcd-49de-b34a-b1e702d5bc25:checkpoint each batch and verify row counts before continue]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk similarity]" reasons="[keyword:deploy situational_context_rich:token_count=9]" effective_query="how to deploy without repeating rollback loop risks constraints failures patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[32fa2766-509e-4bf7-b153-d2e22884b00c:never skip validation before release]" failures="[07ee36aa-0ac5-4d83-bdec-c4301a768f11:skipping validation caused rollback loop in previous release]" patterns="[206721fc-4fcd-49de-b34a-b1e702d5bc25:checkpoint each batch and verify row counts before continue]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk decision]" reasons="[keyword:migration phrasing:or]" effective_query="How to avoid cross-task contamination? risks constraints failures decisions tradeoffs" dedupe_skipped=true
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[d8538e69-7b50-4e0c-9ec0-629c5ad920ba:never apply webhook retry policy to migration SQL execution]" failures="[b6df9bf1-a17b-43f5-ba45-3aaf69f652e4:prior incident mixed webhook retry logic into migration orchestration]" patterns="[ca642258-85f4-4796-8464-a0e749fa9849:task-tagged runbooks prevent cross-task contamination]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk similarity]" reasons="[keyword:migration situational_context_rich:token_count=8]" effective_query="what rules apply to migration only risks constraints failures patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[d8538e69-7b50-4e0c-9ec0-629c5ad920ba:never apply webhook retry policy to migration SQL execution]" failures="[b6df9bf1-a17b-43f5-ba45-3aaf69f652e4:prior incident mixed webhook retry logic into migration orchestration]" patterns="[ca642258-85f4-4796-8464-a0e749fa9849:task-tagged runbooks prevent cross-task contamination]"
+2026/03/27 09:02:37 INFO [TRIGGER] types=[similarity] reasons="[situational_context_rich:token_count=10]" effective_query="what state applies to webhook delivery only patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[d8538e69-7b50-4e0c-9ec0-629c5ad920ba:never apply webhook retry policy to migration SQL execution]" failures="[b6df9bf1-a17b-43f5-ba45-3aaf69f652e4:prior incident mixed webhook retry logic into migration orchestration]" patterns="[ca642258-85f4-4796-8464-a0e749fa9849:task-tagged runbooks prevent cross-task contamination]"
+2026/03/27 09:02:37 INFO [TRIGGER] types=[similarity] reasons="[situational_context_rich:token_count=8]" effective_query="what state applies to docs only patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[d8538e69-7b50-4e0c-9ec0-629c5ad920ba:never apply webhook retry policy to migration SQL execution]" failures="[b6df9bf1-a17b-43f5-ba45-3aaf69f652e4:prior incident mixed webhook retry logic into migration orchestration]" patterns="[ca642258-85f4-4796-8464-a0e749fa9849:task-tagged runbooks prevent cross-task contamination]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk similarity]" reasons="[keyword:release situational_context_rich:token_count=14]" effective_query="How should agents continue release safely? risks constraints failures patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[cdf85aad-b71a-42d6-8343-9531f4ae8035:never bypass rollback checkpoints]" failures="[21b76bc8-a8e0-4c73-b583-3ce580fab7d9:one-off hotfix skipped rollback checkpoint and prolonged outage]" patterns="[4a8f88db-d672-45e3-8b18-d75339541e57:staged rollout with health gates and fast rollback]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[decision similarity]" reasons="[phrasing:or situational_context_rich:token_count=8]" effective_query="what must hold before handoff decisions tradeoffs patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[cdf85aad-b71a-42d6-8343-9531f4ae8035:never bypass rollback checkpoints]" failures="[21b76bc8-a8e0-4c73-b583-3ce580fab7d9:one-off hotfix skipped rollback checkpoint and prolonged outage]" patterns="[4a8f88db-d672-45e3-8b18-d75339541e57:staged rollout with health gates and fast rollback]"
+2026/03/27 09:02:37 INFO [TRIGGER] types=[similarity] reasons="[situational_context_rich:token_count=8]" effective_query="how to execute first wave safely patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[cdf85aad-b71a-42d6-8343-9531f4ae8035:never bypass rollback checkpoints]" failures="[21b76bc8-a8e0-4c73-b583-3ce580fab7d9:one-off hotfix skipped rollback checkpoint and prolonged outage]" patterns="[4a8f88db-d672-45e3-8b18-d75339541e57:staged rollout with health gates and fast rollback]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[decision similarity]" reasons="[phrasing:or situational_context_rich:token_count=8]" effective_query="continue based on prior agent memory decisions tradeoffs patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[cdf85aad-b71a-42d6-8343-9531f4ae8035:never bypass rollback checkpoints]" failures="[21b76bc8-a8e0-4c73-b583-3ce580fab7d9:one-off hotfix skipped rollback checkpoint and prolonged outage]" patterns="[4a8f88db-d672-45e3-8b18-d75339541e57:staged rollout with health gates and fast rollback]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk similarity]" reasons="[keyword:release situational_context_rich:token_count=7]" effective_query="resume safely and finalize risks constraints failures patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[cdf85aad-b71a-42d6-8343-9531f4ae8035:never bypass rollback checkpoints]" failures="[21b76bc8-a8e0-4c73-b583-3ce580fab7d9:one-off hotfix skipped rollback checkpoint and prolonged outage]" patterns="[4a8f88db-d672-45e3-8b18-d75339541e57:staged rollout with health gates and fast rollback]"
+2026/03/27 09:02:37 INFO [TRIGGER] types=[similarity] reasons="[situational_context_rich:token_count=12]" effective_query="How do we resume webhook processing safely? patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[fa7e529e-501f-4c50-a22b-41743856387f:do not replay already acknowledged events]" failures="[58b24d81-47d7-44f5-a955-fd45ca1d4f58:replaying old events caused duplicate billing]" patterns="[9478a108-0bb8-43c2-ad8e-72588f1327e4:restore from persisted cursor before processing new events]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[risk similarity]" reasons="[keyword:migration situational_context_rich:token_count=7]" effective_query="what state and decisions are active risks constraints failures patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[fa7e529e-501f-4c50-a22b-41743856387f:do not replay already acknowledged events]" failures="[58b24d81-47d7-44f5-a955-fd45ca1d4f58:replaying old events caused duplicate billing]" patterns="[9478a108-0bb8-43c2-ad8e-72588f1327e4:restore from persisted cursor before processing new events]"
+2026/03/27 09:02:37 INFO [TRIGGER] types="[decision similarity]" reasons="[phrasing:or situational_context_rich:token_count=9]" effective_query="after interruption what must be restored first decisions tradeoffs patterns experience" dedupe_skipped=false
+2026/03/27 09:02:37 INFO [RECALL_RESULT] constraints="[fa7e529e-501f-4c50-a22b-41743856387f:do not replay already acknowledged events]" failures="[58b24d81-47d7-44f5-a955-fd45ca1d4f58:replaying old events caused duplicate billing]" patterns="[9478a108-0bb8-43c2-ad8e-72588f1327e4:restore from persisted cursor before processing new events]"
+    eval_test.go:20: 
+        [AGGREGATE]
+        total_triggers: 21 scenarios_with_triggers: 12 redundant_trigger_rows: 12
+        delta_better: 0 delta_same: 12 delta_worse: 0 all_passed: true
+        
+    eval_test.go:22: 
+        [SCENARIO] constraint-enforcement-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 2 kinds=[decision similarity] skipped_reason="" capped=false redundant=true
+        explicit_query: "How should we configure API credentials?"
+        effective_query: "How should we configure API credentials? decisions tradeoffs patterns experience"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+    eval_test.go:22: 
+        [SCENARIO] decision-enforcement-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 2 kinds=[risk decision] skipped_reason="max_triggers_per_request" capped=true redundant=true
+        explicit_query: "Should we switch storage engine now?"
+        effective_query: "Should we switch storage engine now? risks constraints failures decisions tradeoffs"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+    eval_test.go:22: 
+        [SCENARIO] discipline-skip-recall-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 2 kinds=[risk decision] skipped_reason="max_triggers_per_request" capped=true redundant=true
+        explicit_query: "deploy now"
+        effective_query: "deploy now risks constraints failures decisions tradeoffs"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+        [SCENARIO]
+        continuity maintained: yes
+        failure avoided: yes
+        pattern reused: yes
+        drift detected: no
+        
+        [WORKFLOW STEP]
+        task: release
+        action: propose deploy with minimal context
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: release
+        action: propose deploy with minimal context
+        recall_used: yes
+        
+    eval_test.go:22: 
+        [SCENARIO] discipline-weak-proposal-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 2 kinds=[risk decision] skipped_reason="max_triggers_per_request" capped=true redundant=true
+        explicit_query: "switch storage quickly"
+        effective_query: "switch storage quickly risks constraints failures decisions tradeoffs"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+        [SCENARIO]
+        continuity maintained: yes
+        failure avoided: yes
+        pattern reused: yes
+        drift detected: no
+        
+        [WORKFLOW STEP]
+        task: storage-cutover
+        action: submit weak storage switch proposal
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: storage-cutover
+        action: submit weak storage switch proposal
+        recall_used: yes
+        
+    eval_test.go:22: 
+        [SCENARIO] failure-avoidance-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 2 kinds=[risk decision] skipped_reason="max_triggers_per_request" capped=true redundant=true
+        explicit_query: "How should we deploy safely?"
+        effective_query: "How should we deploy safely? risks constraints failures decisions tradeoffs"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+    eval_test.go:22: 
+        [SCENARIO] pattern-reuse-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 1 kinds=[similarity] skipped_reason="" capped=false redundant=true
+        explicit_query: "How do we process webhook retries?"
+        effective_query: "How do we process webhook retries? patterns experience"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+    eval_test.go:22: 
+        [SCENARIO] state-continuity-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 1 kinds=[similarity] skipped_reason="" capped=false redundant=true
+        explicit_query: "Where did we stop and how do we continue?"
+        effective_query: "Where did we stop and how do we continue? patterns experience"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+    eval_test.go:22: 
+        [SCENARIO] stress-failure-injection-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 2 kinds=[risk similarity] skipped_reason="" capped=false redundant=true
+        explicit_query: "How do we handle conflicting deployment signals safely?"
+        effective_query: "How do we handle conflicting deployment signals safely? risks constraints failures patterns experience"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+        [SCENARIO]
+        continuity maintained: yes
+        failure avoided: yes
+        pattern reused: yes
+        drift detected: no
+        
+        [WORKFLOW STEP]
+        task: deploy
+        action: attempt deploy with missing recall context
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: deploy
+        action: inject conflicting proposal and noisy memory
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: deploy
+        action: attempt deploy with missing recall context
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: deploy
+        action: inject conflicting proposal and noisy memory
+        recall_used: yes
+        
+    eval_test.go:22: 
+        [SCENARIO] stress-long-workflow-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 2 kinds=[risk similarity] skipped_reason="" capped=false redundant=true
+        explicit_query: "How do we continue the migration safely?"
+        effective_query: "How do we continue the migration safely? risks constraints failures patterns experience"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+        [SCENARIO]
+        continuity maintained: yes
+        failure avoided: yes
+        pattern reused: yes
+        drift detected: no
+        
+        [WORKFLOW STEP]
+        task: migration
+        action: resume checkpointed migration
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: validation
+        action: prepare validation stage
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: release
+        action: execute staged release
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: migration
+        action: resume checkpointed migration
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: validation
+        action: prepare validation stage
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: release
+        action: execute staged release
+        recall_used: yes
+        
+    eval_test.go:22: 
+        [SCENARIO] stress-mixed-task-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 2 kinds=[risk decision] skipped_reason="max_triggers_per_request" capped=true redundant=true
+        explicit_query: "How to avoid cross-task contamination?"
+        effective_query: "How to avoid cross-task contamination? risks constraints failures decisions tradeoffs"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+        [SCENARIO]
+        continuity maintained: yes
+        failure avoided: yes
+        pattern reused: yes
+        drift detected: no
+        
+        [WORKFLOW STEP]
+        task: migration
+        action: run migration phase
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: webhook
+        action: run webhook retry sweep
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: docs
+        action: publish docs refresh
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: migration
+        action: run migration phase
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: webhook
+        action: run webhook retry sweep
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: docs
+        action: publish docs refresh
+        recall_used: yes
+        
+    eval_test.go:22: 
+        [SCENARIO] stress-multi-agent-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 2 kinds=[risk similarity] skipped_reason="" capped=false redundant=true
+        explicit_query: "How should agents continue release safely?"
+        effective_query: "How should agents continue release safely? risks constraints failures patterns experience"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+        [SCENARIO]
+        continuity maintained: yes
+        failure avoided: yes
+        pattern reused: yes
+        drift detected: no
+        
+        [WORKFLOW STEP]
+        task: release-train
+        action: prepare rollout plan
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: release-train
+        action: execute first wave
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: release-train
+        action: continue second wave
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: release-train
+        action: finalize release after pause [resume gap: 6h pause before finalization]
+        recall_used: yes
+        
+        [RESUME]
+        restored_state: 2
+        restored_constraints: 2
+        
+        [WORKFLOW STEP]
+        task: release-train
+        action: prepare rollout plan
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: release-train
+        action: execute first wave
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: release-train
+        action: continue second wave
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: release-train
+        action: finalize release after pause [resume gap: 6h pause before finalization]
+        recall_used: yes
+        
+        [RESUME]
+        restored_state: 2
+        restored_constraints: 2
+        
+    eval_test.go:22: 
+        [SCENARIO] stress-resume-001
+        
+        [EXTRACTION]
+        PASS
+        
+        [EXPLICIT RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGERED RECALL]
+        recall: PASS
+        behavior: PASS
+        continuity restored (decision aligned heuristic): avoided_failure=true applied_pattern=true aligned_with_decision=true
+        
+        [TRIGGER OBSERVED]
+        triggers_fired: 1 kinds=[similarity] skipped_reason="" capped=false redundant=true
+        explicit_query: "How do we resume webhook processing safely?"
+        effective_query: "How do we resume webhook processing safely? patterns experience"
+        
+        [DELTA]
+        improvement: same
+        notes: both arms pass with identical behavior flags and recall check
+        
+        [SCENARIO]
+        continuity maintained: yes
+        failure avoided: yes
+        pattern reused: yes
+        drift detected: no
+        
+        [WORKFLOW STEP]
+        task: webhook-migration
+        action: run partial migration
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: webhook-migration
+        action: resume after delay [resume gap: 18h interruption]
+        recall_used: yes
+        
+        [RESUME]
+        restored_state: 2
+        restored_constraints: 2
+        
+        [WORKFLOW STEP]
+        task: webhook-migration
+        action: run partial migration
+        recall_used: yes
+        
+        [WORKFLOW STEP]
+        task: webhook-migration
+        action: resume after delay [resume gap: 18h interruption]
+        recall_used: yes
+        
+        [RESUME]
+        restored_state: 2
+        restored_constraints: 2
+        
+--- PASS: TestEvaluationHarness (0.01s)
+=== RUN   TestDetectTriggersFromScenarios
+    eval_test.go:102: constraint-enforcement-001: detect_triggers=2
+    eval_test.go:102: decision-enforcement-001: detect_triggers=3
+    eval_test.go:102: discipline-skip-recall-001: detect_triggers=3
+    eval_test.go:102: discipline-weak-proposal-001: detect_triggers=3
+    eval_test.go:102: failure-avoidance-001: detect_triggers=3
+    eval_test.go:102: pattern-reuse-001: detect_triggers=1
+    eval_test.go:102: state-continuity-001: detect_triggers=1
+    eval_test.go:102: stress-failure-injection-001: detect_triggers=2
+    eval_test.go:102: stress-long-workflow-001: detect_triggers=2
+    eval_test.go:102: stress-mixed-task-001: detect_triggers=3
+    eval_test.go:102: stress-multi-agent-001: detect_triggers=2
+    eval_test.go:102: stress-resume-001: detect_triggers=1
+--- PASS: TestDetectTriggersFromScenarios (0.00s)
+PASS
+ok  	control-plane/internal/eval	0.013s

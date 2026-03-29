@@ -1,0 +1,21 @@
+id: anti-drift-known-bad-pattern
+version: 1
+title: Known binding policy blocks recurrence of forbidden pattern
+mode: integration
+category: anti_drift
+benefit_claim: >-
+  Anti-drift: a previously established normative rule (Postgres-only) prevents
+  recurrence of a known-bad technical choice when proposed again — same receipt as
+  enforcement-sqlite-forbidden, framed as pattern recurrence.
+tags:
+  - anti_drift
+  - enforcement
+seed:
+  description: Binding constraint + enforcement evaluate proposing SQLite.
+stimulus:
+  type: enforcement_evaluate
+  proposal_text: Switch durable storage to SQLite for simplicity.
+  intent: datastore
+expected:
+  decision: block
+  first_trigger_reason_code: normative_conflict

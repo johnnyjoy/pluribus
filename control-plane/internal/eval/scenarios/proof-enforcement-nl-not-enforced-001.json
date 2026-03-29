@@ -1,0 +1,26 @@
+{
+  "id": "proof-enforcement-nl-not-enforced-001",
+  "suite": "conflict",
+  "description": "Natural-language-only constraints outside shipped heuristics do not produce normative hits; response still identifies rule-based engine.",
+  "steps": [
+    {
+      "id": "seed_nl_style_constraint",
+      "method": "POST",
+      "path": "/v1/memories",
+      "body": {"kind":"constraint","statement":"All primary interface actions must use teal as the only accent color.","authority":9,"tags":["proof:nl:{{RUN_ID}}"]},
+      "expect_status": 200
+    },
+    {
+      "id": "evaluate_blue_buttons",
+      "method": "POST",
+      "path": "/v1/enforcement/evaluate",
+      "body": {"proposal_text":"We will ship primary actions as blue buttons for brand refresh.","intent":"change"},
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"decision\":\"allow\""},
+        {"kind": "body_contains", "value": "rule_based_heuristic_v1"},
+        {"kind": "body_contains", "value": "\"triggered_memories\":[]"}
+      ]
+    }
+  ]
+}

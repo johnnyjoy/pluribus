@@ -1,0 +1,68 @@
+{
+  "id": "stress-long-workflow-001",
+  "scenario_type": "long_workflow",
+  "goal": "Validate continuity in a long migration and rollout chain",
+  "context": "STATE: Auth migration in progress at checkpoint batch 8\nDECISION: keep batches at 500 and preserve rollback checkpoints\nCONSTRAINT: never skip validation before release\nPATTERN: checkpoint each batch and verify row counts before continue",
+  "trap": "FAILURE: skipping validation caused rollback loop in previous release",
+  "success_condition": "Long chain keeps continuity and avoids prior failure",
+  "expected_extraction": {
+    "state": ["Auth migration in progress at checkpoint batch 8"],
+    "decision": ["keep batches at 500 and preserve rollback checkpoints"],
+    "failure": ["skipping validation caused rollback loop in previous release"],
+    "pattern": ["checkpoint each batch and verify row counts before continue"],
+    "constraint": ["never skip validation before release"]
+  },
+  "recall_expectations": {
+    "query": "How do we continue the migration safely?",
+    "must_include": [
+      "continuity::Auth migration in progress at checkpoint batch 8",
+      "constraints::never skip validation before release",
+      "experience::checkpoint each batch and verify row counts before continue"
+    ]
+  },
+  "behavior_expectations": {
+    "new_task": "Continue migration and release",
+    "must_avoid": ["skip validation"],
+    "must_apply": ["checkpoint each batch"]
+  },
+  "steps": [
+    {
+      "task": "migration",
+      "agent": "A",
+      "action": "resume checkpointed migration",
+      "query": "where did migration stop and what must stay fixed",
+      "new_task": "Resume migration from checkpoint batch 8",
+      "must_avoid": ["restart migration from scratch"],
+      "must_apply": ["checkpoint each batch"],
+      "must_include": [
+        "continuity::Auth migration in progress at checkpoint batch 8",
+        "continuity::keep batches at 500 and preserve rollback checkpoints"
+      ]
+    },
+    {
+      "task": "validation",
+      "agent": "A",
+      "action": "prepare validation stage",
+      "query": "what must happen before release",
+      "new_task": "Prepare release validation",
+      "must_avoid": ["skip validation"],
+      "must_apply": ["checkpoint each batch and verify row counts"],
+      "must_include": [
+        "constraints::never skip validation before release"
+      ]
+    },
+    {
+      "task": "release",
+      "agent": "B",
+      "action": "execute staged release",
+      "query": "how to deploy without repeating rollback loop",
+      "new_task": "Release with guardrails",
+      "must_avoid": ["skip validation"],
+      "must_apply": ["checkpoint each batch"],
+      "must_include": [
+        "experience::checkpoint each batch and verify row counts before continue",
+        "constraints::never skip validation before release"
+      ]
+    }
+  ]
+}

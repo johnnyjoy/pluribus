@@ -1,0 +1,18 @@
+{
+  "id": "proof-drift-multi-001",
+  "suite": "drift",
+  "description": "Multi-step memory seeding surfaces in a later situational compile (continuity of durable facts).",
+  "steps": [
+    {"id": "mem_a", "method": "POST", "path": "/v1/memories", "body": {"kind":"state","statement":"PROOF_DRIFT_STEP_ONE {{RUN_ID}}","authority":6,"tags":["proof:drift:{{RUN_ID}}"]}, "expect_status": 200},
+    {"id": "mem_b", "method": "POST", "path": "/v1/memories", "body": {"kind":"decision","statement":"PROOF_DRIFT_STEP_TWO {{RUN_ID}}","authority":7,"tags":["proof:drift:{{RUN_ID}}"]}, "expect_status": 200},
+    {
+      "id": "compile_workflow",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {"retrieval_query":"PROOF DRIFT WORKFLOW continuity {{RUN_ID}}","tags":["proof:drift:{{RUN_ID}}"],"max_per_kind":10,"max_total":60},
+      "expect_status": 200,
+      "store_as": "bundle_drift"
+    }
+  ],
+  "after_invariants": ["drift_multi_surfaced"]
+}

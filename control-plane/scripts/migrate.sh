@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Obsolete: there is no separate migration/reconcile CLI. Embedded SQL in migrations/*.sql runs
+# on every control-plane startup (internal/app/boot.go). For a fresh database, start the API once.
+#
+# Kept so old docs/CI that invoke this path get a clear message instead of a broken flag.
+set -euo pipefail
+echo "migrate.sh: reconcile-only mode was removed. Start ./cmd/controlplane (or docker compose); Boot applies embedded SQL." >&2
+exit 1

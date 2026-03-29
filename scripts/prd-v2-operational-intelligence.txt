@@ -1,0 +1,453 @@
+PRODUCT REQUIREMENTS DOCUMENT
+=============================
+
+TITLE
+-----
+Recall v2 — Operational Intelligence Layer
+
+PURPOSE
+-------
+Evolve Recall from a functional control plane into a system that:
+
+- actively improves reasoning quality over time
+- reduces failure rates across projects
+- enables multiple agents to collaborate safely
+- builds reusable engineering intelligence
+- enforces correctness under increasing complexity
+
+This phase transforms Recall from:
+"AI with memory"
+
+into:
+
+"AI governed by accumulated operational knowledge"
+
+CORE EVOLUTION
+--------------
+
+V1:
+- memory exists
+- recall exists
+- drift exists
+
+V2:
+- memory quality improves
+- recall becomes precise
+- drift becomes predictive
+- agents coordinate
+- evidence shapes future behavior
+
+PRIMARY OBJECTIVES
+------------------
+
+1. Increase recall precision and relevance
+2. Prevent repeated failure classes globally
+3. Enable cross-project learning without contamination
+4. Introduce structured contradiction detection
+5. Improve drift detection beyond string heuristics
+6. Establish agent coordination model
+7. Improve memory lifecycle (promotion, decay, supersession)
+
+NON-GOALS
+---------
+
+- full autonomy
+- replacing engineers
+- over-automation of curation
+- complex UI systems
+- distributed scaling beyond single-node
+
+SYSTEM EXTENSIONS
+-----------------
+
+1. Recall Intelligence Engine (RIE)
+2. Contradiction Engine
+3. Memory Lifecycle Manager
+4. Cross-Project Memory Layer
+5. Enhanced Drift Engine (semantic + structural)
+6. Agent Coordination Layer
+7. Evidence Attribution System
+
+-----------------------------------
+SECTION 1: RECALL INTELLIGENCE ENGINE
+-----------------------------------
+
+PURPOSE
+-------
+Improve recall from:
+"relevant enough"
+
+to:
+
+"precisely what is needed"
+
+FEATURES
+--------
+
+1. Weighted Ranking Model
+
+Score memory objects using:
+
+score =
+  authority_weight * authority +
+  recency_weight * recency +
+  scope_weight * scope_match +
+  tag_weight * tag_match +
+  failure_penalty * failure_overlap
+
+2. Recall Classes
+
+Memory must be grouped:
+
+- governing
+- critical
+- supporting
+- contextual
+
+3. Hard Limits
+
+- max items per class
+- max total items
+- max token estimate
+
+4. Context Compression
+
+- summarize multiple related memories
+- collapse duplicates
+- merge similar patterns
+
+5. Recall Justification
+
+Each recalled memory must include:
+
+- why it was selected
+- relevance score
+
+VALIDATION
+----------
+
+- irrelevant memory must decrease over time
+- recall size remains bounded
+- recall usefulness improves across iterations
+
+-----------------------------------
+SECTION 2: CONTRADICTION ENGINE
+-----------------------------------
+
+PURPOSE
+-------
+Detect and manage conflicting memory.
+
+CAPABILITIES
+------------
+
+1. Conflict Detection
+
+Identify:
+
+- opposing constraints
+- conflicting decisions
+- incompatible patterns
+
+2. Contradiction Records
+
+Create new memory type:
+
+- contradiction
+
+3. Resolution States
+
+- unresolved
+- accepted override
+- deprecated prior
+- scoped exception
+
+4. Resolution Workflow
+
+- identify conflict
+- mark candidate
+- promote resolution
+- supersede old memory
+
+VALIDATION
+----------
+
+- system must not apply conflicting constraints simultaneously
+- contradictions must be visible and queryable
+
+-----------------------------------
+SECTION 3: MEMORY LIFECYCLE MANAGER
+-----------------------------------
+
+PURPOSE
+-------
+Prevent memory pollution and decay quality over time.
+
+STAGES
+------
+
+1. Candidate
+2. Reviewed
+3. Promoted
+4. Active
+5. Deprecated
+6. Archived
+
+RULES
+-----
+
+- no direct promotion without review
+- high-authority memory must have strong evidence
+- stale memory must decay in authority
+
+FEATURES
+--------
+
+1. Authority Adjustment
+
+- increase with repeated validation
+- decrease with contradictions or failures
+
+2. Supersession
+
+- new memory replaces old
+- old marked as deprecated
+
+3. Expiration
+
+- optional TTL for low-confidence memory
+
+VALIDATION
+----------
+
+- memory quality increases over time
+- noise decreases
+
+-----------------------------------
+SECTION 4: CROSS-PROJECT MEMORY
+-----------------------------------
+
+PURPOSE
+-------
+Enable learning across projects without contamination.
+
+SCOPES
+------
+
+- global
+- domain
+- project
+
+RULES
+-----
+
+- global memory must be:
+  - high authority
+  - broadly applicable
+  - validated across contexts
+
+- project memory overrides global
+
+FEATURES
+--------
+
+1. Domain Tagging
+
+- language (go, php, rust)
+- system type (api, db, distributed)
+
+2. Selective Inclusion
+
+- only include global memory when relevant
+
+3. Isolation Guarantee
+
+- project-specific failures do not pollute global memory
+
+VALIDATION
+----------
+
+- cross-project recall improves performance
+- no cross-project noise leakage
+
+-----------------------------------
+SECTION 5: ENHANCED DRIFT ENGINE
+-----------------------------------
+
+PURPOSE
+-------
+Move from heuristic drift detection to structural validation.
+
+CAPABILITIES
+------------
+
+1. Semantic Drift Detection
+
+- detect duplication of responsibility
+- detect violation of architecture patterns
+
+2. Failure Pattern Matching
+
+- detect similarity to past failures
+
+3. Structural Signals
+
+- file changes count
+- dependency impact
+- module boundary violations
+
+4. Risk Escalation
+
+- low → warn
+- medium → suggest fixes
+- high → block execution
+
+5. Drift Memory Feedback
+
+- drift events can become candidate memory
+
+VALIDATION
+----------
+
+- repeated failure classes are eliminated
+- drift catches issues earlier
+
+-----------------------------------
+SECTION 6: AGENT COORDINATION LAYER
+-----------------------------------
+
+PURPOSE
+-------
+Enable multiple agents to work safely without chaos.
+
+MODEL
+-----
+
+Agents share:
+- memory
+- tasks
+- targets
+- evidence
+
+Agents do NOT share:
+- chat
+- reasoning
+- hidden prompts
+
+FEATURES
+--------
+
+1. Task Claiming
+
+- agent claims task
+- task locked during execution
+
+2. Task State
+
+- pending
+- active
+- blocked
+- complete
+
+3. Coordination Memory
+
+- shared decisions
+- shared constraints
+
+4. Conflict Detection
+
+- detect conflicting concurrent work
+
+VALIDATION
+----------
+
+- multiple agents produce consistent outcomes
+- no conflicting changes
+
+-----------------------------------
+SECTION 7: EVIDENCE ATTRIBUTION
+-----------------------------------
+
+PURPOSE
+-------
+Strengthen memory quality through traceable evidence.
+
+FEATURES
+--------
+
+1. Memory → Evidence Links
+
+- each memory references evidence
+
+2. Evidence Scoring
+
+- test > benchmark > log > observation
+
+3. Evidence Reuse
+
+- multiple memories can reference same evidence
+
+4. Traceability
+
+- every decision must be traceable to evidence
+
+VALIDATION
+----------
+
+- memory confidence aligns with evidence quality
+- debugging becomes faster
+
+-----------------------------------
+IMPLEMENTATION ORDER
+-----------------------------------
+
+1. Recall Intelligence Engine
+2. Memory Lifecycle Manager
+3. Enhanced Drift Engine
+4. Contradiction Engine
+5. Evidence Attribution
+6. Cross-Project Memory
+7. Agent Coordination
+
+-----------------------------------
+ACCEPTANCE CRITERIA
+-----------------------------------
+
+System is considered successful when:
+
+1. Recall quality improves measurably
+2. Failure repetition rate decreases significantly
+3. Contradictions are detected and resolved
+4. Memory remains clean and high-value
+5. Multiple agents operate without conflict
+6. Evidence directly informs memory
+
+-----------------------------------
+SUCCESS METRICS
+-----------------------------------
+
+- reduction in repeated errors
+- recall relevance score increase
+- drift rejection accuracy
+- memory promotion quality
+- task completion success rate
+
+-----------------------------------
+FINAL STATEMENT
+-----------------------------------
+
+Recall v2 is not about adding features.
+
+It is about:
+
+- improving signal over noise
+- enforcing correctness over convenience
+- turning accumulated experience into operational advantage
+
+This phase determines whether the system becomes:
+
+a clever experiment
+
+or
+
+a permanent advantage in software engineering

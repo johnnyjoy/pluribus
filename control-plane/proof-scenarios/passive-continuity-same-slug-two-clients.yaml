@@ -1,0 +1,26 @@
+id: passive-continuity-same-slug-two-clients
+version: 2
+title: Shared tag namespace across two notional clients (manual protocol)
+mode: manual
+category: continuity
+benefit_claim: >-
+  A second client can join the same governing context by reusing the agreed tag strings and retrieval text;
+  recall shows the same durable memory — passive continuity without workspace UUID exchange.
+tags:
+  - mcp
+  - passive_continuity
+seed:
+  agreed_tags: '["team-demo","session-2026"]'
+  control_plane_url: "http://<lan-host>:8123"
+stimulus:
+  phase_a:
+    description: >-
+      Client A: POST /v1/memory (or /v1/memories) with marker content and the agreed tags.
+      Run recall_compile or GET /v1/recall/ with those tags + retrieval_query.
+  phase_b:
+    description: >-
+      Client B (different machine or fresh session): same tags + retrieval_query only.
+      Expect the same marker to appear in the recall bundle (shared pool; tag-shaped correlation).
+expected:
+  same_governing_memory_by_tags: true
+  no_workspace_uuid_handoff: true

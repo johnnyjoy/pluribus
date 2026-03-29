@@ -1,0 +1,526 @@
+PRODUCT REQUIREMENTS DOCUMENT
+=============================
+
+TITLE
+-----
+Recall v2 MASTER PRD
+Operational Intelligence + Execution Graph
+
+PURPOSE
+-------
+Advance Recall from a functional system into a self-improving, multi-agent-capable, memory-governed engineering platform.
+
+This system must:
+
+- improve reasoning quality over time
+- reduce error repetition to near-zero
+- enforce architectural consistency
+- enable multi-agent collaboration without chaos
+- convert evidence into durable advantage
+
+This document defines BOTH:
+- what to build
+- how to build it
+- in what order it must be built
+
+CORE TRUTH
+----------
+The system is not intelligent.
+
+It becomes effective by:
+- selecting the correct memory
+- enforcing constraints
+- rejecting bad paths early
+- accumulating validated experience
+
+--------------------------------------------------
+SECTION 0: GLOBAL RULES
+--------------------------------------------------
+
+1. NO SHORTCUTS
+   Every component must be implemented fully:
+   - types
+   - repo
+   - service
+   - handlers
+
+2. NO HIDDEN STATE
+   - no memory in chat
+   - no implicit reasoning persistence
+
+3. NO PARTIAL SYSTEMS
+   - system must compile at every stage
+
+4. NO UNCURATED MEMORY
+   - candidate → review → promote
+
+5. NO DRIFT BYPASS
+   - all proposals must pass drift
+
+--------------------------------------------------
+SECTION 1: RECALL INTELLIGENCE ENGINE (RIE)
+--------------------------------------------------
+
+PURPOSE
+-------
+Transform recall from "relevant enough" into "surgically precise".
+
+--------------------------------------------------
+1.1 SCORING MODEL
+--------------------------------------------------
+
+Each memory object receives a score:
+
+score =
+  (authority * 3.0) +
+  (recency * 1.5) +
+  (scope_match * 2.5) +
+  (tag_overlap * 2.0) +
+  (failure_proximity * -3.0)
+
+DEFINITIONS:
+
+authority:
+  1–10 normalized to 0–1
+
+recency:
+  exponential decay:
+  recency = exp(-age_days / 30)
+
+scope_match:
+  exact match = 1.0
+  same project = 0.8
+  same domain = 0.5
+  global = 0.3
+
+tag_overlap:
+  intersection size / union size
+
+failure_proximity:
+  if similar to known failure:
+  penalty applied
+
+--------------------------------------------------
+1.2 RECALL BUCKETS
+--------------------------------------------------
+
+Memory must be grouped:
+
+- governing_constraints
+- governing_decisions
+- known_failures
+- applicable_patterns
+- contextual_memory
+
+Each bucket has independent limits.
+
+DEFAULT LIMITS:
+
+- constraints: 8
+- decisions: 8
+- failures: 6
+- patterns: 8
+- contextual: 10
+
+--------------------------------------------------
+1.3 DEDUPLICATION
+--------------------------------------------------
+
+Two memories are duplicates if:
+
+- cosine similarity > threshold (future)
+OR
+- title + tags overlap > threshold (v1)
+
+Duplicates must be merged or highest authority selected.
+
+--------------------------------------------------
+1.4 CONTEXT COMPRESSION
+--------------------------------------------------
+
+If > N similar memories:
+
+- merge into summary block
+- preserve references
+
+Example:
+
+"3 similar failures detected in this subsystem:
+- memory_id_1
+- memory_id_2
+- memory_id_3"
+
+--------------------------------------------------
+1.5 RECALL JUSTIFICATION
+--------------------------------------------------
+
+Each recalled memory must include:
+
+- score
+- why selected
+- relevance explanation
+
+--------------------------------------------------
+1.6 OUTPUT CONTRACT
+--------------------------------------------------
+
+Recall output MUST be:
+
+{
+  target,
+  task,
+  constraints[],
+  decisions[],
+  failures[],
+  patterns[],
+  contextual[],
+  metadata: {
+    total_items,
+    token_estimate,
+    dropped_items
+  }
+}
+
+--------------------------------------------------
+SECTION 2: MEMORY LIFECYCLE MANAGER
+--------------------------------------------------
+
+PURPOSE
+-------
+Prevent entropy and ensure only high-quality memory survives.
+
+--------------------------------------------------
+2.1 STATES
+--------------------------------------------------
+
+- candidate
+- reviewed
+- promoted
+- active
+- deprecated
+- archived
+
+--------------------------------------------------
+2.2 AUTHORITY EVOLUTION
+--------------------------------------------------
+
+Increase authority if:
+- memory used successfully
+- referenced repeatedly
+
+Decrease authority if:
+- contradicted
+- leads to failure
+
+--------------------------------------------------
+2.3 SUPERSESSION
+--------------------------------------------------
+
+New memory may supersede old:
+
+old.status = deprecated
+new.supersedes_id = old.id
+
+--------------------------------------------------
+2.4 DECAY
+--------------------------------------------------
+
+Low-confidence memory decays:
+
+authority = authority * decay_factor
+
+--------------------------------------------------
+SECTION 3: CONTRADICTION ENGINE
+--------------------------------------------------
+
+PURPOSE
+-------
+Prevent conflicting system behavior.
+
+--------------------------------------------------
+3.1 DETECTION
+--------------------------------------------------
+
+Detect:
+
+- opposite constraints
+- conflicting decisions
+- incompatible patterns
+
+--------------------------------------------------
+3.2 RECORD
+--------------------------------------------------
+
+Create memory:
+
+kind = contradiction
+
+--------------------------------------------------
+3.3 RESOLUTION
+--------------------------------------------------
+
+States:
+
+- unresolved
+- resolved_override
+- scoped_exception
+
+--------------------------------------------------
+SECTION 4: ENHANCED DRIFT ENGINE
+--------------------------------------------------
+
+PURPOSE
+-------
+Catch bad ideas BEFORE execution.
+
+--------------------------------------------------
+4.1 SIGNAL TYPES
+--------------------------------------------------
+
+- constraint violation
+- failure similarity
+- duplication of responsibility
+- boundary violation
+
+--------------------------------------------------
+4.2 FAILURE MATCHING
+--------------------------------------------------
+
+Compare proposal against:
+
+- known failure patterns
+- tag similarity
+- file overlap
+
+--------------------------------------------------
+4.3 RISK SCORING
+--------------------------------------------------
+
+risk_score =
+  file_count_weight +
+  failure_similarity +
+  constraint_risk
+
+--------------------------------------------------
+4.4 OUTPUT
+--------------------------------------------------
+
+{
+  passed,
+  risk_level,
+  violations[],
+  warnings[],
+  suggestions[]
+}
+
+--------------------------------------------------
+SECTION 5: CROSS-PROJECT MEMORY
+--------------------------------------------------
+
+PURPOSE
+-------
+Reuse knowledge safely.
+
+--------------------------------------------------
+5.1 SCOPES
+--------------------------------------------------
+
+- global
+- domain
+- project
+
+--------------------------------------------------
+5.2 RULES
+--------------------------------------------------
+
+- project overrides global
+- global requires high authority
+
+--------------------------------------------------
+SECTION 6: AGENT COORDINATION
+--------------------------------------------------
+
+PURPOSE
+-------
+Enable many agents without chaos.
+
+--------------------------------------------------
+6.1 TASK CLAIMING
+--------------------------------------------------
+
+task.state:
+
+- pending
+- claimed
+- active
+- complete
+
+--------------------------------------------------
+6.2 LOCKING
+--------------------------------------------------
+
+- only one agent per task
+- lock expires
+
+--------------------------------------------------
+6.3 SHARED MEMORY
+--------------------------------------------------
+
+Agents share:
+- memory
+- targets
+- tasks
+
+--------------------------------------------------
+SECTION 7: EVIDENCE ATTRIBUTION
+--------------------------------------------------
+
+PURPOSE
+-------
+Strengthen memory trust.
+
+--------------------------------------------------
+7.1 LINKING
+--------------------------------------------------
+
+memory → evidence_records
+
+--------------------------------------------------
+7.2 SCORING
+--------------------------------------------------
+
+test > benchmark > log > observation
+
+--------------------------------------------------
+SECTION 8: TASKMASTER EXECUTION GRAPH
+--------------------------------------------------
+
+EPIC A: RECALL INTELLIGENCE ENGINE
+----------------------------------
+
+TASK A1: implement scoring model
+TASK A2: implement bucket selection
+TASK A3: implement ranking
+TASK A4: implement deduplication
+TASK A5: implement compression
+TASK A6: implement justification output
+
+VALIDATION:
+- recall output bounded
+- correct prioritization
+
+--------------------------------------------------
+
+EPIC B: MEMORY LIFECYCLE
+------------------------
+
+TASK B1: add lifecycle states
+TASK B2: implement authority updates
+TASK B3: implement supersession
+TASK B4: implement decay
+
+VALIDATION:
+- authority changes over time
+
+--------------------------------------------------
+
+EPIC C: CONTRADICTION ENGINE
+----------------------------
+
+TASK C1: detect conflicts
+TASK C2: store contradictions
+TASK C3: resolution workflow
+
+VALIDATION:
+- contradictions detected
+
+--------------------------------------------------
+
+EPIC D: DRIFT ENGINE V2
+-----------------------
+
+TASK D1: failure similarity
+TASK D2: structural checks
+TASK D3: risk scoring
+TASK D4: persistence
+
+VALIDATION:
+- drift blocks known failures
+
+--------------------------------------------------
+
+EPIC E: CROSS-PROJECT MEMORY
+----------------------------
+
+TASK E1: add domain tagging
+TASK E2: filter logic
+TASK E3: override rules
+
+VALIDATION:
+- global memory used correctly
+
+--------------------------------------------------
+
+EPIC F: EVIDENCE ATTRIBUTION
+----------------------------
+
+TASK F1: memory-evidence links
+TASK F2: scoring model
+
+VALIDATION:
+- traceability exists
+
+--------------------------------------------------
+
+EPIC G: AGENT COORDINATION
+--------------------------
+
+TASK G1: task claiming
+TASK G2: locking
+TASK G3: conflict detection
+
+VALIDATION:
+- no conflicting execution
+
+--------------------------------------------------
+SECTION 9: ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+System succeeds when:
+
+1. Recall precision increases measurably
+2. Failure repetition approaches zero
+3. Contradictions are visible and resolved
+4. Memory quality improves over time
+5. Multi-agent system remains stable
+6. Drift prevents major errors
+
+--------------------------------------------------
+SECTION 10: SUCCESS METRICS
+--------------------------------------------------
+
+- recall relevance score ↑
+- drift detection accuracy ↑
+- repeated error rate ↓
+- task success rate ↑
+- memory signal-to-noise ↑
+
+--------------------------------------------------
+FINAL STATEMENT
+--------------------------------------------------
+
+Recall v2 is the transition point.
+
+Before:
+AI produces code.
+
+After:
+AI produces correct code consistently over time.
+
+This system becomes:
+
+a force multiplier for engineering work
+
+not by making AI smarter
+
+but by making mistakes impossible to repeat.

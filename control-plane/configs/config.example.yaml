@@ -1,0 +1,229 @@
+# Control-plane config example. Copy to config.local.yaml (gitignored) and run with
+# CONFIG=configs/config.local.yaml ./controlplane. The committed configs/config.yaml is the Docker/Compose default baked into the image.
+
+server:
+  bind: ":8123"
+
+# MCP: JSON-RPC over HTTP at POST /v1/mcp (default on). Set disabled: true to skip the MCP wrapper.
+# mcp:
+#   disabled: true
+
+# Optional backend synthesis for run-multi (single-process; Ollama / OpenAI / Anthropic). Default off — prefer client-side LLM synthesis.
+# See docs/backend-synthesis.md and ../../docs/api-contract.md (run-multi 503 when disabled).
+synthesis:
+  enabled: false
+  # --- Example: Ollama (uncomment and set enabled: true; run Ollama locally) ---
+  # enabled: true
+  # provider: ollama
+  # model: "qwen2.5-coder:latest"
+  # timeout_seconds: 120
+  # base_url: "http://127.0.0.1:11434"
+  # --- Example: OpenAI (set OPENAI_API_KEY in environment) ---
+  # enabled: true
+  # provider: openai
+  # model: "gpt-4o-mini"
+  # api_key_env: "OPENAI_API_KEY"
+
+startup:
+  db_wait_timeout_seconds: 60
+  db_wait_interval_millis: 1000
+
+postgres:
+  dsn: "postgres://localhost/controlplane?sslmode=disable"
+
+# Optional. When enabled, recall bundles and preflight results are cached (not authoritative).
+redis:
+  enabled: false
+  addr: "127.0.0.1:6379"
+  password: ""
+  db: 0
+  default_ttl_seconds: 300
+
+# HTTP API authentication: set PLURIBUS_API_KEY in the environment (optional; omit for open local dev).
+# See docs/api-contract.md and internal/httpx/auth.go.
+
+evidence:
+  root_path: "var/evidence"
+  # Task 79: authority += evidence_score * authority_factor when linking evidence (0 = off)
+  authority_factor: 0.1
+
+recall:
+  default_max_items_per_kind: 5
+  default_max_total: 0        # 0 = no cap (only per-kind limits)
+  default_max_tokens: 0       # 0 = no token limit; RIE context compression
+  cache_ttl_seconds: 300
+  # Optional run-multi behavior overlap validation (default: failure overlaps reject; threshold 0.5).
+  # behavior_validation:
+  #   soft_failure_revise: false
+  #   overlap_threshold: 0.5
+  #   block_output_on_validation_fail: false
+  # log_rank_top_n: 0   # >0 logs [RANK] for top N memories after ranking (tuning/debug)
+  # Optional weighted ranking (Phase 1: config-only). Omit to keep authority-ordered selection.
+  ranking:
+    weight_authority: 1.0
+    weight_recency: 0.5
+    weight_scope_match: 1.0
+    weight_tag_match: 1.0
+    weight_failure_overlap: 0.5
+    weight_symbol_overlap: 0.5   # Task 100: boost when task symbols match pattern symbols (requires lsp.enabled)
+    weight_pattern_priority: 0.0  # additive priority for patterns
+    weight_lexical_similarity: 0.15 # additive lexical overlap (kept below authority weight for dominance on ties)
+    weight_pattern_generalization: 0.0  # boost patterns with merge/generalization metadata (0 = off)
+    # weight_elevation_suppression: 0.0  # penalize superseded patterns when elevated sibling is in the same candidate set (0 = off)
+    # Authority salience (optional; 0 uses server default from DefaultRankingWeights)
+    # weight_failure_severity: 0.0        # keyword heuristic on failure statements (production, data loss, …)
+    weight_cross_context_salience: 0.12 # boost from payload.salience.distinct_contexts (omit or 0 = default 0.12)
+    # weight_cross_context_salience_k: 0 # divisor k in log1p(distinct)/k; 0 = use 3
+    weight_cross_agent_salience: 0.12 # boost from payload.salience.distinct_agents (omit or 0 = default 0.12)
+    # weight_cross_agent_salience_k: 0
+    # Omitted (nil) defaults to 0.4. Explicit 0 disables the semantic term and logs a warning.
+    weight_semantic_similarity: 0.4
+  # Semantic candidate retrieval (pgvector + OpenAI-compatible embeddings): default on for situation-shaped recall.
+  # Set enabled: false to skip embedding API calls. Missing/misaligned embedder → lexical recall; logs [SEMANTIC FALLBACK] and sets semantic_retrieval on compile. [SEMANTIC ERROR] = failed HTTP/embed or vector search on hybrid path.
+  # Requires Postgres with pgvector (see docker-compose.yml) and migrations applied.
+  semantic_retrieval:
+    enabled: true
+    # embedding_endpoint: "https://api.openai.com/v1"
+    # embedding_model: "text-embedding-3-small"
+    # embedding_dimensions: 1536
+    # max_semantic_candidates: 50
+    # min_cosine_similarity: 0.35
+    # log_semantic_matches: false
+  # Promoted run-multi merge experiences (JSONL). Default off — no change to recall when disabled.
+  # experiences_enabled: false
+  # experiences_path: data/memory/experiences.jsonl
+  # experiences_limit: 50
+  # experiences_authority_boost: 2
+  # RIU (Recall Intelligence Upgrade): structured scores + contradiction policy. Default off.
+  # riu:
+  #   enabled: false
+  #   contradiction_policy: exclude   # exclude | warn | bounded_pair
+  #   bounded_pair_max: 16
+  #   weight_applicability: 0.4
+  #   weight_project_boost: 0.25
+  #   weight_transferable: 0.35
+  #   weight_lineage_proxy: 0.15
+  #   weight_contradiction_penalty: 0.5
+  # Bounded supporting evidence on each MemoryItem (receipts). Default off; does not change memory authority.
+  # evidence_in_bundle:
+  #   enabled: false
+  #   max_per_memory: 2
+  #   max_per_bundle: 12
+  #   summary_max_chars: 256
+  # Lightweight triggered recall (risk / decision / similarity heuristics). Off unless enabled.
+  # Clients opt in per request: POST /v1/recall/compile { "enable_triggered_recall": true } and optionally run-multi same flag.
+  # triggered_recall:
+  #   enabled: false
+  #   max_triggers_per_request: 2
+  #   min_context_tokens: 4
+  #   enable_risk: true
+  #   enable_decision: true
+  #   enable_similarity: true
+  #   large_change_files_threshold: 25
+
+memory:
+  # Optional: cap authority delta per reinforce call; cross-context salience in payload (default on when omitted).
+  # recall_reinforcement:
+  #   max_authority_delta_per_compile: 1
+  #   cross_context_enabled: true
+  lifecycle:
+    authority_positive_delta: 0.1   # on validation event
+    authority_negative_delta: 0.2   # on contradiction or failure event
+    expiration_authority_threshold: 2   # 0-10 scale; memories with authority < this and TTL expired get archived
+  # Phase C: reject duplicate canonical rows (same project, kind, normalized scope, statement key) with HTTP 409 + existing memory_id.
+  dedup:
+    enabled: true   # omit = on; set false to allow duplicate statements (not recommended)
+    near_dup_jaccard_threshold: 0.92   # Phase F: recall collapse; 0 = off; typical 0.92 (creative C2)
+  # Near-duplicate pattern merge on create (optional). Requires enabled: true; see internal/memory/pattern_generalize.go.
+  # pattern_generalization:
+  #   enabled: false
+  #   merge_jaccard_min: 0.82
+  #   min_tag_overlap_fraction: 0.0
+  #   max_candidates_scan: 50
+  #   max_supporting_statement_keys: 20
+  #   negation_guard: true
+  # Cluster elevation: merge similar successful patterns into one dominant row; POST /v1/memory/pattern-elevation/run. Default off.
+  # pattern_elevation:
+  #   enabled: false
+  #   min_reuse_score: 5.5
+  #   min_distinct_contexts: 2
+  #   min_distinct_agents: 1
+  #   min_authority: 4
+  #   max_supporting_patterns: 8
+  #   authority_elevation_delta: 1
+  #   merge_jaccard_min: 0.82
+  #   min_tag_overlap_pair: 0.4
+  #   max_scan_patterns: 200
+  #   log_elevation: false
+
+# Task 92: slow-path policy. When enabled and risk >= high_risk_threshold, recall expands limits and can require a second drift check.
+slow_path:
+  enabled: false
+  high_risk_threshold: 1.0      # risk score >= this triggers slow path
+  expand_constraints_by: 4
+  expand_failures_by: 4
+  expand_patterns_by: 2
+  require_second_drift_check: true
+  extra_variants_when_slow: 0   # Phase 7: add N variant slots when slow-path active (max 3 default strategies)
+
+# Drift: substring checks + fuzzy failure_pattern (word overlap); optional LSP reference risk (see lsp.*).
+drift:
+  failure_fuzzy_threshold: 0   # 0 = off; 0.8 = flag failure_pattern when word overlap >= 80%
+  pattern_high_blocks: true  # high/catastrophic negative pattern matches block execution
+  # lsp_high_risk_reference_threshold: 0   # Task 100: 0 = off; when set, drift uses LSP ref count (see lsp.enabled)
+
+# Task 101: LSP gate and tuning. When enabled, recall can boost by symbol overlap and drift can escalate risk by ref count.
+lsp:
+  enabled: false
+  recall_symbol_boost: 0.5           # weight for symbol overlap in recall (0 = use recall.ranking.weight_symbol_overlap)
+  reference_expansion_limit: 0       # recall bundle reference_count: cap per-symbol ref count before max (0 = no cap); drift unchanged
+  high_risk_reference_threshold: 0   # drift: ref count above this => high risk / block (0 = off)
+  auto_symbol_max: 64                  # Max symbol names from LSP when recall auto-fills (repo_root + lsp_focus_path)
+
+# MCL M7: optional bridge from consolidated ingest → memories via memory.Promote (default off).
+ingest:
+  auto_promote: false
+
+# Optional run-multi → memory.Promote gates (defaults match prior behavior when unset).
+# require_evidence / min_evidence_links / min_evidence_score: run-multi + optional evidence_ids (Phase 9.2).
+# require_review: when true, promoted memories are created with status pending (Phase 9.4).
+promotion:
+  require_evidence: false
+  min_evidence_links: 0
+  min_evidence_score: 0
+  require_review: false
+  min_promote_confidence: 0   # 0 = off; set e.g. 0.45 to require run-multi confidence >= 0.45
+  # Optional weighted composite (confidence + normalized merge total_signal + evidence avg).
+  # min_policy_composite: 0   # 0 = off; blend must be >= this (see debug.promotion_decision.policy_inputs / gates)
+  # weight_confidence: 0      # all three 0 => 0.4 / 0.3 / 0.3
+  # weight_signal: 0
+  # weight_evidence: 0
+  # signal_norm_divisor: 0    # 0 = use 15 when computing composite (total_signal / divisor, capped to 1)
+
+curation:
+  candidate_threshold: 0.5
+  review_threshold: 0.7
+  promote_threshold: 0.85
+  # POST /v1/curation/digest — byte/count bounds (0 = server defaults below)
+  digest_max_proposals: 5
+  digest_work_summary_max_bytes: 8192
+  digest_statement_max_bytes: 2048
+  digest_reason_max_bytes: 1024
+
+# Pre-change enforcement: evaluate proposals against binding trusted memory (POST /v1/enforcement/evaluate). RC1 default ON when omitted.
+# enforcement:
+#   enabled: false   # set false to disable the gate (403 on evaluate when off)
+#   min_binding_authority: 7
+#   max_binding_memories: 120
+#   include_global_binding: true
+#   failure_overlap_threshold: 0.25
+#   pattern_block_score: 4.0
+#   max_evidence_per_memory: 3
+
+# Pluribus: optional subordinate advisory episodes (lexical + tag resemblance; not canonical memory). Default off.
+# similarity:
+#   enabled: false
+#   max_summary_bytes: 2048
+#   max_episodes_scan: 500
+#   max_results: 5
+#   min_resemblance: 0.08   # minimum combined lexical/tag score [0,1]

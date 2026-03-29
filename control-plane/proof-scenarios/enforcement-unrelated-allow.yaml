@@ -1,0 +1,18 @@
+id: enforcement-unrelated-allow
+version: 1
+title: Allow unrelated safe proposal when constraint is datastore-scoped
+mode: integration
+category: enforcement
+benefit_claim: >-
+  Avoids false positives: legitimate work unrelated to the forbidden pattern is not blocked,
+  so enforcement stays trustworthy rather than noisy.
+tags:
+  - enforcement
+seed:
+  description: Same Postgres constraint as enforcement-sqlite-forbidden.
+stimulus:
+  type: enforcement_evaluate
+  proposal_text: We will add a metrics dashboard.
+  intent: change
+expected:
+  decision: allow

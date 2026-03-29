@@ -1,0 +1,27 @@
+{
+  "id": "pattern-reuse-001",
+  "goal": "Reuse known good integration pattern",
+  "context": "STATE: Integrate billing webhooks\nDECISION: normalize inbound events before handler dispatch",
+  "trap": "PATTERN: idempotency keys plus retry queue stabilized webhook ingestion\nFAILURE: direct handler writes created duplicate charges",
+  "success_condition": "Second run applies idempotency pattern",
+  "expected_extraction": {
+    "state": ["Integrate billing webhooks"],
+    "decision": ["normalize inbound events before handler dispatch"],
+    "failure": ["direct handler writes created duplicate charges"],
+    "pattern": ["idempotency keys plus retry queue stabilized webhook ingestion"],
+    "constraint": []
+  },
+  "recall_expectations": {
+    "query": "How do we process webhook retries?",
+    "must_include": [
+      "continuity::Integrate billing webhooks",
+      "constraints::direct handler writes created duplicate charges",
+      "experience::idempotency keys plus retry queue stabilized webhook ingestion"
+    ]
+  },
+  "behavior_expectations": {
+    "new_task": "Implement retry-safe webhook processor",
+    "must_avoid": ["direct handler writes"],
+    "must_apply": ["idempotency keys plus retry queue"]
+  }
+}

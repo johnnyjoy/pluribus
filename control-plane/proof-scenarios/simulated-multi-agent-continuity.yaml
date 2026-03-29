@@ -1,0 +1,30 @@
+id: simulated-multi-agent-continuity
+version: 2
+title: Simulated multi-agent continuity (two HTTP clients, shared tags)
+mode: integration
+category: continuity
+benefit_claim: >-
+  Agent A seeds governing memory with a unique marker and agreed tags; Agent B (fresh client)
+  uses only the same tags + retrieval text — no UUID handoff — and sees the same marker in recall.
+tags:
+  - continuity
+  - passive_continuity
+  - integration
+seed:
+  identity_simulation: >-
+    Distinct *http.Client instances for Agent A vs B; shared tag list T per run (unique strings per test).
+stimulus:
+  phase_a:
+    description: >-
+      Client A POST /v1/memory with unique marker substring in statement and tags T;
+      POST /v1/recall/compile with tags T and retrieval_query that should retrieve the marker.
+  phase_b:
+    description: >-
+      Client B POST /v1/recall/compile with the same tags T and equivalent retrieval_query — no ids from A pasted into B's JSON.
+  phase_c:
+    description: >-
+      Optional: POST /v1/memories/search with text or tags intersecting T and assert marker row is visible.
+expected:
+  shared_tag_recall_parity: true
+  no_manual_uuid_handoff_to_b: true
+  recall_marker_present_for_b: true

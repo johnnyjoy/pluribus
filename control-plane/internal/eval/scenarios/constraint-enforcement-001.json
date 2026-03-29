@@ -1,0 +1,27 @@
+{
+  "id": "constraint-enforcement-001",
+  "goal": "Block known policy violation path",
+  "context": "STATE: Implement credential handling workflow\nDECISION: all secrets come from runtime vault",
+  "trap": "CONSTRAINT: never commit credentials to repository\nFAILURE: checked-in token required incident rotation\nPATTERN: env injection from vault at runtime is safe",
+  "success_condition": "Second run blocks credential commit and applies vault pattern",
+  "expected_extraction": {
+    "state": ["Implement credential handling workflow"],
+    "decision": ["all secrets come from runtime vault"],
+    "failure": ["checked-in token required incident rotation"],
+    "pattern": ["env injection from vault at runtime is safe"],
+    "constraint": ["never commit credentials to repository"]
+  },
+  "recall_expectations": {
+    "query": "How should we configure API credentials?",
+    "must_include": [
+      "constraints::never commit credentials to repository",
+      "constraints::checked-in token required incident rotation",
+      "experience::env injection from vault at runtime is safe"
+    ]
+  },
+  "behavior_expectations": {
+    "new_task": "Set credentials for deployment",
+    "must_avoid": ["commit credentials"],
+    "must_apply": ["env injection from vault at runtime"]
+  }
+}

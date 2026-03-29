@@ -1,0 +1,56 @@
+# Canonical compose-first install: pull published Pluribus image (no local Go build).
+# PostgreSQL is required; Redis is included for parity with default docker config (caching, etc.).
+#
+# Usage (from repo root):
+#   cp pluribus.install.env.example .env   # or use --env-file pluribus.install.env.example
+#   # Edit PLURIBUS_IMAGE to your ghcr.io/<owner>/pluribus:<tag>
+#   docker compose -f docker-compose.install.yml --env-file .env up -d
+#
+# Health: curl -sS http://127.0.0.1:8123/readyz
+
+name: pluribus-install
+
+services:
+  postgres:
+    restart: unless-stopped
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: controlplane
+      POSTGRES_USER: controlplane
+      POSTGRES_PASSWORD: controlplane
+    ports:
+      - "5432:5432"
+    volumes:
+      - pluribus_install_pgdata:/var/lib/postgresql/data/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U controlplane -d controlplane"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    restart: unless-stopped
+    image: redis:7
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  controlplane:
+    restart: unless-stopped
+    image: ${PLURIBUS_IMAGE:?Set PLURIBUS_IMAGE in .env or use --env-file pluribus.install.env.example}
+    ports:
+      - "8123:8123"
+    environment:
+      CONFIG: /config/config.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pluribus_install_pgdata:

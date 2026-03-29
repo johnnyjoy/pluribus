@@ -1,0 +1,19 @@
+id: curation-then-recall-continuity
+version: 1
+title: Materialized digest memory appears in subsequent recall
+mode: integration
+category: continuity
+benefit_claim: >-
+  Anti-amnesia: learning materialized through curation shows up in later recall,
+  so the agent can reuse past validated conclusions.
+tags:
+  - curation
+  - recall
+seed:
+  description: Follows digest→materialize; then recall compile same project.
+stimulus:
+  type: recall_after_materialize
+  marker_substring: feature flags
+expected:
+  bundle_contains_kind: decision
+  bundle_statement_substring: feature flags

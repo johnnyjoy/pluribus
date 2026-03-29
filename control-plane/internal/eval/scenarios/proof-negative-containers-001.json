@@ -1,0 +1,24 @@
+{
+  "id": "proof-negative-containers-001",
+  "suite": "negative",
+  "description": "REST rejects container ontology JSON keys on memory create (400, DisallowUnknownFields).",
+  "steps": [
+    {
+      "id": "reject_project_id",
+      "method": "POST",
+      "path": "/v1/memory",
+      "body": {"kind":"decision","statement":"container probe","authority":5,"tags":["proof:neg:{{RUN_ID}}"],"project_id":"550e8400-e29b-41d4-a716-446655440000"},
+      "expect_status": 400,
+      "asserts": [{"kind": "body_contains", "value": "invalid JSON"}]
+    },
+    {
+      "id": "reject_hive_id",
+      "method": "POST",
+      "path": "/v1/memories",
+      "body": {"kind":"constraint","statement":"hive probe","authority":5,"tags":["proof:neg:{{RUN_ID}}"],"hive_id":"x"},
+      "expect_status": 400,
+      "asserts": [{"kind": "body_contains", "value": "invalid JSON"}]
+    }
+  ],
+  "after_invariants": []
+}

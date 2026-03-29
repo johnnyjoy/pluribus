@@ -1,0 +1,44 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+
+# Environment variables
+.env
+
+# Editor directories and files
+.roam
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS specific
+.DS_Store
+
+# Task files
+# tasks.json
+# tasks/
+
+# Benefit eval last project id (local)
+scripts/.benefit-eval-last-project
+
+# Control-plane local config (tracked default for Docker: control-plane/configs/config.yaml)
+control-plane/configs/config.local.yaml
+
+# Accidental `go build -o toolapi` in module root (cmd/toolapi removed)
+control-plane/toolapi
+
+# Go
+/bin
+/vendor
+*.exe
+*.test
+*.out
+coverage.out

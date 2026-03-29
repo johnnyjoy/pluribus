@@ -1,0 +1,30 @@
+id: functional-quality-workflow
+version: 2
+title: Functional quality workflow (recall → enforcement → curation)
+mode: manual
+category: workflow
+benefit_claim: >-
+  Operators verify the recommended MCP tool order matches shipped HTTP semantics:
+  memory grounding (recall first), enforcement before risky change,
+  curation digest then materialize after work — without relying on chat memory alone.
+tags:
+  - mcp
+  - recall
+  - enforcement
+  - curation
+  - cursor
+seed:
+  doc: docs/mcp-usage.md
+  tools_go: internal/mcp/tools.go
+stimulus:
+  operator_steps: >-
+    1) health — confirm CONTROL_PLANE_URL and MCP connection.
+    2) recall_get or recall_compile — tags + retrieval_query; load bundle before substantive work.
+    3) memory_create — optional seed for the scenario (CreateRequest fields only on POST /v1/memory).
+    4) enforcement_evaluate — run before a non-trivial proposed change.
+    5) If testing curation: curation_digest after meaningful learning (HTTP POST /v1/curation/digest or MCP); review candidates.
+    6) curation_materialize — promote exactly one validated candidate (candidate id from digest response).
+    Optional cross-check: prompts pluribus_memory_grounding, pluribus_pre_change_enforcement, pluribus_memory_curation.
+expected:
+  sequence_matches_docs: true
+  tag_namespace_agreed_for_run: true

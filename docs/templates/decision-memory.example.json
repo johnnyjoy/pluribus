@@ -1,0 +1,13 @@
+{
+  "id": "dec-1732000000000-a1b2c3d4",
+  "type": "decision",
+  "project": "default",
+  "statement": "Use POST for create; avoid GET for mutations.",
+  "authority": 6,
+  "tags": ["api", "rest"],
+  "data": {
+    "reason": "Auto-promoted from run",
+    "diffs": "",
+    "evidence": []
+  }
+}

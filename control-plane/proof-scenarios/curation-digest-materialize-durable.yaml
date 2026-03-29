@@ -1,0 +1,20 @@
+id: curation-digest-materialize-durable
+version: 1
+title: Digest then materialize creates durable memory
+mode: integration
+category: curation
+benefit_claim: >-
+  Structured curation input becomes a durable memory object (not just a chat log),
+  so validated learning can be stored and governed like other memory.
+tags:
+  - curation
+seed:
+  description: Fresh project; curation_answers carry explicit decision text.
+stimulus:
+  type: curation_digest_materialize
+  work_summary: Proof scenario work summary for digest pipeline minimum length.
+  curation_answers:
+    decision: We will use feature flags for rollout of the new API surface.
+expected:
+  materialize_http_status: 201
+  memory_kind: decision
