@@ -7,6 +7,7 @@ COPY control-plane/go.mod control-plane/go.sum ./control-plane/
 RUN cd control-plane && go mod download
 COPY control-plane/ ./control-plane/
 COPY docs/ ./docs/
+COPY README.md CONTRIBUTING.md ./
 WORKDIR /work/control-plane
 # -tags=integration compiles integration tests in cmd/controlplane; other packages unchanged.
 # -count=1 avoids cache surprises; -p=1 serializes packages sharing one TEST_PG_DSN.

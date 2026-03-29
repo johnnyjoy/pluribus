@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS memories (
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_memories_kind_status ON memories(kind, status);
+CREATE INDEX IF NOT EXISTS idx_memories_kind_status ON memories(kind, status);
 
 CREATE TABLE IF NOT EXISTS memories_tags (
   memory_id UUID NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS memories_tags (
   PRIMARY KEY (memory_id, tag)
 );
 
-CREATE INDEX idx_memories_tags_tag ON memories_tags(tag);
+CREATE INDEX IF NOT EXISTS idx_memories_tags_tag ON memories_tags(tag);
 
 CREATE TABLE IF NOT EXISTS memory_links (
   from_memory_id UUID NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS evidence_records (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_evidence_records_digest ON evidence_records(digest);
+CREATE INDEX IF NOT EXISTS idx_evidence_records_digest ON evidence_records(digest);
 
 CREATE TABLE IF NOT EXISTS memory_evidence_links (
   memory_id   UUID NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
@@ -73,9 +73,9 @@ CREATE TABLE IF NOT EXISTS contradiction_records (
   CONSTRAINT contradiction_no_self CHECK (memory_id != conflict_with_id)
 );
 
-CREATE INDEX idx_contradiction_records_resolution ON contradiction_records(resolution_state);
-CREATE INDEX idx_contradiction_records_memory_id ON contradiction_records(memory_id);
-CREATE INDEX idx_contradiction_records_conflict_with ON contradiction_records(conflict_with_id);
+CREATE INDEX IF NOT EXISTS idx_contradiction_records_resolution ON contradiction_records(resolution_state);
+CREATE INDEX IF NOT EXISTS idx_contradiction_records_memory_id ON contradiction_records(memory_id);
+CREATE INDEX IF NOT EXISTS idx_contradiction_records_conflict_with ON contradiction_records(conflict_with_id);
 
 CREATE TABLE IF NOT EXISTS memory_attributes (
   memory_id   UUID NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS memory_attributes (
   PRIMARY KEY (memory_id, attr_key)
 );
 
-CREATE INDEX idx_memory_attributes_key ON memory_attributes(attr_key);
+CREATE INDEX IF NOT EXISTS idx_memory_attributes_key ON memory_attributes(attr_key);
 
 CREATE TABLE IF NOT EXISTS candidate_events (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS candidate_events (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_candidate_events_pending_created ON candidate_events (promotion_status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_candidate_events_pending_created ON candidate_events (promotion_status, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS recall_bundles (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS ingestion_records (
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_ingestion_records_created_at ON ingestion_records(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ingestion_records_created_at ON ingestion_records(created_at DESC);
 
 CREATE TABLE IF NOT EXISTS temp_contributor_profiles (
   temp_contributor_id TEXT PRIMARY KEY,
@@ -135,10 +135,10 @@ CREATE TABLE IF NOT EXISTS canonical_fact_extractions (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_canonical_fact_extractions_ingestion ON canonical_fact_extractions(ingestion_id);
-CREATE INDEX idx_canonical_fact_extractions_hash ON canonical_fact_extractions(normalized_hash);
-CREATE INDEX idx_canonical_fact_extractions_subject ON canonical_fact_extractions(subject_norm);
-CREATE INDEX idx_canonical_fact_extractions_subject_predicate ON canonical_fact_extractions(subject_norm, predicate_norm);
+CREATE INDEX IF NOT EXISTS idx_canonical_fact_extractions_ingestion ON canonical_fact_extractions(ingestion_id);
+CREATE INDEX IF NOT EXISTS idx_canonical_fact_extractions_hash ON canonical_fact_extractions(normalized_hash);
+CREATE INDEX IF NOT EXISTS idx_canonical_fact_extractions_subject ON canonical_fact_extractions(subject_norm);
+CREATE INDEX IF NOT EXISTS idx_canonical_fact_extractions_subject_predicate ON canonical_fact_extractions(subject_norm, predicate_norm);
 
 CREATE TABLE IF NOT EXISTS canonical_fact_lineage (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -152,9 +152,9 @@ CREATE TABLE IF NOT EXISTS canonical_fact_lineage (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_canonical_fact_lineage_fact ON canonical_fact_lineage(fact_hash);
-CREATE INDEX idx_canonical_fact_lineage_root ON canonical_fact_lineage(root_hash);
-CREATE INDEX idx_canonical_fact_lineage_ingestion ON canonical_fact_lineage(ingestion_id);
+CREATE INDEX IF NOT EXISTS idx_canonical_fact_lineage_fact ON canonical_fact_lineage(fact_hash);
+CREATE INDEX IF NOT EXISTS idx_canonical_fact_lineage_root ON canonical_fact_lineage(root_hash);
+CREATE INDEX IF NOT EXISTS idx_canonical_fact_lineage_ingestion ON canonical_fact_lineage(ingestion_id);
 
 CREATE TABLE IF NOT EXISTS canonical_fact_contradictions (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS canonical_fact_contradictions (
   CONSTRAINT canonical_fact_contradictions_unique UNIQUE (fact_hash_a, fact_hash_b, contradiction_type)
 );
 
-CREATE INDEX idx_canonical_fact_contradictions_subject ON canonical_fact_contradictions(subject_norm);
+CREATE INDEX IF NOT EXISTS idx_canonical_fact_contradictions_subject ON canonical_fact_contradictions(subject_norm);
 
 CREATE TABLE IF NOT EXISTS advisory_episodes (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -182,8 +182,8 @@ CREATE TABLE IF NOT EXISTS advisory_episodes (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_advisory_episodes_created ON advisory_episodes(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_advisory_episodes_created ON advisory_episodes(created_at DESC);
 
-CREATE UNIQUE INDEX uq_memories_dedup_key
+CREATE UNIQUE INDEX IF NOT EXISTS uq_memories_dedup_key
 ON memories (kind, dedup_key, statement_key)
 WHERE status IN ('active', 'pending') AND statement_key <> '';
