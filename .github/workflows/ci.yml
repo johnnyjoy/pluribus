@@ -132,11 +132,12 @@ jobs:
           test -f pkg/api/enums.go
           if [[ '${{ matrix.suffix }}' == 'armv7' ]]; then export GOARM=7; fi
           go mod download
-          rm -rf dist pkg
-          mkdir -p pkg
-          go build -trimpath -ldflags="-s -w" -o pkg/pluribus-mcp ./cmd/pluribus-mcp
+          # Never `rm -rf pkg` here — that deletes source package control-plane/pkg/api.
+          rm -rf dist out
+          mkdir -p out
+          go build -trimpath -ldflags="-s -w" -o out/pluribus-mcp ./cmd/pluribus-mcp
           mkdir -p dist
-          tar -czf "dist/pluribus-mcp-linux-${{ matrix.suffix }}.tar.gz" -C pkg pluribus-mcp
+          tar -czf "dist/pluribus-mcp-linux-${{ matrix.suffix }}.tar.gz" -C out pluribus-mcp
 
       - name: Upload artifacts (tar.gz)
         uses: actions/upload-artifact@v4
