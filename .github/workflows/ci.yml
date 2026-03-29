@@ -115,12 +115,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-          # Module lives under control-plane/; without this, cache defaults to repo-root go.sum (missing)
-          # and some builds resolve imports as GOPATH-style under GOROOT (control-plane/pkg/api is not in std).
+          # Module lives under control-plane/ (root has no go.sum).
           cache-dependency-path: control-plane/go.sum
 
       - name: Build pluribus-mcp for ${{ matrix.suffix }}
-        working-directory: control-plane
         shell: bash
         env:
           GO111MODULE: "on"
@@ -129,6 +127,9 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           set -euo pipefail
+          # Always enter the module root explicitly (do not rely on working-directory quirks).
+          cd "${GITHUB_WORKSPACE}/control-plane"
+          test -f go.mod
           if [[ '${{ matrix.suffix }}' == 'armv7' ]]; then export GOARM=7; fi
           go mod download
           # Build into a packaging directory so the tarball root is just `pluribus-mcp`.
