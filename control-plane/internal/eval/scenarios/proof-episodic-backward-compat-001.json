@@ -1,0 +1,34 @@
+{
+  "id": "proof-episodic-backward-compat-001",
+  "suite": "episodic",
+  "description": "Sparse advisory ingest (summary + source only): no occurred_at, entities, or tags key — 201 with empty tags/entities arrays; similar still finds row by unique lexical query.",
+  "steps": [
+    {
+      "id": "ingest_sparse",
+      "method": "POST",
+      "path": "/v1/advisory-episodes",
+      "body": {
+        "summary": "BACKWARD COMPAT EPISODE MARKER {{RUN_ID}} observability gap error silent failure overnight batch job",
+        "source": "manual"
+      },
+      "expect_status": 201,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"tags\":[]"},
+        {"kind": "body_contains", "value": "\"entities\":[]"}
+      ]
+    },
+    {
+      "id": "similar_lexical_only",
+      "method": "POST",
+      "path": "/v1/advisory-episodes/similar",
+      "body": {
+        "query": "BACKWARD COMPAT EPISODE MARKER {{RUN_ID}} observability silent failure overnight",
+        "max_results": 8
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "BACKWARD COMPAT EPISODE MARKER"}
+      ]
+    }
+  ]
+}

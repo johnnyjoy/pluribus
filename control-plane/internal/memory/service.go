@@ -511,6 +511,7 @@ func (s *Service) Promote(ctx context.Context, req PromoteRequest) (*PromoteResp
 		Applicability: api.ApplicabilityAdvisory,
 		Statement:     req.Content,
 		Tags:          tags,
+		OccurredAt:    req.OccurredAt,
 	}
 	if kind == api.MemoryKindConstraint {
 		cr.Applicability = api.ApplicabilityGoverning

@@ -1,0 +1,53 @@
+{
+  "id": "proof-episodic-repetition-merge-001",
+  "suite": "episodic",
+  "description": "Two advisory episodes with identical failure-bearing summary distill into merged candidate (support count rises; repetition convergence).",
+  "steps": [
+    {
+      "id": "episode_a",
+      "method": "POST",
+      "path": "/v1/advisory-episodes",
+      "body": {
+        "summary": "Repeated proof distill merge marker {{RUN_ID}} database transaction rollback error after duplicate key rejection on orders table",
+        "source": "manual",
+        "tags": ["proof:rep:{{RUN_ID}}"]
+      },
+      "expect_status": 201,
+      "capture_fields": { "ep_a": "id" }
+    },
+    {
+      "id": "distill_a",
+      "method": "POST",
+      "path": "/v1/episodes/distill",
+      "body": { "episode_id": "{{ep_a}}" },
+      "expect_status": 200,
+      "capture_json_path": { "cand": "candidates.0.candidate_id" },
+      "asserts": [
+        {"kind": "body_contains", "value": "\"distill_support_count\":1"}
+      ]
+    },
+    {
+      "id": "episode_b_same_text",
+      "method": "POST",
+      "path": "/v1/advisory-episodes",
+      "body": {
+        "summary": "Repeated proof distill merge marker {{RUN_ID}} database transaction rollback error after duplicate key rejection on orders table",
+        "source": "manual",
+        "tags": ["proof:rep:{{RUN_ID}}"]
+      },
+      "expect_status": 201,
+      "capture_fields": { "ep_b": "id" }
+    },
+    {
+      "id": "distill_b_merges",
+      "method": "POST",
+      "path": "/v1/episodes/distill",
+      "body": { "episode_id": "{{ep_b}}" },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"merged\":true"},
+        {"kind": "body_contains", "value": "\"distill_support_count\":2"}
+      ]
+    }
+  ]
+}

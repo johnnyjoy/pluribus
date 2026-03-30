@@ -26,12 +26,12 @@ func TestService_Create_supersedes(t *testing.T) {
 	sk := memorynorm.StatementKey("New decision")
 
 	mock.ExpectQuery(`INSERT INTO memories`).
-		WithArgs(sqlmock.AnyArg(), "decision", "New decision", canon, sk, dedup, 5, "governing", "active", nil, nil).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at"}).
-			AddRow(newID, api.MemoryKindDecision, "New decision", canon, sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now()))
+		WithArgs(sqlmock.AnyArg(), "decision", "New decision", canon, sk, dedup, 5, "governing", "active", nil, nil, nil).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
+			AddRow(newID, api.MemoryKindDecision, "New decision", canon, sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(oldID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at"}).
-			AddRow(oldID, api.MemoryKindDecision, "Old decision", memorynorm.StatementCanonical("Old decision"), memorynorm.StatementKey("Old decision"), 5, "governing", "active", nil, nil, nil, time.Now(), time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
+			AddRow(oldID, api.MemoryKindDecision, "Old decision", memorynorm.StatementCanonical("Old decision"), memorynorm.StatementKey("Old decision"), 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(oldID).WillReturnRows(sqlmock.NewRows([]string{"tag"}))
 	mock.ExpectExec(`UPDATE memories SET status = 'superseded', deprecated_at`).WithArgs(sqlmock.AnyArg(), oldID).WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -103,8 +103,8 @@ func TestService_ExpireMemories(t *testing.T) {
 
 	mock.ExpectQuery(`SELECT id, kind, statement`).
 		WithArgs(2, sqlmock.AnyArg()).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at"}).
-			AddRow(id, api.MemoryKindDecision, "Low auth", memorynorm.StatementCanonical("Low auth"), memorynorm.StatementKey("Low auth"), 1, "governing", "active", nil, ttl, nil, time.Now().Add(-2*time.Hour), time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
+			AddRow(id, api.MemoryKindDecision, "Low auth", memorynorm.StatementCanonical("Low auth"), memorynorm.StatementKey("Low auth"), 1, "governing", "active", nil, ttl, nil, time.Now().Add(-2*time.Hour), time.Now(), nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).WillReturnRows(
 		sqlmock.NewRows([]string{"tag"}).AddRow("archive"))
 	mock.ExpectExec(`UPDATE memories SET status`).WithArgs(api.StatusArchived, id).WillReturnResult(sqlmock.NewResult(0, 1))

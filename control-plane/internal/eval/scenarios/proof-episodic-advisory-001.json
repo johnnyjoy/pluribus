@@ -1,0 +1,85 @@
+{
+  "id": "proof-episodic-advisory-001",
+  "suite": "episodic",
+  "description": "Advisory episodes: ingest with time and entities; similar respects window; outside window empty; enforcement ignores advisory; recall compile does not surface episode text.",
+  "steps": [
+    {
+      "id": "seed_advisory_episode",
+      "method": "POST",
+      "path": "/v1/advisory-episodes",
+      "body": {
+        "summary": "PROOF EPISODIC ALICE STAGING DEPLOY {{RUN_ID}}",
+        "source": "manual",
+        "tags": ["proof:episodic:{{RUN_ID}}"],
+        "occurred_at": "2020-06-15T14:00:00Z",
+        "entities": ["alice", "staging"]
+      },
+      "expect_status": 201,
+      "asserts": [
+        {"kind": "body_contains", "value": "occurred_at"},
+        {"kind": "body_contains", "value": "\"entities\""}
+      ]
+    },
+    {
+      "id": "similar_in_window",
+      "method": "POST",
+      "path": "/v1/advisory-episodes/similar",
+      "body": {
+        "query": "alice staging deploy proof episodic",
+        "tags": ["proof:episodic:{{RUN_ID}}"],
+        "occurred_after": "2020-06-01T00:00:00Z",
+        "occurred_before": "2020-06-30T23:59:59Z",
+        "max_results": 5
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "PROOF EPISODIC ALICE"},
+        {"kind": "body_contains", "value": "advisory_similar_cases"}
+      ]
+    },
+    {
+      "id": "similar_outside_window_empty",
+      "method": "POST",
+      "path": "/v1/advisory-episodes/similar",
+      "body": {
+        "query": "alice staging deploy proof episodic",
+        "tags": ["proof:episodic:{{RUN_ID}}"],
+        "occurred_after": "2024-01-01T00:00:00Z",
+        "occurred_before": "2024-12-31T23:59:59Z",
+        "max_results": 5
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"advisory_similar_cases\":[]"}
+      ]
+    },
+    {
+      "id": "enforcement_ignores_advisory",
+      "method": "POST",
+      "path": "/v1/enforcement/evaluate",
+      "body": {
+        "proposal_text": "PROOF_EPISODIC_ENF_CHECK {{RUN_ID}} proposes work that only exists in advisory narrative.",
+        "tags": ["proof:episodic:{{RUN_ID}}"]
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"triggered_memories\":[]"}
+      ]
+    },
+    {
+      "id": "recall_compile_no_episode_text",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {
+        "retrieval_query": "alice staging deploy proof episodic",
+        "tags": ["proof:episodic:{{RUN_ID}}"],
+        "max_per_kind": 8,
+        "max_total": 40
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_not_contains", "value": "PROOF EPISODIC ALICE STAGING DEPLOY"}
+      ]
+    }
+  ]
+}

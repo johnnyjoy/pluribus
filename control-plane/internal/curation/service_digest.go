@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"strings"
 
 	"control-plane/internal/memory"
 	"control-plane/internal/memorynorm"
@@ -17,6 +19,12 @@ type PromotionDigestConfig struct {
 	RequireEvidence  bool
 	MinEvidenceLinks int
 	RequireReview    bool
+	// AutoPromote enables POST /v1/curation/auto-promote (default false).
+	AutoPromote bool
+	// AutoMinSupportCount / AutoMinSalience / AutoAllowedKinds gate automatic materialization (conservative defaults from config).
+	AutoMinSupportCount int
+	AutoMinSalience     float64
+	AutoAllowedKinds    []string
 }
 
 // Service already has Repo, Config, Memory; extend in service.go with:
@@ -198,6 +206,10 @@ func isBehaviorKind(k api.MemoryKind) bool {
 
 // Materialize creates a memory object from a digest candidate's proposal_json and marks the candidate promoted.
 func (s *Service) Materialize(ctx context.Context, candidateID uuid.UUID) (*memory.MemoryObject, error) {
+	return s.materializeInternal(ctx, candidateID, false)
+}
+
+func (s *Service) materializeInternal(ctx context.Context, candidateID uuid.UUID, auto bool) (*memory.MemoryObject, error) {
 	if s.Memory == nil {
 		return nil, fmt.Errorf("memory service required for materialize")
 	}
@@ -218,14 +230,13 @@ func (s *Service) Materialize(ctx context.Context, candidateID uuid.UUID) (*memo
 	if err := json.Unmarshal(c.ProposalJSON, &p); err != nil {
 		return nil, fmt.Errorf("proposal_json: %w", err)
 	}
-	promo := s.Promotion
-	if promo != nil && promo.RequireEvidence && len(p.EvidenceIDs) == 0 {
-		return nil, fmt.Errorf("materialize requires evidence when promotion.require_evidence is true")
-	}
-	if promo != nil && promo.MinEvidenceLinks > 0 && len(p.EvidenceIDs) < promo.MinEvidenceLinks {
-		return nil, fmt.Errorf("materialize requires at least %d evidence link(s)", promo.MinEvidenceLinks)
+
+	val := s.ValidatePromotionCandidate(ctx, c, &p)
+	if !val.Allow {
+		return nil, fmt.Errorf("promotion validation: %s", val.Reason)
 	}
 
+	promo := s.Promotion
 	status := api.StatusActive
 	if promo != nil && promo.RequireReview {
 		status = api.StatusPending
@@ -246,8 +257,15 @@ func (s *Service) Materialize(ctx context.Context, candidateID uuid.UUID) (*memo
 	if req.Authority <= 0 {
 		req.Authority = defaultAuthority(p.Kind)
 	}
-	if !isBehaviorKind(p.Kind) {
-		return nil, fmt.Errorf("materialize only supports behavior memory kinds")
+	if pl := buildMaterializePayload(candidateID, &p); pl != nil {
+		req.Payload = pl
+	}
+	if sid := strings.TrimSpace(p.SupersedesMemoryID); sid != "" {
+		u, err := uuid.Parse(sid)
+		if err != nil {
+			return nil, fmt.Errorf("supersedes_memory_id: %w", err)
+		}
+		req.SupersedesID = &u
 	}
 
 	obj, err := s.Memory.Create(ctx, req)
@@ -264,6 +282,11 @@ func (s *Service) Materialize(ctx context.Context, candidateID uuid.UUID) (*memo
 	}
 	if err := s.Repo.UpdatePromotionStatus(ctx, candidateID, "promoted"); err != nil {
 		return nil, err
+	}
+	if auto {
+		rd, msg := ClassifyPromotionReadiness(&p, c.SalienceScore)
+		slog.Info(strings.TrimSpace(fmt.Sprintf("[AUTO PROMOTE] candidate_id=%s memory_id=%s readiness=%s reason=%s",
+			candidateID.String(), obj.ID.String(), rd, msg)))
 	}
 	return obj, nil
 }

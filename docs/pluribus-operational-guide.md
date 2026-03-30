@@ -56,12 +56,13 @@ Load balancers should use **`readyz`** for traffic.
 | Gate | What runs |
 |------|-----------|
 | **Memory substrate proof (REST)** | **`cd control-plane && TEST_PG_DSN='…' make proof-rest`** — adversarial **`proof-*.json`** scenarios over HTTP + two-pass determinism; requires **Postgres + pgvector** on a **clean** DB. This is the **canonical behavioral proof** for the memory layer (see [evaluation.md](evaluation.md), [evidence/memory-proof.md](../evidence/memory-proof.md)). |
+| **Episodic pipeline proof (REST)** | **`make proof-episodic`** (repo root or `control-plane/`) — runs **`proof-rest`** plus **`TestEpisodicProofSprintREST_Postgres`** (conflict, time skew, advisory/recall boundary, soak). See [evidence/episodic-proof.md](../evidence/episodic-proof.md), [episodic-similarity.md](episodic-similarity.md). |
 | **Control-plane unit tests** | `cd control-plane && go test ./...` |
 | **Control-plane integration (CI)** | **`make regression`** — Docker Postgres (no host ports), **`go test -tags=integration -count=1 ./...`**, includes YAML **`proof-scenarios/`** suite. |
 | **Dockerfile smoke** | `docker build -f control-plane/Dockerfile control-plane` on every PR/push. |
 | **GHCR publish** | Multi-arch image ( **`linux/386`**, **`linux/amd64`**, **`linux/arm/v7`**, **`linux/arm64`**, **`linux/ppc64le`**, **`linux/s390x`** — intersection of **`postgres:18-alpine`** and **`redis:7`**) push to **`ghcr.io/<owner>/pluribus`** — **only** after all gates above pass **and** on push to `main`/`master` or `v*` tags (not on PRs). See [pluribus-image-release-policy.md](pluribus-image-release-policy.md). |
 
-**CI** enforces **`make regression`**. **Publishers and integrators** proving the substrate should run **`make proof-rest`** against pgvector-backed Postgres as well — it is the clearest **REST-first** receipt.
+**CI** enforces **`make regression`**. **Publishers and integrators** proving the substrate should run **`make proof-rest`** against pgvector-backed Postgres as well — it is the clearest **REST-first** receipt. Run **`make proof-episodic`** when validating the **advisory episodic** and **distillation → materialize** paths under pressure — [evidence/episodic-proof.md](../evidence/episodic-proof.md).
 
 ---
 

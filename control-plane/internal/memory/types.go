@@ -162,6 +162,8 @@ type MemoryObject struct {
 	Payload      json.RawMessage `json:"payload,omitempty"` // optional structured metadata payload
 	CreatedAt    time.Time       `json:"created_at"`
 	UpdatedAt    time.Time       `json:"updated_at"`
+	// OccurredAt is when the underlying event or fact took place (optional). Omitted in JSON when unset.
+	OccurredAt *time.Time `json:"occurred_at,omitempty"`
 }
 
 // CreateRequest is the payload for creating a memory object.
@@ -184,6 +186,8 @@ type CreateRequest struct {
 	Embedding []float32 `json:"-"`
 	// SkipPatternNearMerge when true skips tryMergeNearDuplicatePattern (internal: pattern elevation create).
 	SkipPatternNearMerge bool `json:"-"`
+	// OccurredAt is optional event time (when the fact/event occurred), RFC3339 on the wire.
+	OccurredAt *time.Time `json:"occurred_at,omitempty"`
 }
 
 // SearchRequest is the payload for POST /memory/search.
@@ -214,6 +218,8 @@ type PromoteRequest struct {
 	EvidenceIDs []uuid.UUID `json:"evidence_ids,omitempty"`
 	// RequireReview when true creates the memory with status pending; omitted/false = active.
 	RequireReview bool `json:"require_review,omitempty"`
+	// OccurredAt optional event time for the promoted content.
+	OccurredAt *time.Time `json:"occurred_at,omitempty"`
 }
 
 // PromoteResponse is the response for POST /v1/memory/promote (Pluribus Phase A).
@@ -227,12 +233,13 @@ type PromoteResponse struct {
 
 // MemoriesCreateRequest is the body for POST /v1/memories.
 type MemoriesCreateRequest struct {
-	Kind      api.MemoryKind   `json:"kind"`
-	Statement string           `json:"statement"`
-	Tags      []string         `json:"tags,omitempty"`
-	Authority int              `json:"authority,omitempty"`
-	Payload   *json.RawMessage `json:"payload,omitempty"`
-	Status    api.Status       `json:"status,omitempty"`
+	Kind       api.MemoryKind   `json:"kind"`
+	Statement  string           `json:"statement"`
+	Tags       []string         `json:"tags,omitempty"`
+	Authority  int              `json:"authority,omitempty"`
+	Payload    *json.RawMessage `json:"payload,omitempty"`
+	Status     api.Status       `json:"status,omitempty"`
+	OccurredAt *time.Time       `json:"occurred_at,omitempty"`
 }
 
 // MemoriesSearchRequest is the body for POST /v1/memories/search (shared pool; filter by tags/text — not a project partition).

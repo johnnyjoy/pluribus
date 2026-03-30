@@ -87,6 +87,8 @@ Artifacts appear in `artifacts/`.
 
 **Canonical REST proof (memory substrate):** Postgres **+ pgvector**, clean DB — `cd control-plane && TEST_PG_DSN='postgres://…' make proof-rest`. This is the primary “does the service behave as claimed?” path; details in [evaluation.md](evaluation.md) and [evidence/memory-proof.md](../evidence/memory-proof.md).
 
+**Episodic lane proof** (advisory ingest → similar → distill → review → materialize → recall/enforcement): same DSN — `make proof-episodic` from repo root or `cd control-plane && make proof-episodic`. Inventory: [evidence/episodic-proof.md](../evidence/episodic-proof.md).
+
 ---
 
 ## 6. Where to go next
@@ -109,4 +111,4 @@ Artifacts appear in `artifacts/`.
 make regression
 ```
 
-Runs integration tests (including YAML **proof scenarios**) against ephemeral Postgres — same batch gate as CI. For the **adversarial REST invariant harness** (`proof-*.json`, determinism), use **`make proof-rest`** as in [evaluation.md](evaluation.md) — that is the clearest pre-public **substrate** receipt.
+Runs integration tests (including YAML **proof scenarios**) against ephemeral Postgres — same batch gate as CI. For the **adversarial REST invariant harness** (`proof-*.json`, determinism), use **`make proof-rest`** as in [evaluation.md](evaluation.md) — that is the clearest pre-public **substrate** receipt. For **episodic** coverage on top (sprint scenarios + full JSON suite), use **`make proof-episodic`** — [evidence/episodic-proof.md](../evidence/episodic-proof.md).

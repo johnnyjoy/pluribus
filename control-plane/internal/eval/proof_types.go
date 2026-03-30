@@ -19,14 +19,15 @@ type ProofScenario struct {
 
 // ProofStep is one HTTP call in a proof scenario.
 type ProofStep struct {
-	ID            string            `json:"id"`
-	Method        string            `json:"method"`
-	Path          string            `json:"path"`
-	Body          json.RawMessage   `json:"body,omitempty"`
-	ExpectStatus  int               `json:"expect_status"`
-	CaptureFields map[string]string `json:"capture_fields,omitempty"` // var name -> top-level JSON field in response
-	StoreAs       string            `json:"store_as,omitempty"`       // raw response body stored for after_invariants
-	Asserts       []ProofAssert     `json:"asserts,omitempty"`
+	ID              string            `json:"id"`
+	Method          string            `json:"method"`
+	Path            string            `json:"path"`
+	Body            json.RawMessage   `json:"body,omitempty"`
+	ExpectStatus    int               `json:"expect_status"`
+	CaptureFields   map[string]string `json:"capture_fields,omitempty"`   // var name -> top-level JSON field in response
+	CaptureJSONPath map[string]string `json:"capture_json_path,omitempty"` // var name -> dot path (e.g. candidates.0.candidate_id)
+	StoreAs         string            `json:"store_as,omitempty"`         // raw response body stored for after_invariants
+	Asserts         []ProofAssert     `json:"asserts,omitempty"`
 }
 
 // ProofAssert is a lightweight check on the response body (string-level for stability across minor JSON formatting).

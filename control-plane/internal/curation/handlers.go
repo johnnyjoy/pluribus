@@ -83,6 +83,40 @@ func (h *Handlers) ListPending(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, list)
 }
 
+// Review handles GET /v1/curation/candidates/{id}/review — read-only review assistance (no writes).
+func (h *Handlers) Review(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid candidate id: expected a UUID")
+		return
+	}
+	out, err := h.Service.ReviewCandidate(r.Context(), id)
+	if err != nil {
+		if err.Error() == "candidate not found" {
+			httpx.WriteError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		httpx.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	httpx.WriteJSON(w, out)
+}
+
+// AutoPromote handles POST /v1/curation/auto-promote — batch materialize eligible candidates (requires Promotion.auto_promote).
+func (h *Handlers) AutoPromote(w http.ResponseWriter, r *http.Request) {
+	out, err := h.Service.AutoPromoteBatch(r.Context())
+	if err != nil {
+		if err.Error() == "auto_promote is disabled in configuration" {
+			httpx.WriteError(w, http.StatusForbidden, err.Error())
+			return
+		}
+		httpx.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	httpx.WriteJSON(w, out)
+}
+
 // MarkPromoted handles POST /v1/curation/candidates/{id}/promote.
 // If the request body contains a valid PromoteToPatternRequest (payload), creates a pattern memory and then marks promoted.
 // If the body is empty or invalid, only marks the candidate as promoted (existing behavior).

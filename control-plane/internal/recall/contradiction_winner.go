@@ -8,7 +8,7 @@ import (
 
 )
 
-// pickContradictionWinnerPair applies creative C3: higher authority, then newer updated_at, then UUID tie-break.
+// pickContradictionWinnerPair applies creative C3: higher authority, then newer effective time (occurred_at else updated_at), then UUID tie-break.
 func pickContradictionWinnerPair(a, b memory.MemoryObject) (winner, loser memory.MemoryObject, reason string) {
 	cmp := compareContradictionWinner(a, b)
 	if cmp < 0 {
@@ -24,10 +24,12 @@ func compareContradictionWinner(a, b memory.MemoryObject) int {
 		}
 		return 1
 	}
-	if a.UpdatedAt.After(b.UpdatedAt) {
+	ta := memory.EffectiveRecencyTime(a)
+	tb := memory.EffectiveRecencyTime(b)
+	if ta.After(tb) {
 		return -1
 	}
-	if b.UpdatedAt.After(a.UpdatedAt) {
+	if tb.After(ta) {
 		return 1
 	}
 	if a.ID.String() < b.ID.String() {
@@ -40,7 +42,7 @@ func contradictionReason(winner, loser memory.MemoryObject) string {
 	if winner.Authority != loser.Authority {
 		return fmt.Sprintf("authority %d vs %d", winner.Authority, loser.Authority)
 	}
-	return "newer_updated_at"
+	return "newer_effective_time"
 }
 
 // filterMemoryObjectsRemovingLosers drops memories whose IDs are in losers.

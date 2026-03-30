@@ -465,14 +465,7 @@ func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.Memor
 	var cont, cons, exp []MemoryItem
 	for _, s := range scored {
 		o := s.Object
-		item := MemoryItem{
-			ID:            o.ID.String(),
-			Kind:          string(o.Kind),
-			Statement:     o.Statement,
-			Authority:     o.Authority,
-			Justification: &JustificationMeta{Reason: s.Reason, Score: s.Score},
-			RIU:           s.RIU,
-		}
+		item := memoryItemFromScored(o, s)
 		switch o.Kind {
 		case api.MemoryKindState, api.MemoryKindDecision:
 			if len(cont) < contLim {
@@ -502,9 +495,7 @@ func continuityFromRaw(objs []memory.MemoryObject, limit int) []MemoryItem {
 		if len(out) >= limit {
 			break
 		}
-		out = append(out, MemoryItem{
-			ID: o.ID.String(), Kind: string(o.Kind), Statement: o.Statement, Authority: o.Authority,
-		})
+		out = append(out, memoryItemFromObject(o))
 	}
 	return out
 }
@@ -518,9 +509,7 @@ func experienceFromRaw(objs []memory.MemoryObject, limit int) []MemoryItem {
 		if len(out) >= limit {
 			return out
 		}
-		out = append(out, MemoryItem{
-			ID: o.ID.String(), Kind: string(o.Kind), Statement: o.Statement, Authority: o.Authority,
-		})
+		out = append(out, memoryItemFromObject(o))
 	}
 	return out
 }
@@ -534,9 +523,7 @@ func constraintsFromRaw(objs []memory.MemoryObject, limit int) []MemoryItem {
 		if len(out) >= limit {
 			return out
 		}
-		out = append(out, MemoryItem{
-			ID: o.ID.String(), Kind: string(o.Kind), Statement: o.Statement, Authority: o.Authority,
-		})
+		out = append(out, memoryItemFromObject(o))
 	}
 	return out
 }
@@ -637,14 +624,7 @@ func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int) map[api.M
 	}
 	for _, s := range scored {
 		o := s.Object
-		item := MemoryItem{
-			ID:            o.ID.String(),
-			Kind:          string(o.Kind),
-			Statement:     o.Statement,
-			Authority:     o.Authority,
-			Justification: &JustificationMeta{Reason: s.Reason, Score: s.Score},
-			RIU:           s.RIU,
-		}
+		item := memoryItemFromScored(o, s)
 		switch o.Kind {
 		case api.MemoryKindConstraint:
 			bucket[api.MemoryKindConstraint] = append(bucket[api.MemoryKindConstraint], item)
@@ -667,12 +647,7 @@ func (c *Compiler) bucketUnsorted(objs []memory.MemoryObject, maxPerKind int) ma
 		api.MemoryKindPattern:    nil,
 	}
 	for _, o := range objs {
-		item := MemoryItem{
-			ID:        o.ID.String(),
-			Kind:      string(o.Kind),
-			Statement: o.Statement,
-			Authority: o.Authority,
-		}
+		item := memoryItemFromObject(o)
 		switch o.Kind {
 		case api.MemoryKindConstraint:
 			bucket[api.MemoryKindConstraint] = append(bucket[api.MemoryKindConstraint], item)
@@ -704,4 +679,34 @@ func logRankTrace(scored []ScoredMemory, n int) {
 			"distinct_agents", PayloadDistinctAgents(o.Payload),
 		)
 	}
+}
+
+func memoryItemFromScored(o memory.MemoryObject, s ScoredMemory) MemoryItem {
+	it := MemoryItem{
+		ID:            o.ID.String(),
+		Kind:          string(o.Kind),
+		Statement:     o.Statement,
+		Authority:     o.Authority,
+		Justification: &JustificationMeta{Reason: s.Reason, Score: s.Score},
+		RIU:           s.RIU,
+	}
+	if o.OccurredAt != nil {
+		t := *o.OccurredAt
+		it.OccurredAt = &t
+	}
+	return it
+}
+
+func memoryItemFromObject(o memory.MemoryObject) MemoryItem {
+	it := MemoryItem{
+		ID:        o.ID.String(),
+		Kind:      string(o.Kind),
+		Statement: o.Statement,
+		Authority: o.Authority,
+	}
+	if o.OccurredAt != nil {
+		t := *o.OccurredAt
+		it.OccurredAt = &t
+	}
+	return it
 }

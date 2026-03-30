@@ -306,7 +306,8 @@ func scoreBase(obj memory.MemoryObject, req ScoreRequest, weights RankingWeights
 	}
 	score := weights.Authority * authNorm
 	const year = 365 * 24 * time.Hour
-	age := refTime.Sub(obj.UpdatedAt)
+	eff := memory.EffectiveRecencyTime(obj)
+	age := refTime.Sub(eff)
 	if age < 0 {
 		age = 0
 	}
@@ -358,12 +359,39 @@ func scoreBase(obj memory.MemoryObject, req ScoreRequest, weights RankingWeights
 			}
 		}
 	}
+	// Non-destructive invalidation: payload.pluribus_evolution.invalidated_by deprioritizes without hiding the row.
+	if evolutionInvalidated(obj.Payload) {
+		const invalidationPenalty = 0.35
+		score -= invalidationPenalty
+	}
 	return score
+}
+
+// evolutionInvalidated is true when JSON payload has non-empty pluribus_evolution.invalidated_by.
+func evolutionInvalidated(payload []byte) bool {
+	if len(payload) == 0 {
+		return false
+	}
+	var root map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &root); err != nil {
+		return false
+	}
+	raw, ok := root["pluribus_evolution"]
+	if !ok {
+		return false
+	}
+	var evo struct {
+		InvalidatedBy string `json:"invalidated_by"`
+	}
+	if err := json.Unmarshal(raw, &evo); err != nil {
+		return false
+	}
+	return strings.TrimSpace(evo.InvalidatedBy) != ""
 }
 
 // Score computes a weighted score for a memory object in the context of a compile request.
 // Authority is normalized to 0..1 using maxAuthority (pass the max authority in the candidate set, or 10).
-// Recency is 0..1 from UpdatedAt (newer = higher; 1 year window).
+// Recency is 0..1 from effective event/update time (COALESCE(occurred_at, updated_at); newer = higher; 1 year window).
 // TagMatch is 0..1: fraction of request tags that appear on the memory.
 // FailureOverlap is 1 if kind==failure and tag overlap > 0, else 0 (then weighted).
 // Pattern payload may apply a multiplier from polarity/severity and symbol overlap boost.
@@ -450,7 +478,8 @@ func dominantReasonAt(obj memory.MemoryObject, req ScoreRequest, weights Ranking
 	}
 	tagMatch := tagMatchScore(obj.Tags, req.Tags)
 	const year = 365 * 24 * time.Hour
-	age := refTime.Sub(obj.UpdatedAt)
+	eff := memory.EffectiveRecencyTime(obj)
+	age := refTime.Sub(eff)
 	if age < 0 {
 		age = 0
 	}

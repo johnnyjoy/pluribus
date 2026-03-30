@@ -48,13 +48,13 @@ func TestFindSimilar_LexicalOrdersByOverlap(t *testing.T) {
 	t1 := time.Now().UTC().Add(-time.Minute)
 	t2 := time.Now().UTC()
 
-	mock.ExpectQuery(`SELECT id, summary_text, source, tags, related_memory_id, created_at`).
-		WithArgs(500).
+	mock.ExpectQuery(`SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities`).
+		WithArgs(nil, nil, 500).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "summary_text", "source", "tags", "related_memory_id", "created_at",
+			"id", "summary_text", "source", "tags", "related_memory_id", "created_at", "occurred_at", "entities",
 		}).
-			AddRow(id1, "webhook debugging notes", "manual", []byte(`[]`), nil, t1).
-			AddRow(id2, "payment webhook timeout retry", "manual", []byte(`[]`), nil, t2))
+			AddRow(id1, "webhook debugging notes", "manual", []byte(`[]`), nil, t1, nil, []byte(`[]`)).
+			AddRow(id2, "payment webhook timeout retry", "manual", []byte(`[]`), nil, t2, nil, []byte(`[]`)))
 
 	s := &Service{
 		Repo:   &Repo{DB: db},
@@ -91,13 +91,13 @@ func TestFindSimilar_TagFilter(t *testing.T) {
 	id2 := uuid.New()
 	now := time.Now().UTC()
 
-	mock.ExpectQuery(`SELECT id, summary_text, source, tags, related_memory_id, created_at`).
-		WithArgs(500).
+	mock.ExpectQuery(`SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities`).
+		WithArgs(nil, nil, 500).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "summary_text", "source", "tags", "related_memory_id", "created_at",
+			"id", "summary_text", "source", "tags", "related_memory_id", "created_at", "occurred_at", "entities",
 		}).
-			AddRow(id1, "alpha beta topic one", "manual", []byte(`["a"]`), nil, now).
-			AddRow(id2, "gamma delta topic two", "manual", []byte(`["b","c"]`), nil, now))
+			AddRow(id1, "alpha beta topic one", "manual", []byte(`["a"]`), nil, now, nil, []byte(`[]`)).
+			AddRow(id2, "gamma delta topic two", "manual", []byte(`["b","c"]`), nil, now, nil, []byte(`[]`)))
 
 	s := &Service{
 		Repo:   &Repo{DB: db},
@@ -118,6 +118,23 @@ func TestFindSimilar_TagFilter(t *testing.T) {
 	}
 }
 
+func TestFindSimilar_InvertedTimeWindow(t *testing.T) {
+	s := &Service{
+		Repo:   &Repo{},
+		Config: &Config{Enabled: true},
+	}
+	after := time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
+	before := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	_, err := s.FindSimilar(context.Background(), SimilarRequest{
+		Query:          "q",
+		OccurredAfter:  &after,
+		OccurredBefore: &before,
+	})
+	if err == nil {
+		t.Fatal("expected error for inverted time window")
+	}
+}
+
 func TestFindSimilar_MinResemblanceFiltersWeak(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -128,12 +145,12 @@ func TestFindSimilar_MinResemblanceFiltersWeak(t *testing.T) {
 	id1 := uuid.New()
 	now := time.Now().UTC()
 
-	mock.ExpectQuery(`SELECT id, summary_text, source, tags, related_memory_id, created_at`).
-		WithArgs(500).
+	mock.ExpectQuery(`SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities`).
+		WithArgs(nil, nil, 500).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "summary_text", "source", "tags", "related_memory_id", "created_at",
+			"id", "summary_text", "source", "tags", "related_memory_id", "created_at", "occurred_at", "entities",
 		}).
-			AddRow(id1, "completely unrelated xyz", "manual", []byte(`[]`), nil, now))
+			AddRow(id1, "completely unrelated xyz", "manual", []byte(`[]`), nil, now, nil, []byte(`[]`)))
 
 	s := &Service{
 		Repo:   &Repo{DB: db},

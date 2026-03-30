@@ -1,0 +1,63 @@
+{
+  "id": "proof-episodic-supersession-search-001",
+  "suite": "episodic",
+  "description": "Non-destructive evolution: POST /v1/memory with supersedes_id marks prior row superseded; active search returns only the successor; superseded search still returns the older row.",
+  "steps": [
+    {
+      "id": "create_first_memory",
+      "method": "POST",
+      "path": "/v1/memory",
+      "body": {
+        "kind": "failure",
+        "authority": 5,
+        "statement": "EPISODIC SUPERSEDE ONE {{RUN_ID}} payment processor outage when circuit breaker stuck open error during peak sale",
+        "tags": ["proof:episodic:super:{{RUN_ID}}"]
+      },
+      "expect_status": 200,
+      "capture_fields": { "m1": "id" }
+    },
+    {
+      "id": "create_second_supersedes",
+      "method": "POST",
+      "path": "/v1/memory",
+      "body": {
+        "kind": "failure",
+        "authority": 6,
+        "statement": "EPISODIC SUPERSEDE TWO {{RUN_ID}} revised incident narrative circuit breaker and timeout coordination failure during peak sale",
+        "tags": ["proof:episodic:super:{{RUN_ID}}"],
+        "supersedes_id": "{{m1}}"
+      },
+      "expect_status": 200
+    },
+    {
+      "id": "search_superseded_preserved",
+      "method": "POST",
+      "path": "/v1/memory/search",
+      "body": {
+        "tags": ["proof:episodic:super:{{RUN_ID}}"],
+        "status": "superseded",
+        "max": 10
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "EPISODIC SUPERSEDE ONE"},
+        {"kind": "body_contains", "value": "\"status\":\"superseded\""}
+      ]
+    },
+    {
+      "id": "search_active_excludes_superseded_statement",
+      "method": "POST",
+      "path": "/v1/memory/search",
+      "body": {
+        "tags": ["proof:episodic:super:{{RUN_ID}}"],
+        "status": "active",
+        "max": 10
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "EPISODIC SUPERSEDE TWO"},
+        {"kind": "body_not_contains", "value": "EPISODIC SUPERSEDE ONE"}
+      ]
+    }
+  ]
+}

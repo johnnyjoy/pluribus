@@ -219,6 +219,12 @@ func TestApplyPromotionDefaults_clamps(t *testing.T) {
 	if p.SignalNormDivisor != 0 {
 		t.Errorf("SignalNormDivisor = %v, want 0 (library default 15 when applying composite)", p.SignalNormDivisor)
 	}
+	if p.AutoMinSupportCount != 4 {
+		t.Errorf("AutoMinSupportCount = %d, want 4", p.AutoMinSupportCount)
+	}
+	if p.AutoMinSalience != 0.7 {
+		t.Errorf("AutoMinSalience = %v, want 0.7", p.AutoMinSalience)
+	}
 }
 
 func TestLoadConfig_recallSemanticAndRankingDefaults(t *testing.T) {

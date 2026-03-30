@@ -101,6 +101,7 @@ func (h *Handlers) CreateMemories(w http.ResponseWriter, r *http.Request) {
 		Tags:          req.Tags,
 		Payload:       req.Payload,
 		Status:        req.Status,
+		OccurredAt:    req.OccurredAt,
 	}
 	obj, err := h.Service.Create(r.Context(), cr)
 	if err != nil {

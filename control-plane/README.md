@@ -65,6 +65,8 @@ The harness **errors early** if `public.memories` already exists. Local reset: [
 
 Receipts and limitations: [../evidence/memory-proof.md](../evidence/memory-proof.md). Operator narrative: [../docs/evaluation.md](../docs/evaluation.md).
 
+**Episodic stress proof:** `make proof-episodic` — same DSN and clean-DB rules as **`proof-rest`**, plus **`TestEpisodicProofSprintREST_Postgres`**. Scenario inventory: [../evidence/episodic-proof.md](../evidence/episodic-proof.md).
+
 **Semantic retrieval:** Best-effort **hybrid** when embeddings work; **lexical + tags + authority** stay the baseline. When semantic is enabled but the query embed path is skipped or fails softly, the server logs **`[SEMANTIC FALLBACK] reason=…`** and sets **`semantic_retrieval`** on **`POST /v1/recall/compile`** (`path`, `fallback_reason`). **`[SEMANTIC ERROR]`** covers hard failures on the embed/vector path (still visible, then lexical). DB column is **`vector(1536)`** — align `embedding_dimensions` with your model.
 
 ## REST regression checks (CI + optional host DB)
@@ -125,7 +127,7 @@ curl -sS -X POST http://localhost:8123/v1/curation/digest -H 'Content-Type: appl
 
 **Pre-change enforcement** — `POST /v1/enforcement/evaluate`: compare a bounded **proposal** to **binding** trusted memory (high authority, non-advisory kinds); returns `allow` / `require_review` / `block` / `block_overrideable`. Not the same as **`/v1/drift/check`** (string heuristics + negative pattern overlap) or **`/v1/curation/evaluate`** (candidate salience). Config **`enforcement.*`** (RC1 default on; set **`enabled: false`** to disable). See [../docs/pre-change-enforcement.md](../docs/pre-change-enforcement.md).
 
-**Advisory episodic similarity (optional)** — `POST /v1/advisory-episodes` and `POST /v1/advisory-episodes/similar` (lexical + tag “similar cases”); **subordinate** to canonical recall. Config **`similarity.*`** (default off). See [../docs/episodic-similarity.md](../docs/episodic-similarity.md).
+**Advisory episodic similarity (optional)** — `POST /v1/advisory-episodes` and `POST /v1/advisory-episodes/similar` (lexical + tag “similar cases”); **subordinate** to canonical recall. Config **`similarity.*`** (default off). See [../docs/episodic-similarity.md](../docs/episodic-similarity.md). Automated REST proofs: embedded **`proof-episodic-*.json`** (`make proof-rest`) and **`make proof-episodic`** — [../evidence/episodic-proof.md](../evidence/episodic-proof.md).
 
 **LSP-backed recall (Phase 8)** — requires **`lsp.enabled: true`** in config and **gopls** available to the server for auto symbols / **`reference_count`**. See [docs/lsp-features.md](docs/lsp-features.md).
 

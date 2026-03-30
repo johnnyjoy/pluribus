@@ -269,7 +269,8 @@ func runProofRecallBindingConstraint(t *testing.T, base string) {
 }
 
 func runProofRecallDecisionRelevant(t *testing.T, base string) {
-	body := `{"kind":"decision","authority":7,"statement":"We will use feature flags for rollout of the new API surface."}`
+	stmt := fmt.Sprintf("We will use feature flags for rollout of the new API surface. [proof-recall-decision:%s]", uuid.New())
+	body := fmt.Sprintf(`{"kind":"decision","authority":7,"statement":%q}`, stmt)
 	resp2 := postJSON(t, base+"/v1/memory", body)
 	defer resp2.Body.Close()
 	if resp2.StatusCode != http.StatusOK {
@@ -283,7 +284,8 @@ func runProofRecallDecisionRelevant(t *testing.T, base string) {
 }
 
 func runProofCurationDigestMaterialize(t *testing.T, base string) {
-	digestBody := `{"work_summary":"Proof scenario work summary for digest pipeline minimum length.","curation_answers":{"decision":"We will use feature flags for rollout of the new API surface."}}`
+	digestBody := fmt.Sprintf(`{"work_summary":"Proof scenario work summary for digest pipeline minimum length.","curation_answers":{"decision":%q}}`,
+		fmt.Sprintf("We will use feature flags for rollout of the new API surface. [proof-digest-mat:%s]", uuid.New()))
 	resp := postJSON(t, base+"/v1/curation/digest", digestBody)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -325,7 +327,8 @@ func runProofCurationDigestMaterialize(t *testing.T, base string) {
 }
 
 func runProofCurationThenRecall(t *testing.T, base string) {
-	digestBody := `{"work_summary":"Proof scenario work summary for digest pipeline minimum length.","curation_answers":{"decision":"We will use feature flags for rollout of the new API surface."}}`
+	digestBody := fmt.Sprintf(`{"work_summary":"Proof scenario work summary for digest pipeline minimum length.","curation_answers":{"decision":%q}}`,
+		fmt.Sprintf("We will use feature flags for rollout of the new API surface. [proof-digest-recall:%s]", uuid.New()))
 	resp := postJSON(t, base+"/v1/curation/digest", digestBody)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -406,7 +409,8 @@ func runProofSimulatedMultiAgentContinuity(t *testing.T, base string) {
 }
 
 func runProofContinuitySecondStep(t *testing.T, base string) {
-	digestBody := `{"work_summary":"Proof scenario work summary for digest pipeline minimum length.","curation_answers":{"decision":"We will use feature flags for rollout of the new API surface."}}`
+	digestBody := fmt.Sprintf(`{"work_summary":"Proof scenario work summary for digest pipeline minimum length.","curation_answers":{"decision":%q}}`,
+		fmt.Sprintf("We will use feature flags for rollout of the new API surface. [proof-continuity:%s]", uuid.New()))
 	resp := postJSON(t, base+"/v1/curation/digest", digestBody)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

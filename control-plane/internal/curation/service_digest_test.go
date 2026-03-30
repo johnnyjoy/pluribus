@@ -142,10 +142,14 @@ func TestMaterialize_success(t *testing.T) {
 
 	var gotStmt string
 	var gotTags []string
+	var gotPayload []byte
 	mem := &fakeMemoryCreator{
 		create: func(_ context.Context, req memory.CreateRequest) (*memory.MemoryObject, error) {
 			gotStmt = req.Statement
 			gotTags = append([]string(nil), req.Tags...)
+			if req.Payload != nil {
+				gotPayload = append([]byte(nil), *req.Payload...)
+			}
 			return &memory.MemoryObject{ID: uuid.New(), Kind: req.Kind, Statement: req.Statement}, nil
 		},
 	}
@@ -161,6 +165,9 @@ func TestMaterialize_success(t *testing.T) {
 	if len(gotTags) != 0 {
 		t.Fatalf("materialize inferred unexpected tags: %v", gotTags)
 	}
+	if !strings.Contains(string(gotPayload), "pluribus_promotion") || !strings.Contains(string(gotPayload), candidateID.String()) {
+		t.Fatalf("expected materialize payload with candidate id, got %q", string(gotPayload))
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("expectations: %v", err)
 	}
@@ -169,7 +176,7 @@ func TestMaterialize_success(t *testing.T) {
 func TestMaterialize_requireEvidence(t *testing.T) {
 	ctx := context.Background()
 	candidateID := uuid.MustParse("c0000000-0000-0000-0000-000000000001")
-	p := ProposalPayloadV1{V: 1, Kind: api.MemoryKindDecision, Statement: "x"}
+	p := ProposalPayloadV1{V: 1, Kind: api.MemoryKindDecision, Statement: "this decision text is long enough for validation sixteen"}
 	pj, _ := json.Marshal(p)
 
 	db, mock, err := sqlmock.New()

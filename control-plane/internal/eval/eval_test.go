@@ -17,8 +17,8 @@ func TestProofScenariosEmbedded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(sc) < 9 {
-		t.Fatalf("expected at least 9 proof-*.json scenarios, got %d", len(sc))
+	if len(sc) < 12 {
+		t.Fatalf("expected at least 12 proof-*.json scenarios, got %d", len(sc))
 	}
 }
 

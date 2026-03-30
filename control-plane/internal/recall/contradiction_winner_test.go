@@ -51,7 +51,24 @@ func TestCompareContradictionWinner_newerUpdatedAt(t *testing.T) {
 		UpdatedAt: oldT,
 	}
 	if compareContradictionWinner(a, b) >= 0 {
-		t.Fatal("newer UpdatedAt should win")
+		t.Fatal("newer effective time should win")
+	}
+}
+
+func TestCompareContradictionWinner_occurredAtBeatsNewerUpdatedAt(t *testing.T) {
+	newUp := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	oldUp := time.Date(2010, 1, 1, 0, 0, 0, 0, time.UTC)
+	ev := time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC)
+	a := memory.MemoryObject{
+		ID: uuid.MustParse("70000000-0000-0000-0000-000000000001"), Authority: 5,
+		UpdatedAt: oldUp, OccurredAt: &ev,
+	}
+	b := memory.MemoryObject{
+		ID: uuid.MustParse("80000000-0000-0000-0000-000000000001"), Authority: 5,
+		UpdatedAt: newUp,
+	}
+	if compareContradictionWinner(a, b) >= 0 {
+		t.Fatal("higher effective time (occurred_at) should win over updated_at-only row")
 	}
 }
 

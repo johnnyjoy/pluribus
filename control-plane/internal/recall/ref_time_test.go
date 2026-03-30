@@ -32,3 +32,13 @@ func TestRefTimeForRanking_allZeroUsesEpoch(t *testing.T) {
 		t.Fatalf("got %v want epoch", got)
 	}
 }
+
+func TestRefTimeForRanking_usesOccurredAtWhenNewerThanUpdatedAt(t *testing.T) {
+	oldUp := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	evt := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	o := memory.MemoryObject{UpdatedAt: oldUp, OccurredAt: &evt}
+	got := RefTimeForRanking([]memory.MemoryObject{o})
+	if !got.Equal(evt) {
+		t.Fatalf("RefTimeForRanking = %v want %v", got, evt)
+	}
+}

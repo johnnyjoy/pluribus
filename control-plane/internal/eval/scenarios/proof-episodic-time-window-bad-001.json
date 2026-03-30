@@ -1,0 +1,22 @@
+{
+  "id": "proof-episodic-time-window-bad-001",
+  "suite": "episodic",
+  "description": "POST /v1/advisory-episodes/similar rejects inverted time window (occurred_after after occurred_before).",
+  "steps": [
+    {
+      "id": "inverted_time_window",
+      "method": "POST",
+      "path": "/v1/advisory-episodes/similar",
+      "body": {
+        "query": "episodic proof time window validation",
+        "occurred_after": "2026-12-31T00:00:00Z",
+        "occurred_before": "2026-01-01T00:00:00Z",
+        "max_results": 3
+      },
+      "expect_status": 400,
+      "asserts": [
+        {"kind": "body_contains", "value": "occurred_after"}
+      ]
+    }
+  ]
+}

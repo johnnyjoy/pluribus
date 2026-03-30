@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"strconv"
 
 	"github.com/google/uuid"
 )
@@ -64,8 +66,25 @@ func enrichPreview(c *CandidateEvent) {
 		if len(s) > 200 {
 			s = s[:200] + "…"
 		}
+		if p.DistillSupportCount > 1 {
+			s = s + " (×" + strconv.Itoa(p.DistillSupportCount) + ")"
+		}
 		c.StatementPreview = s
 	}
+	enrichReadiness(c)
+}
+
+func enrichReadiness(c *CandidateEvent) {
+	if len(c.ProposalJSON) == 0 {
+		return
+	}
+	var p ProposalPayloadV1
+	if err := json.Unmarshal(c.ProposalJSON, &p); err != nil {
+		return
+	}
+	r, why := ClassifyPromotionReadiness(&p, c.SalienceScore)
+	c.PromotionReadiness = r
+	c.ReadinessReason = why
 }
 
 // ListPending returns candidate events with promotion_status = 'pending' (global queue).
@@ -96,6 +115,54 @@ func (r *Repo) ListPending(ctx context.Context) ([]CandidateEvent, error) {
 // UpdatePromotionStatus sets promotion_status for the candidate (e.g. "promoted", "rejected").
 func (r *Repo) UpdatePromotionStatus(ctx context.Context, id uuid.UUID, status string) error {
 	_, err := r.DB.ExecContext(ctx, `UPDATE candidate_events SET promotion_status = $1 WHERE id = $2`, status, id)
+	return err
+}
+
+// FindPendingDistilledByKindAndStatementKey returns one pending distilled candidate matching kind + distill_statement_key, or nil.
+func (r *Repo) FindPendingDistilledByKindAndStatementKey(ctx context.Context, kind, distillStatementKey string) (*CandidateEvent, error) {
+	if r == nil || r.DB == nil {
+		return nil, errors.New("curation: repo not configured")
+	}
+	if distillStatementKey == "" {
+		return nil, nil
+	}
+	var c CandidateEvent
+	var pj []byte
+	err := r.DB.QueryRowContext(ctx, `
+		SELECT id, raw_text, COALESCE(salience_score, 0), promotion_status, created_at, proposal_json
+		FROM candidate_events
+		WHERE promotion_status = 'pending'
+		  AND proposal_json->>'reason' LIKE 'distilled:%'
+		  AND proposal_json->>'kind' = $1
+		  AND proposal_json->>'distill_statement_key' = $2
+		ORDER BY created_at ASC
+		LIMIT 1`,
+		kind, distillStatementKey,
+	).Scan(&c.ID, &c.RawText, &c.SalienceScore, &c.PromotionStatus, &c.CreatedAt, &pj)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(pj) > 0 {
+		c.ProposalJSON = pj
+	}
+	enrichPreview(&c)
+	return &c, nil
+}
+
+// UpdateDigestCandidate updates raw_text, salience, and proposal_json for an existing candidate row.
+func (r *Repo) UpdateDigestCandidate(ctx context.Context, id uuid.UUID, rawText string, salienceScore float64, proposalJSON []byte) error {
+	if r == nil || r.DB == nil {
+		return errors.New("curation: repo not configured")
+	}
+	_, err := r.DB.ExecContext(ctx, `
+		UPDATE candidate_events
+		SET raw_text = $2, salience_score = $3, proposal_json = $4
+		WHERE id = $1 AND promotion_status = 'pending'`,
+		id, rawText, salienceScore, proposalJSON,
+	)
 	return err
 }
 

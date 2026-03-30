@@ -14,7 +14,7 @@
 | [pluribus-quickstart.md](pluribus-quickstart.md) | First-run — run, verify, HTTP smoke, MCP pointers |
 | [authentication.md](authentication.md) | Auth model for technical preview |
 | [mcp-usage.md](mcp-usage.md) | **MCP client setup** — Cursor, Claude Desktop, HTTP vs stdio; workflow; troubleshooting |
-| [evaluation.md](evaluation.md) | **Canonical verification:** `make proof-rest` + eval/stress/CI targets |
+| [evaluation.md](evaluation.md) | **Canonical verification:** `make proof-rest` + `make proof-episodic` + eval/stress/CI targets |
 | [walkthrough-single-agent.md](walkthrough-single-agent.md) | Continuity walkthrough |
 | [walkthrough-multi-agent.md](walkthrough-multi-agent.md) | Multi-agent coordination walkthrough |
 | [walkthrough-constraint-enforcement.md](walkthrough-constraint-enforcement.md) | Constraint enforcement walkthrough |
@@ -70,7 +70,8 @@
 
 | Doc | Note |
 |-----|------|
-| [episodic-similarity.md](episodic-similarity.md) | **Advisory** only — not canonical recall authority |
+| [episodic-similarity.md](episodic-similarity.md) | **Advisory** only — not canonical recall authority; REST proof scenarios in **`make proof-rest`** / **`make proof-episodic`** |
+| [../evidence/episodic-proof.md](../evidence/episodic-proof.md) | Episodic proof inventory, commands, limits |
 | [pluribus-benefit-eval.md](pluribus-benefit-eval.md) | Eval methodology |
 
 ---

@@ -60,6 +60,7 @@ There is **no** “search only inside container X” as the product contract.
 ## Verification (REST-first)
 
 - **Proof of core behavior** is established at the **REST API** first: **`make proof-rest`** in `control-plane/` with **`TEST_PG_DSN`** (Postgres with **pgvector**, clean DB). See [evaluation.md](evaluation.md) and [evidence/memory-proof.md](../evidence/memory-proof.md).
+- **Episodic advisory and distillation** are covered by embedded **`proof-episodic-*.json`** (in **`proof-rest`**) and by **`make proof-episodic`** (adds sprint integration tests). See [evidence/episodic-proof.md](../evidence/episodic-proof.md) and [episodic-similarity.md](episodic-similarity.md).
 - **MCP** is tested as a **thin adapter** once REST behavior is locked; it is not a substitute for service-boundary proof.
 - **LSP**-assisted recall is **optional**; it does not define the memory contract.
 - **CI** runs a broader **`make regression`** gate (integration tests, including YAML proof scenarios); that complements but does not replace the **canonical REST proof harness** for substrate truth.

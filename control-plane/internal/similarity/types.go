@@ -25,6 +25,10 @@ type Record struct {
 	Tags            []string   `json:"tags"`
 	RelatedMemoryID *uuid.UUID `json:"related_memory_id,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`
+	// OccurredAt is when the episode occurred (optional; advisory only).
+	OccurredAt *time.Time `json:"occurred_at,omitempty"`
+	// Entities are normalized strings (e.g. people, systems) for overlap filters; not a graph.
+	Entities []string `json:"entities,omitempty"`
 }
 
 // CreateRequest is POST /v1/advisory-episodes body.
@@ -33,6 +37,8 @@ type CreateRequest struct {
 	Tags            []string   `json:"tags,omitempty"`
 	Source          string     `json:"source"`
 	RelatedMemoryID *uuid.UUID `json:"related_memory_id,omitempty"`
+	OccurredAt      *time.Time `json:"occurred_at,omitempty"`
+	Entities        []string   `json:"entities,omitempty"`
 }
 
 // SimilarRequest is POST /v1/advisory-episodes/similar body.
@@ -40,6 +46,12 @@ type SimilarRequest struct {
 	Query      string   `json:"query"`
 	Tags       []string `json:"tags,omitempty"`
 	MaxResults int      `json:"max_results,omitempty"`
+	// OccurredAfter / OccurredBefore filter by effective time COALESCE(occurred_at, created_at). Optional; not container scoping.
+	OccurredAfter  *time.Time `json:"occurred_after,omitempty"`
+	OccurredBefore *time.Time `json:"occurred_before,omitempty"`
+	// Entity matches if any request entity overlaps episode entities (normalized).
+	Entity   string   `json:"entity,omitempty"`
+	Entities []string `json:"entities,omitempty"`
 }
 
 // SimilarResponse wraps advisory results (always subordinate to canonical memory).
@@ -58,4 +70,6 @@ type AdvisorySimilarCase struct {
 	Advisory           bool      `json:"advisory"`
 	CreatedAt          time.Time `json:"created_at"`
 	RelatedMemoryID    *string   `json:"related_memory_id,omitempty"`
+	OccurredAt         *time.Time `json:"occurred_at,omitempty"`
+	Entities           []string   `json:"entities,omitempty"`
 }

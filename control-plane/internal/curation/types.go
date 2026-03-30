@@ -20,11 +20,14 @@ type CandidateEvent struct {
 	// StructuredKind and StatementPreview are set when proposal_json is present (for list UX).
 	StructuredKind   string `json:"structured_kind,omitempty"`
 	StatementPreview string `json:"statement_preview,omitempty"`
+	// PromotionReadiness / ReadinessReason are derived for review (deterministic; not auto-promotion).
+	PromotionReadiness string `json:"promotion_readiness,omitempty"`
+	ReadinessReason    string `json:"readiness_reason,omitempty"`
 }
 
 // EvaluateRequest is the payload for POST /curation/evaluate.
 type EvaluateRequest struct {
-	Text      string    `json:"text"`
+	Text string `json:"text"`
 }
 
 // EvaluateResult is the response from Evaluate (salience and threshold flags).
@@ -114,6 +117,27 @@ type ProposalPayloadV1 struct {
 	ArtifactRefs      []ArtifactRef  `json:"artifact_refs,omitempty"`
 	WorkSummary       string         `json:"work_summary,omitempty"`
 	ProposalID        string         `json:"proposal_id,omitempty"`
+	// SourceAdvisoryEpisodeID is set when the candidate was distilled from an advisory_episodes row (not canonical).
+	SourceAdvisoryEpisodeID string `json:"source_advisory_episode_id,omitempty"`
+	// DistillStatementKey is memorynorm.StatementKey(Statement) for pending dedup (distilled candidates only).
+	DistillStatementKey string `json:"distill_statement_key,omitempty"`
+	// SourceAdvisoryEpisodeIDs lists all advisory episodes that contributed (merge traceability).
+	SourceAdvisoryEpisodeIDs []string `json:"source_advisory_episode_ids,omitempty"`
+	// DistillSupportCount is how many distill operations merged into this row (repetition strengthening).
+	DistillSupportCount int `json:"distill_support_count,omitempty"`
+	// PluribusDistillOrigin is how the row was produced: "manual" (explicit POST /v1/episodes/distill), "auto" (post-advisory ingest), or "mixed" (merged from both). Omitted on legacy rows (treated as manual).
+	PluribusDistillOrigin string `json:"pluribus_distill_origin,omitempty"`
+	// SupersedesMemoryID when set to an existing memory UUID, materialize creates the new row with CreateRequest.supersedes_id (marks prior row superseded — additive evolution, not archive).
+	SupersedesMemoryID string `json:"supersedes_memory_id,omitempty"`
+	// PluribusEvolution optional additive relationships stored on the created memory payload (pluribus_evolution).
+	PluribusEvolution *PluribusEvolutionV1 `json:"pluribus_evolution,omitempty"`
+}
+
+// PluribusEvolutionV1 is stored under memory payload key pluribus_evolution (additive, auditable).
+type PluribusEvolutionV1 struct {
+	SupersededBy  string   `json:"superseded_by,omitempty"`
+	Contradicts   []string `json:"contradicts,omitempty"`
+	InvalidatedBy string   `json:"invalidated_by,omitempty"`
 }
 
 // DigestLimits holds byte and count limits (from config).
@@ -122,4 +146,60 @@ type DigestLimits struct {
 	WorkSummaryMaxBytes int
 	StatementMaxBytes   int
 	ReasonMaxBytes      int
+}
+
+// SupportingEpisodeSummary is a short view of an advisory episode for candidate review (not full payload).
+type SupportingEpisodeSummary struct {
+	EpisodeID string `json:"episode_id"`
+	Summary   string `json:"summary"`
+}
+
+// TagsGrouped splits tags for readability at review time (entity:* vs other domain/context tags).
+type TagsGrouped struct {
+	Entities []string `json:"entities,omitempty"`
+	Domain   []string `json:"domain,omitempty"`
+}
+
+// PromotionPreview is a read-only projection of what materialize would apply (no writes).
+type PromotionPreview struct {
+	Kind              string   `json:"kind"`
+	Statement         string   `json:"statement"`
+	Tags              []string `json:"tags,omitempty"`
+	ProposedAuthority int      `json:"proposed_authority"`
+	Applicability     string   `json:"applicability"` // "advisory" | "governing"
+	MemoryStatusNote  string   `json:"memory_status_note,omitempty"`
+}
+
+// Promotion validation result from ValidatePromotionCandidate (manual or auto materialize).
+type PromotionValidationResult struct {
+	Allow  bool   `json:"allow"`
+	Reason string `json:"reason"`
+}
+
+// AutoPromoteResponse is returned from POST /v1/curation/auto-promote.
+type AutoPromoteResponse struct {
+	Results []AutoPromoteResultRow `json:"results"`
+}
+
+// AutoPromoteResultRow is one candidate outcome from the auto-promote batch.
+type AutoPromoteResultRow struct {
+	CandidateID string `json:"candidate_id"`
+	MemoryID    string `json:"memory_id,omitempty"`
+	Status      string `json:"status"` // promoted | skipped | error
+	Detail      string `json:"detail,omitempty"`
+}
+
+// CandidateReviewResponse is GET /v1/curation/candidates/{id}/review — assistance for humans only.
+type CandidateReviewResponse struct {
+	CandidateID          string                     `json:"candidate_id"`
+	PromotionStatus      string                     `json:"promotion_status"`
+	PromotionReadiness   string                     `json:"promotion_readiness,omitempty"`
+	ReadinessReason      string                     `json:"readiness_reason,omitempty"`
+	Explanation          string                     `json:"explanation"`
+	SupportingEpisodes   []SupportingEpisodeSummary `json:"supporting_episodes,omitempty"`
+	SignalStrength       string                     `json:"signal_strength"` // "low" | "moderate" | "strong"
+	SignalDetail         string                     `json:"signal_detail"`
+	TagsGrouped          TagsGrouped                `json:"tags_grouped"`
+	EntitiesDisplay      []string                   `json:"entities_display,omitempty"`
+	PromotionPreview     *PromotionPreview          `json:"promotion_preview,omitempty"`
 }

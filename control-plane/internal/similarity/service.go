@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sort"
 	"strings"
+	"time"
 )
 
 // Config holds runtime policy for the similarity service (from app.Config.Similarity).
@@ -51,6 +52,8 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Record, error
 		Source:          src,
 		Tags:            req.Tags,
 		RelatedMemoryID: req.RelatedMemoryID,
+		OccurredAt:      req.OccurredAt,
+		Entities:        normalizeEntityList(req.Entities),
 	}
 	if err := s.Repo.Create(ctx, rec); err != nil {
 		return nil, err
@@ -83,10 +86,16 @@ func (s *Service) FindSimilar(ctx context.Context, req SimilarRequest) (*Similar
 		minScore = 0.08
 	}
 
-	candidates, err := s.Repo.ListRecent(ctx, scan)
+	if err := validateSimilarTimeWindow(req.OccurredAfter, req.OccurredBefore); err != nil {
+		return nil, err
+	}
+
+	candidates, err := s.Repo.ListCandidates(ctx, scan, req.OccurredAfter, req.OccurredBefore)
 	if err != nil {
 		return nil, err
 	}
+
+	entityFilters := mergeEntityFilters(req.Entity, req.Entities)
 
 	type scored struct {
 		rec     Record
@@ -98,7 +107,25 @@ func (s *Service) FindSimilar(ctx context.Context, req SimilarRequest) (*Similar
 		if len(req.Tags) > 0 && !tagOverlap(req.Tags, rec.Tags) {
 			continue
 		}
-		score, sig := resemblanceScore(q, rec.SummaryText, req.Tags, rec.Tags)
+		if len(entityFilters) > 0 && !entityOverlap(entityFilters, rec.Entities) {
+			continue
+		}
+		base, sig := resemblanceScore(q, rec.SummaryText, req.Tags, rec.Tags)
+		entJ := tagJaccard(entityFilters, rec.Entities)
+		if len(entityFilters) > 0 && len(rec.Entities) > 0 && entJ > 0 {
+			sig = append(sig, "entity_overlap")
+		}
+		score := base + 0.12*entJ
+		if tp, ok := timeProximityBoost(effectiveEpisodeTime(rec), req.OccurredAfter, req.OccurredBefore); ok {
+			score += tp
+			sig = append(sig, "time_proximity")
+		}
+		if score > 1 {
+			score = 1
+		}
+		if req.OccurredAfter != nil || req.OccurredBefore != nil {
+			sig = append(sig, "time_window_filter")
+		}
 		if score < minScore {
 			continue
 		}
@@ -108,7 +135,7 @@ func (s *Service) FindSimilar(ctx context.Context, req SimilarRequest) (*Similar
 		if out[i].sim != out[j].sim {
 			return out[i].sim > out[j].sim
 		}
-		return out[i].rec.CreatedAt.After(out[j].rec.CreatedAt)
+		return effectiveEpisodeTime(out[i].rec).After(effectiveEpisodeTime(out[j].rec))
 	})
 	if len(out) > maxK {
 		out = out[:maxK]
@@ -124,6 +151,8 @@ func (s *Service) FindSimilar(ctx context.Context, req SimilarRequest) (*Similar
 			ResemblanceSignals: append([]string(nil), sc.signals...),
 			Advisory:           true,
 			CreatedAt:          sc.rec.CreatedAt,
+			OccurredAt:         sc.rec.OccurredAt,
+			Entities:           sc.rec.Entities,
 		}
 		if sc.rec.RelatedMemoryID != nil {
 			sid := sc.rec.RelatedMemoryID.String()
@@ -132,6 +161,107 @@ func (s *Service) FindSimilar(ctx context.Context, req SimilarRequest) (*Similar
 		resp.AdvisorySimilarCases = append(resp.AdvisorySimilarCases, item)
 	}
 	return resp, nil
+}
+
+func effectiveEpisodeTime(rec Record) time.Time {
+	if rec.OccurredAt != nil {
+		return *rec.OccurredAt
+	}
+	return rec.CreatedAt
+}
+
+// validateSimilarTimeWindow rejects an empty or inverted window (after strictly after before).
+func validateSimilarTimeWindow(after, before *time.Time) error {
+	if after == nil || before == nil {
+		return nil
+	}
+	if after.After(*before) {
+		return errors.New("similarity: occurred_after must be on or before occurred_before")
+	}
+	return nil
+}
+
+// timeProximityBoost adds a small score when both bounds are set, favoring episodes near the
+// midpoint of [after, before] (advisory tie-breaker; not canonical authority).
+func timeProximityBoost(eff time.Time, after, before *time.Time) (float64, bool) {
+	if after == nil || before == nil {
+		return 0, false
+	}
+	span := before.Sub(*after)
+	if span < 0 {
+		return 0, false
+	}
+	const maxBoost = 0.03
+	if span == 0 {
+		if eff.Equal(*after) || eff.Equal(*before) {
+			return maxBoost, true
+		}
+		return 0, false
+	}
+	center := after.Add(span / 2)
+	half := span / 2
+	if half <= 0 {
+		return 0, false
+	}
+	d := eff.Sub(center)
+	if d < 0 {
+		d = -d
+	}
+	frac := float64(d) / float64(half)
+	if frac > 1 {
+		frac = 1
+	}
+	return (1 - frac) * maxBoost, true
+}
+
+func normalizeEntityList(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	const maxEnt = 64
+	seen := make(map[string]struct{})
+	var out []string
+	for _, s := range in {
+		s = strings.TrimSpace(strings.ToLower(s))
+		if s == "" {
+			continue
+		}
+		if len(s) > 128 {
+			s = s[:128]
+		}
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
+		if len(out) >= maxEnt {
+			break
+		}
+	}
+	return out
+}
+
+func mergeEntityFilters(entity string, entities []string) []string {
+	var raw []string
+	if strings.TrimSpace(entity) != "" {
+		raw = append(raw, entity)
+	}
+	raw = append(raw, entities...)
+	return normalizeEntityList(raw)
+}
+
+// entityOverlap is true if any normalized filter entity appears in episode entities.
+func entityOverlap(filter []string, episode []string) bool {
+	if len(filter) == 0 {
+		return true
+	}
+	set := tagSet(episode)
+	for _, f := range filter {
+		if _, ok := set[f]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func tagOverlap(filter []string, episode []string) bool {

@@ -343,3 +343,127 @@ func TestREST_curationDigest_dryRun(t *testing.T) {
 		t.Fatalf("digest JSON missing proposals key: %s", string(raw))
 	}
 }
+
+// TestREST_memories_occurredAt_createAndRecallRank proves optional occurred_at is stored, returned, and drives recency ranking vs ingest time.
+func TestREST_memories_occurredAt_createAndRecallRank(t *testing.T) {
+	dsn := os.Getenv("TEST_PG_DSN")
+	if dsn == "" {
+		t.Skip("TEST_PG_DSN not set")
+	}
+	cfg, err := app.LoadConfig(integrationConfigPath(t))
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	cfg.Postgres.DSN = dsn
+	container, err := app.Boot(cfg)
+	if err != nil {
+		t.Fatalf("boot: %v", err)
+	}
+	defer container.DB.Close()
+
+	rtr, err := apiserver.NewRouter(cfg, container)
+	if err != nil {
+		t.Fatalf("NewRouter: %v", err)
+	}
+	srv := httptest.NewServer(rtr)
+	defer srv.Close()
+
+	tag := "rest:occurred:" + uuid.NewString()
+	oldStmt := "Temporal honesty old event " + uuid.NewString()
+	newStmt := "Temporal honesty new event " + uuid.NewString()
+	// Ingest order: "new" row first (fresh updated_at), but occurred_at makes the other look older for recency.
+	bodyOld := fmt.Sprintf(`{"kind":"decision","statement":%q,"authority":5,"tags":[%q],"occurred_at":"2010-01-01T00:00:00Z"}`, oldStmt, tag)
+	resp, err := http.Post(srv.URL+"/v1/memories", "application/json", strings.NewReader(bodyOld))
+	if err != nil {
+		t.Fatalf("POST memories: %v", err)
+	}
+	bOld, _ := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("create old-event memory: status=%d %s", resp.StatusCode, string(bOld))
+	}
+	var memOld map[string]interface{}
+	if err := json.Unmarshal(bOld, &memOld); err != nil {
+		t.Fatalf("decode memory: %v", err)
+	}
+	if memOld["occurred_at"] == nil {
+		t.Fatalf("expected occurred_at in response, got %s", string(bOld))
+	}
+
+	bodyNew := fmt.Sprintf(`{"kind":"decision","statement":%q,"authority":5,"tags":[%q],"occurred_at":"2024-06-01T12:00:00Z"}`, newStmt, tag)
+	resp, err = http.Post(srv.URL+"/v1/memories", "application/json", strings.NewReader(bodyNew))
+	if err != nil {
+		t.Fatalf("POST memories: %v", err)
+	}
+	bNew, _ := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("create new-event memory: status=%d %s", resp.StatusCode, string(bNew))
+	}
+
+	compileBody := fmt.Sprintf(`{"retrieval_query":"Temporal honesty","tags":[%q],"max_per_kind":5}`, tag)
+	resp, err = http.Post(srv.URL+"/v1/recall/compile", "application/json", strings.NewReader(compileBody))
+	if err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("compile: status=%d %s", resp.StatusCode, string(b))
+	}
+	var bundle recall.RecallBundle
+	if err := json.NewDecoder(resp.Body).Decode(&bundle); err != nil {
+		t.Fatalf("decode bundle: %v", err)
+	}
+	if len(bundle.Continuity) < 2 {
+		t.Fatalf("expected 2 decisions in continuity, got %d: %+v", len(bundle.Continuity), bundle.Continuity)
+	}
+	// Ranked path: newer effective event time should appear first.
+	if !strings.Contains(bundle.Continuity[0].Statement, newStmt) {
+		t.Fatalf("expected newer occurred_at decision first in continuity, got first=%q", bundle.Continuity[0].Statement)
+	}
+}
+
+// TestREST_memories_withoutOccurredAt_backwardCompatible proves omitting occurred_at still creates and returns a row.
+func TestREST_memories_withoutOccurredAt_backwardCompatible(t *testing.T) {
+	dsn := os.Getenv("TEST_PG_DSN")
+	if dsn == "" {
+		t.Skip("TEST_PG_DSN not set")
+	}
+	cfg, err := app.LoadConfig(integrationConfigPath(t))
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	cfg.Postgres.DSN = dsn
+	container, err := app.Boot(cfg)
+	if err != nil {
+		t.Fatalf("boot: %v", err)
+	}
+	defer container.DB.Close()
+
+	rtr, err := apiserver.NewRouter(cfg, container)
+	if err != nil {
+		t.Fatalf("NewRouter: %v", err)
+	}
+	srv := httptest.NewServer(rtr)
+	defer srv.Close()
+
+	tag := "rest:no-occurred:" + uuid.NewString()
+	body := fmt.Sprintf(`{"kind":"constraint","statement":%q,"authority":6,"tags":[%q]}`, "Backward compatible no occurred_at "+uuid.NewString(), tag)
+	resp, err := http.Post(srv.URL+"/v1/memories", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("POST: %v", err)
+	}
+	raw, _ := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status=%d %s", resp.StatusCode, string(raw))
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if _, ok := m["occurred_at"]; ok && m["occurred_at"] != nil {
+		t.Fatalf("expected no occurred_at in JSON when omitted, got %v", m["occurred_at"])
+	}
+}

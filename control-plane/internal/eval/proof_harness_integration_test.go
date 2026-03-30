@@ -70,6 +70,13 @@ func TestProofHarnessREST_Postgres(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
+	// Proof scenarios include advisory-episodes; default config leaves similarity off.
+	cfg.Similarity.Enabled = true
+	cfg.Similarity.MinResemblance = 0.05
+	// Episodic pipeline proofs exercise POST /v1/episodes/distill → candidates → materialize.
+	cfg.Distillation.Enabled = true
+	// Distilled materialized memories use proposed_authority 3; default min_binding_authority 7 would exclude them from enforcement.
+	cfg.Enforcement.MinBindingAuthority = 3
 	container, err := app.Boot(cfg)
 	if err != nil {
 		t.Fatalf("boot: %v", err)

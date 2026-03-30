@@ -9,6 +9,7 @@ import (
 	"control-plane/internal/app"
 	"control-plane/internal/contradiction"
 	"control-plane/internal/curation"
+	"control-plane/internal/distillation"
 	"control-plane/internal/drift"
 	"control-plane/internal/enforcement"
 	"control-plane/internal/evidence"
@@ -176,13 +177,13 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	}
 	recallCompiler.LogRankTopN = cfg.Recall.LogRankTopN
 	recallSvc := &recall.Service{
-		Compiler:             recallCompiler,
-		Repo:                 recallRepo,
-		Cache:                container.Cache,
-		CacheTTL:             time.Duration(cacheTTL) * time.Second,
-		DefaultMaxTotal:      cfg.Recall.DefaultMaxTotal,
-		DefaultMaxTokens:     cfg.Recall.DefaultMaxTokens,
-		BehaviorValidation:   cfg.Recall.BehaviorValidation,
+		Compiler:           recallCompiler,
+		Repo:               recallRepo,
+		Cache:              container.Cache,
+		CacheTTL:           time.Duration(cacheTTL) * time.Second,
+		DefaultMaxTotal:    cfg.Recall.DefaultMaxTotal,
+		DefaultMaxTokens:   cfg.Recall.DefaultMaxTokens,
+		BehaviorValidation: cfg.Recall.BehaviorValidation,
 		Promotion: &recall.PromotionPolicy{
 			RequireEvidence:      cfg.Promotion.RequireEvidence,
 			MinEvidenceLinks:     cfg.Promotion.MinEvidenceLinks,
@@ -287,18 +288,22 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	evidenceHandlers := &evidence.Handlers{Service: evidenceSvc}
 
 	enforcementSvc := &enforcement.Service{
-		Repo:                memoryRepo,
-		Evidence:            evidenceSvc,
-		Config:              &cfg.Enforcement,
-		SuccessReinforcer:   memorySvc,
+		Repo:              memoryRepo,
+		Evidence:          evidenceSvc,
+		Config:            &cfg.Enforcement,
+		SuccessReinforcer: memorySvc,
 	}
 	enforcementHandlers := &enforcement.Handlers{Service: enforcementSvc}
+
+	simRepo := &similarity.Repo{DB: container.DB}
 
 	curationSvc := &curation.Service{
 		Repo:           curationRepo,
 		Config:         curationConfig,
 		Memory:         memorySvc,
+		MemoryDup:      memoryRepo,
 		FailureCounter: memoryRepo,
+		Episodes:       simRepo,
 		DigestLimits: &curation.DigestLimits{
 			MaxProposals:        cfg.Curation.DigestMaxProposals,
 			WorkSummaryMaxBytes: cfg.Curation.DigestWorkSummaryMaxBytes,
@@ -307,9 +312,13 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		},
 		Evidence: evidenceSvc,
 		Promotion: &curation.PromotionDigestConfig{
-			RequireEvidence:  cfg.Promotion.RequireEvidence,
-			MinEvidenceLinks: cfg.Promotion.MinEvidenceLinks,
-			RequireReview:    cfg.Promotion.RequireReview,
+			RequireEvidence:     cfg.Promotion.RequireEvidence,
+			MinEvidenceLinks:    cfg.Promotion.MinEvidenceLinks,
+			RequireReview:       cfg.Promotion.RequireReview,
+			AutoPromote:         cfg.Promotion.AutoPromote,
+			AutoMinSupportCount: cfg.Promotion.AutoMinSupportCount,
+			AutoMinSalience:     cfg.Promotion.AutoMinSalience,
+			AutoAllowedKinds:    cfg.Promotion.AutoAllowedKinds,
 		},
 	}
 	curationHandlers := &curation.Handlers{Service: curationSvc}
@@ -319,8 +328,6 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	ingestSvc.AutoPromote = cfg.Ingest.AutoPromote
 	ingestSvc.Promoter = memorySvc
 	ingestHandlers := &ingest.Handlers{Service: ingestSvc}
-
-	simRepo := &similarity.Repo{DB: container.DB}
 	simCfg := &similarity.Config{
 		Enabled:         cfg.Similarity.Enabled,
 		MaxSummaryBytes: cfg.Similarity.MaxSummaryBytes,
@@ -330,6 +337,20 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	}
 	simSvc := &similarity.Service{Repo: simRepo, Config: simCfg}
 	simHandlers := &similarity.Handlers{Service: simSvc}
+
+	distSvc := &distillation.Service{
+		Curation: curationRepo,
+		Episodes: simRepo,
+		Config: &distillation.Config{
+			Enabled:                  cfg.Distillation.Enabled,
+			AutoFromAdvisoryEpisodes: cfg.Distillation.AutoFromAdvisoryEpisodes,
+			MinStatementChars:        cfg.Distillation.MinStatementChars,
+		},
+	}
+	distHandlers := &distillation.Handlers{Service: distSvc}
+	if cfg.Distillation.Enabled && cfg.Distillation.AutoFromAdvisoryEpisodes {
+		simHandlers.AutoDistill = distSvc
+	}
 
 	router.Route("/v1", func(r chi.Router) {
 		r.Route("/memories", func(r chi.Router) {
@@ -355,7 +376,9 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		r.Route("/curation", func(r chi.Router) {
 			r.Post("/digest", curationHandlers.Digest)
 			r.Post("/evaluate", curationHandlers.Evaluate)
+			r.Post("/auto-promote", curationHandlers.AutoPromote)
 			r.Get("/pending", curationHandlers.ListPending)
+			r.Get("/candidates/{id}/review", curationHandlers.Review)
 			r.Post("/candidates/{id}/materialize", curationHandlers.Materialize)
 			r.Post("/candidates/{id}/promote", curationHandlers.MarkPromoted)
 			r.Post("/candidates/{id}/reject", curationHandlers.MarkRejected)
@@ -387,6 +410,7 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			r.Post("/", simHandlers.Create)
 			r.Post("/similar", simHandlers.Similar)
 		})
+		r.Post("/episodes/distill", distHandlers.Distill)
 	})
 
 	return httpx.WrapWithPluribusAuth(mcp.WrapHandler(router, cfg), container.APIKey), nil

@@ -3,6 +3,7 @@ package recall
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"control-plane/internal/memory"
 	"control-plane/internal/merge"
@@ -203,6 +204,8 @@ type MemoryItem struct {
 	Kind          string            `json:"kind"`
 	Statement     string            `json:"statement"`
 	Authority     int                `json:"authority"`
+	// OccurredAt is set when the underlying memory row has event time (canonical occurred_at).
+	OccurredAt   *time.Time         `json:"occurred_at,omitempty"`
 	Justification *JustificationMeta `json:"justification,omitempty"`
 	RIU           *RIUScoreBreakdown `json:"riu,omitempty"`
 	// SupportingEvidence is optional bounded proof for this memory (evidence-in-recall; memory remains authoritative).

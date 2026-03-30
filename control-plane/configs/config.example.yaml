@@ -199,6 +199,11 @@ promotion:
   # weight_signal: 0
   # weight_evidence: 0
   # signal_norm_divisor: 0    # 0 = use 15 when computing composite (total_signal / divisor, capped to 1)
+  # Controlled auto-promotion (optional; default off). POST /v1/curation/auto-promote materializes eligible pending rows only.
+  # auto_promote: false
+  # min_support_count: 4
+  # min_salience: 0.7
+  # allowed_kinds: [failure, pattern]
 
 curation:
   candidate_threshold: 0.5
@@ -227,3 +232,12 @@ curation:
 #   max_episodes_scan: 500
 #   max_results: 5
 #   min_resemblance: 0.08   # minimum combined lexical/tag score [0,1]
+#   # Episodic fields are on the HTTP bodies only (not YAML): POST /v1/advisory-episodes { occurred_at, entities[] };
+#   # POST /v1/advisory-episodes/similar { occurred_after, occurred_before, entity, entities[] } — filters/boosts, not partitions.
+
+# Deterministic keyword distillation: advisory episode text → pending candidate_events (POST /v1/episodes/distill). Default off.
+# distillation:
+#   enabled: false
+#   # min_statement_chars: 20   # omit very short statements (0 = default 20)
+#   # When enabled is true, optionally run the same distill path automatically after each POST /v1/advisory-episodes (candidate-only; never canonical). Default false.
+#   auto_from_advisory_episodes: false

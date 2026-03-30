@@ -31,6 +31,8 @@ type Config struct {
 	Promotion PromotionConfig `yaml:"promotion"`
 	// Similarity: optional subordinate advisory-episode retrieval (not canonical memory).
 	Similarity SimilarityConfig `yaml:"similarity,omitempty"`
+	// Distillation: optional advisory episode → candidate_events (not canonical memory until curated).
+	Distillation DistillationConfig `yaml:"distillation,omitempty"`
 	// Enforcement: pre-change gate — trusted binding memory vs proposals (RC1: on when omitted; set enabled: false to disable).
 	Enforcement EnforcementConfig `yaml:"enforcement,omitempty"`
 	// MCP: optional JSON-RPC over HTTP at POST /v1/mcp. Omitted or disabled=false → endpoint on (default).
@@ -78,6 +80,14 @@ func (e *EnforcementConfig) IsEnabled() bool {
 	return *e.Enabled
 }
 
+// DistillationConfig gates POST /v1/episodes/distill (deterministic keyword → candidate rows).
+type DistillationConfig struct {
+	Enabled bool `yaml:"enabled"`
+	// AutoFromAdvisoryEpisodes runs the same distillation as POST /v1/episodes/distill after each successful POST /v1/advisory-episodes (candidate-only; never canonical). Default false.
+	AutoFromAdvisoryEpisodes bool `yaml:"auto_from_advisory_episodes"`
+	MinStatementChars        int  `yaml:"min_statement_chars"` // 0 = default 20 in distillation service
+}
+
 // SimilarityConfig controls subordinate advisory episodes (lexical + tag resemblance, in-process).
 type SimilarityConfig struct {
 	Enabled         bool `yaml:"enabled"`
@@ -116,6 +126,14 @@ type PromotionConfig struct {
 	WeightEvidence   float64 `yaml:"weight_evidence"`
 	// SignalNormDivisor scales merge total_signal into [0,1] (divide then cap). Default 15 when 0.
 	SignalNormDivisor float64 `yaml:"signal_norm_divisor"`
+	// AutoPromote when true allows POST /v1/curation/auto-promote to materialize eligible pending candidates (default false).
+	AutoPromote bool `yaml:"auto_promote"`
+	// AutoMinSupportCount minimum distill_support_count (or 1 when unset in proposal) for auto-promote. Default 4 when 0.
+	AutoMinSupportCount int `yaml:"min_support_count"`
+	// AutoMinSalience minimum candidate salience_score for auto-promote. Default 0.7 when 0.
+	AutoMinSalience float64 `yaml:"min_salience"`
+	// AutoAllowedKinds memory kinds allowed for auto-promote (e.g. failure, pattern). Empty = use server default list.
+	AutoAllowedKinds []string `yaml:"allowed_kinds"`
 }
 
 // IngestConfig controls the cognitive ingest gateway (MCL) and optional promotion bridge.
@@ -187,12 +205,12 @@ type MemoryLifecycleConfig struct {
 
 // MemoryPatternGeneralizationConfig gates near-duplicate pattern reinforcement on memory create.
 type MemoryPatternGeneralizationConfig struct {
-	Enabled                      bool    `yaml:"enabled"`
-	MergeJaccardMin              float64 `yaml:"merge_jaccard_min"`
-	MinTagOverlapFraction        float64 `yaml:"min_tag_overlap_fraction"`
-	MaxCandidatesScan            int     `yaml:"max_candidates_scan"`
-	MaxSupportingStatementKeys   int     `yaml:"max_supporting_statement_keys"`
-	NegationGuard                bool    `yaml:"negation_guard"`
+	Enabled                    bool    `yaml:"enabled"`
+	MergeJaccardMin            float64 `yaml:"merge_jaccard_min"`
+	MinTagOverlapFraction      float64 `yaml:"min_tag_overlap_fraction"`
+	MaxCandidatesScan          int     `yaml:"max_candidates_scan"`
+	MaxSupportingStatementKeys int     `yaml:"max_supporting_statement_keys"`
+	NegationGuard              bool    `yaml:"negation_guard"`
 }
 
 type ServerConfig struct {
@@ -235,14 +253,14 @@ type RecallConfig struct {
 
 // RecallRankingConfig holds configurable weights for recall weighted ranking (Phase 1: config-only).
 type RecallRankingConfig struct {
-	WeightAuthority            float64 `yaml:"weight_authority"`              // default 1.0
-	WeightRecency              float64 `yaml:"weight_recency"`                // default 0.5
-	WeightScopeMatch           float64 `yaml:"weight_scope_match"`            // default 1.0
-	WeightTagMatch             float64 `yaml:"weight_tag_match"`              // default 1.0
-	WeightFailureOverlap       float64 `yaml:"weight_failure_overlap"`        // default 0.5; extra for failure-kind when tags overlap
-	WeightSymbolOverlap        float64 `yaml:"weight_symbol_overlap"`         // Task 100: default 0.5; boost when task/memory symbols overlap
-	WeightPatternPriority      float64 `yaml:"weight_pattern_priority"`      // explicit pattern additive weight; default 0 (off)
-	WeightLexicalSimilarity    float64 `yaml:"weight_lexical_similarity"`     // additive lexical overlap weight for situation matching; default 0.15
+	WeightAuthority         float64 `yaml:"weight_authority"`          // default 1.0
+	WeightRecency           float64 `yaml:"weight_recency"`            // default 0.5
+	WeightScopeMatch        float64 `yaml:"weight_scope_match"`        // default 1.0
+	WeightTagMatch          float64 `yaml:"weight_tag_match"`          // default 1.0
+	WeightFailureOverlap    float64 `yaml:"weight_failure_overlap"`    // default 0.5; extra for failure-kind when tags overlap
+	WeightSymbolOverlap     float64 `yaml:"weight_symbol_overlap"`     // Task 100: default 0.5; boost when task/memory symbols overlap
+	WeightPatternPriority   float64 `yaml:"weight_pattern_priority"`   // explicit pattern additive weight; default 0 (off)
+	WeightLexicalSimilarity float64 `yaml:"weight_lexical_similarity"` // additive lexical overlap weight for situation matching; default 0.15
 	// WeightPatternGeneralization boosts patterns that carry generalization metadata (merged / reinforced). Default 0 (off).
 	WeightPatternGeneralization float64 `yaml:"weight_pattern_generalization"`
 	// WeightFailureSeverity boosts failure rows via keyword heuristic on statement (default 0 = off).
@@ -440,6 +458,22 @@ func applyPromotionDefaults(p *PromotionConfig) {
 	}
 	if p.SignalNormDivisor < 0 {
 		p.SignalNormDivisor = 0
+	}
+	if p.AutoMinSupportCount < 0 {
+		p.AutoMinSupportCount = 0
+	}
+	if p.AutoMinSalience < 0 {
+		p.AutoMinSalience = 0
+	}
+	if p.AutoMinSalience > 1 {
+		p.AutoMinSalience = 1
+	}
+	// Conservative defaults for optional auto-promote (used only when auto_promote is true).
+	if p.AutoMinSupportCount <= 0 {
+		p.AutoMinSupportCount = 4
+	}
+	if p.AutoMinSalience <= 0 {
+		p.AutoMinSalience = 0.7
 	}
 }
 

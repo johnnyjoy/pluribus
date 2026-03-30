@@ -64,8 +64,8 @@ func TestService_Search_cacheHit(t *testing.T) {
 	// One Search query: no tags, status active, max 20; Task 97: payload column
 	mock.ExpectQuery(`SELECT id, kind, statement`).
 		WithArgs("active", 20).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "payload", "created_at", "updated_at"}).
-			AddRow(uuid.New(), api.MemoryKindDecision, "Use POST for create", memorynorm.StatementCanonical("Use POST for create"), memorynorm.StatementKey("Use POST for create"), 8, "governing", "active", nil, time.Now(), time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "payload", "created_at", "updated_at", "occurred_at"}).
+			AddRow(uuid.New(), api.MemoryKindDecision, "Use POST for create", memorynorm.StatementCanonical("Use POST for create"), memorynorm.StatementKey("Use POST for create"), 8, "governing", "active", nil, time.Now(), time.Now(), nil))
 	mock.ExpectQuery(`SELECT memory_id, tag FROM memories_tags WHERE memory_id = ANY`).
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"memory_id", "tag"}))
@@ -146,8 +146,8 @@ func TestService_ApplyAuthorityEvent(t *testing.T) {
 
 	sk := memorynorm.StatementKey("A decision")
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at"}).
-			AddRow(id, api.MemoryKindDecision, "A decision", memorynorm.StatementCanonical("A decision"), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
+			AddRow(id, api.MemoryKindDecision, "A decision", memorynorm.StatementCanonical("A decision"), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).WillReturnRows(
 		sqlmock.NewRows([]string{"tag"}).AddRow("api").AddRow("decision"))
 	mock.ExpectExec(`UPDATE memories SET authority`).WithArgs(4, id).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -203,8 +203,8 @@ func TestService_ApplyAuthorityEvent_taggedGlobal_isDowngraded(t *testing.T) {
 	id := uuid.New()
 
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at"}).
-			AddRow(id, api.MemoryKindDecision, "Global rule", memorynorm.StatementCanonical("Global rule"), memorynorm.StatementKey("Global rule"), 5, "governing", "active", nil, nil, nil, time.Now(), time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
+			AddRow(id, api.MemoryKindDecision, "Global rule", memorynorm.StatementCanonical("Global rule"), memorynorm.StatementKey("Global rule"), 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).WillReturnRows(
 		sqlmock.NewRows([]string{"tag"}).AddRow("global"))
 	mock.ExpectExec(`UPDATE memories SET authority`).WithArgs(4, id).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -241,10 +241,10 @@ func TestService_Create_doesNotInferProjectOrGlobalTags(t *testing.T) {
 	memID := uuid.New()
 
 	mock.ExpectQuery(`INSERT INTO memories`).
-		WithArgs(sqlmock.AnyArg(), api.MemoryKindDecision, statement, canon, sk, dedup, 7, api.ApplicabilityGoverning, "active", nil, nil).
+		WithArgs(sqlmock.AnyArg(), api.MemoryKindDecision, statement, canon, sk, dedup, 7, api.ApplicabilityGoverning, "active", nil, nil, nil).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at",
-		}).AddRow(memID, api.MemoryKindDecision, statement, canon, sk, 7, api.ApplicabilityGoverning, "active", nil, nil, nil, time.Now(), time.Now()))
+			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at",
+		}).AddRow(memID, api.MemoryKindDecision, statement, canon, sk, 7, api.ApplicabilityGoverning, "active", nil, nil, nil, time.Now(), time.Now(), nil))
 	// No memories_tags inserts are expected: create path must not infer project:* or global tags.
 
 	obj, err := svc.Create(ctx, CreateRequest{
@@ -275,8 +275,8 @@ func TestService_ReinforceRecallUsage_incrementsAuthority(t *testing.T) {
 	id := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at"}).
-			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
+			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now(), nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).
 		WillReturnRows(sqlmock.NewRows([]string{"tag"}).AddRow("api"))
 	mock.ExpectExec(`UPDATE memories SET authority`).WithArgs(6, id).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -300,8 +300,8 @@ func TestService_ReinforceRecallUsageWithMeta_highImpactUsesLargerDelta(t *testi
 	id := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at"}).
-			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now()))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
+			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now(), nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).
 		WillReturnRows(sqlmock.NewRows([]string{"tag"}))
 	mock.ExpectExec(`UPDATE memories SET authority`).WithArgs(7, id).WillReturnResult(sqlmock.NewResult(0, 1))

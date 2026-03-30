@@ -7,6 +7,7 @@ import (
 
 	"control-plane/internal/evidence"
 	"control-plane/internal/memory"
+	"control-plane/internal/similarity"
 	"control-plane/pkg/api"
 
 	"github.com/google/uuid"
@@ -34,6 +35,10 @@ type Service struct {
 	Promotion    *PromotionDigestConfig
 	// FailureCounter optional: when set, digest may emit an extra constraint when a failure matches an existing failure row.
 	FailureCounter FailureStatementCounter
+	// Episodes optional: when set, candidate review loads short summaries from advisory_episodes by proposal trace ids.
+	Episodes *similarity.Repo
+	// MemoryDup optional: when set, promotion validation rejects duplicates via FindActiveDuplicate.
+	MemoryDup ActiveDuplicateChecker
 }
 
 // Evaluate scores the text and optionally creates a candidate; returns EvaluateResult.

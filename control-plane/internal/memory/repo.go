@@ -85,26 +85,31 @@ func (r *Repo) Create(ctx context.Context, req CreateRequest) (*MemoryObject, er
 	if stmtKey == "" && canon != "" {
 		stmtKey = memorynorm.StatementKey(req.Statement)
 	}
+	var occurredArg interface{}
+	if req.OccurredAt != nil {
+		occurredArg = *req.OccurredAt
+	}
 	var obj MemoryObject
 	var deprecatedAt sql.NullTime
 	var ttlReturn sql.NullInt64
 	var payloadReturn []byte
+	var occurredReturn sql.NullTime
 	var err error
 	if len(req.Embedding) > 0 {
 		vec := FormatVectorLiteral(req.Embedding)
 		err = r.DB.QueryRowContext(ctx,
-			`INSERT INTO memories (id, kind, statement, statement_canonical, statement_key, dedup_key, authority, applicability, status, ttl_seconds, payload, embedding)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::vector)
-			 RETURNING id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at`,
-			id, string(req.Kind), req.Statement, canon, stmtKey, dedup, req.Authority, applicability, status, ttl, payloadArg, vec,
-		).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt)
+			`INSERT INTO memories (id, kind, statement, statement_canonical, statement_key, dedup_key, authority, applicability, status, ttl_seconds, payload, occurred_at, embedding)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::vector)
+			 RETURNING id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at, occurred_at`,
+			id, string(req.Kind), req.Statement, canon, stmtKey, dedup, req.Authority, applicability, status, ttl, payloadArg, occurredArg, vec,
+		).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredReturn)
 	} else {
 		err = r.DB.QueryRowContext(ctx,
-			`INSERT INTO memories (id, kind, statement, statement_canonical, statement_key, dedup_key, authority, applicability, status, ttl_seconds, payload)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-			 RETURNING id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at`,
-			id, string(req.Kind), req.Statement, canon, stmtKey, dedup, req.Authority, applicability, status, ttl, payloadArg,
-		).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt)
+			`INSERT INTO memories (id, kind, statement, statement_canonical, statement_key, dedup_key, authority, applicability, status, ttl_seconds, payload, occurred_at)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			 RETURNING id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at, occurred_at`,
+			id, string(req.Kind), req.Statement, canon, stmtKey, dedup, req.Authority, applicability, status, ttl, payloadArg, occurredArg,
+		).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredReturn)
 	}
 	if err != nil {
 		if isPGUniqueViolation(err) {
@@ -128,6 +133,7 @@ func (r *Repo) Create(ctx context.Context, req CreateRequest) (*MemoryObject, er
 	if len(payloadReturn) > 0 {
 		obj.Payload = payloadReturn
 	}
+	applyOccurredAt(occurredReturn, &obj)
 	tags := mergePersistTags(req)
 	for _, tag := range tags {
 		if _, err = r.DB.ExecContext(ctx, `INSERT INTO memories_tags (memory_id, tag) VALUES ($1, $2)`, id, tag); err != nil {
@@ -145,11 +151,12 @@ func (r *Repo) GetByID(ctx context.Context, id uuid.UUID) (*MemoryObject, error)
 	var deprecatedAt sql.NullTime
 	var ttlReturn sql.NullInt64
 	var payloadReturn []byte
+	var occurredAt sql.NullTime
 	err := r.DB.QueryRowContext(ctx,
-		`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at
+		`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at, occurred_at
 		 FROM memories WHERE id = $1`,
 		id,
-	).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt)
+	).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -166,6 +173,7 @@ func (r *Repo) GetByID(ctx context.Context, id uuid.UUID) (*MemoryObject, error)
 	if len(payloadReturn) > 0 {
 		obj.Payload = payloadReturn
 	}
+	applyOccurredAt(occurredAt, &obj)
 	obj.Tags, _ = r.tagsForMemory(ctx, obj.ID)
 	enrichFromTags(&obj, obj.Tags)
 	return &obj, nil
@@ -198,7 +206,7 @@ func (r *Repo) MarkSuperseded(ctx context.Context, id uuid.UUID, deprecatedAt ti
 // ListExpiredCandidates returns active memories with TTL set that have expired and authority below threshold (Task 75).
 func (r *Repo) ListExpiredCandidates(ctx context.Context, authorityThreshold int, asOf time.Time) ([]MemoryObject, error) {
 	rows, err := r.DB.QueryContext(ctx,
-		`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at
+		`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at, occurred_at
 		 FROM memories
 		 WHERE status = 'active' AND authority < $1 AND ttl_seconds IS NOT NULL AND ttl_seconds > 0
 		   AND created_at + (ttl_seconds * interval '1 second') < $2`,
@@ -213,7 +221,8 @@ func (r *Repo) ListExpiredCandidates(ctx context.Context, authorityThreshold int
 		var deprecatedAt sql.NullTime
 		var ttlReturn sql.NullInt64
 		var payloadReturn []byte
-		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt); err != nil {
+		var occurredAt sql.NullTime
+		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredAt); err != nil {
 			return nil, err
 		}
 		if deprecatedAt.Valid {
@@ -226,6 +235,7 @@ func (r *Repo) ListExpiredCandidates(ctx context.Context, authorityThreshold int
 		if len(payloadReturn) > 0 {
 			obj.Payload = payloadReturn
 		}
+		applyOccurredAt(occurredAt, &obj)
 		obj.Tags, _ = r.tagsForMemory(ctx, obj.ID)
 		enrichFromTags(&obj, obj.Tags)
 		list = append(list, obj)
@@ -275,7 +285,7 @@ func (r *Repo) SearchUnscoped(ctx context.Context, req SearchRequest) ([]MemoryO
 	switch {
 	case len(tagList) > 0 && len(kindStrs) > 0:
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at
+			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at, m.occurred_at
 			 FROM memories m
 			 WHERE m.status = $1
 			   AND m.kind = ANY($2)
@@ -285,7 +295,7 @@ func (r *Repo) SearchUnscoped(ctx context.Context, req SearchRequest) ([]MemoryO
 			status, pq.Array(kindStrs), pq.Array(tagList), max)
 	case len(tagList) > 0:
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at
+			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at, m.occurred_at
 			 FROM memories m
 			 WHERE m.status = $1
 			   AND EXISTS (SELECT 1 FROM memories_tags t WHERE t.memory_id = m.id AND t.tag = ANY($2))
@@ -294,7 +304,7 @@ func (r *Repo) SearchUnscoped(ctx context.Context, req SearchRequest) ([]MemoryO
 			status, pq.Array(tagList), max)
 	case len(kindStrs) > 0:
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at
+			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at, occurred_at
 			 FROM memories
 			 WHERE status = $1 AND kind = ANY($2)
 			 ORDER BY authority DESC, updated_at DESC, id
@@ -302,7 +312,7 @@ func (r *Repo) SearchUnscoped(ctx context.Context, req SearchRequest) ([]MemoryO
 			status, pq.Array(kindStrs), max)
 	default:
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at
+			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at, occurred_at
 			 FROM memories
 			 WHERE status = $1
 			 ORDER BY authority DESC, updated_at DESC, id
@@ -319,12 +329,14 @@ func (r *Repo) SearchUnscoped(ctx context.Context, req SearchRequest) ([]MemoryO
 	for rows.Next() {
 		var obj MemoryObject
 		var payloadReturn []byte
-		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt); err != nil {
+		var occurredAt sql.NullTime
+		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredAt); err != nil {
 			return nil, err
 		}
 		if len(payloadReturn) > 0 {
 			obj.Payload = payloadReturn
 		}
+		applyOccurredAt(occurredAt, &obj)
 		ids = append(ids, obj.ID)
 		list = append(list, obj)
 	}
@@ -375,7 +387,7 @@ func (r *Repo) SearchSimilar(ctx context.Context, queryEmbedding []float32, req 
 	switch {
 	case len(tagList) > 0 && len(kindStrs) > 0:
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at,
+			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at, m.occurred_at,
 				(m.embedding <=> $1::vector) AS vec_dist
 			 FROM memories m
 			 WHERE m.status = $2
@@ -388,7 +400,7 @@ func (r *Repo) SearchSimilar(ctx context.Context, queryEmbedding []float32, req 
 			vec, status, pq.Array(kindStrs), maxCosineDistance, pq.Array(tagList), limit)
 	case len(tagList) > 0:
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at,
+			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at, m.occurred_at,
 				(m.embedding <=> $1::vector) AS vec_dist
 			 FROM memories m
 			 WHERE m.status = $2
@@ -400,7 +412,7 @@ func (r *Repo) SearchSimilar(ctx context.Context, queryEmbedding []float32, req 
 			vec, status, maxCosineDistance, pq.Array(tagList), limit)
 	case len(kindStrs) > 0:
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at,
+			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at, occurred_at,
 				(embedding <=> $1::vector) AS vec_dist
 			 FROM memories
 			 WHERE status = $2
@@ -412,7 +424,7 @@ func (r *Repo) SearchSimilar(ctx context.Context, queryEmbedding []float32, req 
 			vec, status, pq.Array(kindStrs), maxCosineDistance, limit)
 	default:
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at,
+			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at, occurred_at,
 				(embedding <=> $1::vector) AS vec_dist
 			 FROM memories
 			 WHERE status = $2
@@ -432,13 +444,15 @@ func (r *Repo) SearchSimilar(ctx context.Context, queryEmbedding []float32, req 
 	for rows.Next() {
 		var obj MemoryObject
 		var payloadReturn []byte
+		var occurredAt sql.NullTime
 		var vecDist float64
-		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &vecDist); err != nil {
+		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredAt, &vecDist); err != nil {
 			return nil, nil, err
 		}
 		if len(payloadReturn) > 0 {
 			obj.Payload = payloadReturn
 		}
+		applyOccurredAt(occurredAt, &obj)
 		sim := 1.0 - vecDist
 		if sim < 0 {
 			sim = 0
@@ -483,7 +497,7 @@ func (r *Repo) SearchTagOnly(ctx context.Context, query string, tags []string, s
 	switch {
 	case len(tagList) > 0 && q != "":
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at
+			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at, m.occurred_at
 			 FROM memories m
 			 WHERE m.status = $1
 			   AND m.statement ILIKE '%' || $2 || '%'
@@ -493,7 +507,7 @@ func (r *Repo) SearchTagOnly(ctx context.Context, query string, tags []string, s
 			status, q, pq.Array(tagList), max)
 	case len(tagList) > 0:
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at
+			`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at, m.occurred_at
 			 FROM memories m
 			 WHERE m.status = $1
 			   AND EXISTS (SELECT 1 FROM memories_tags t WHERE t.memory_id = m.id AND t.tag = ANY($2))
@@ -502,7 +516,7 @@ func (r *Repo) SearchTagOnly(ctx context.Context, query string, tags []string, s
 			status, pq.Array(tagList), max)
 	case q != "":
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at
+			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at, occurred_at
 			 FROM memories
 			 WHERE status = $1 AND statement ILIKE '%' || $2 || '%'
 			 ORDER BY authority DESC, updated_at DESC, id
@@ -510,7 +524,7 @@ func (r *Repo) SearchTagOnly(ctx context.Context, query string, tags []string, s
 			status, q, max)
 	default:
 		rows, err = r.DB.QueryContext(ctx,
-			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at
+			`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at, occurred_at
 			 FROM memories
 			 WHERE status = $1
 			 ORDER BY authority DESC, updated_at DESC, id
@@ -527,12 +541,14 @@ func (r *Repo) SearchTagOnly(ctx context.Context, query string, tags []string, s
 	for rows.Next() {
 		var obj MemoryObject
 		var payloadReturn []byte
-		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt); err != nil {
+		var occurredAt sql.NullTime
+		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredAt); err != nil {
 			return nil, err
 		}
 		if len(payloadReturn) > 0 {
 			obj.Payload = payloadReturn
 		}
+		applyOccurredAt(occurredAt, &obj)
 		ids = append(ids, obj.ID)
 		list = append(list, obj)
 	}
@@ -582,7 +598,7 @@ func (r *Repo) ListBindingMemory(ctx context.Context, req ListBindingRequest) ([
 		max = 120
 	}
 	rows, err := r.DB.QueryContext(ctx,
-		`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at
+		`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at, m.occurred_at
 		 FROM memories m
 		 WHERE m.status = 'active'
 		   AND m.authority >= $1
@@ -601,12 +617,14 @@ func (r *Repo) ListBindingMemory(ctx context.Context, req ListBindingRequest) ([
 	for rows.Next() {
 		var obj MemoryObject
 		var payloadReturn []byte
-		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt); err != nil {
+		var occurredAt sql.NullTime
+		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredAt); err != nil {
 			return nil, err
 		}
 		if len(payloadReturn) > 0 {
 			obj.Payload = payloadReturn
 		}
+		applyOccurredAt(occurredAt, &obj)
 		ids = append(ids, obj.ID)
 		list = append(list, obj)
 	}
@@ -703,6 +721,13 @@ func (r *Repo) ReplaceAttributes(ctx context.Context, memoryID uuid.UUID, attrs 
 		}
 	}
 	return nil
+}
+
+func applyOccurredAt(nt sql.NullTime, obj *MemoryObject) {
+	if nt.Valid {
+		t := nt.Time
+		obj.OccurredAt = &t
+	}
 }
 
 func isPGUniqueViolation(err error) bool {

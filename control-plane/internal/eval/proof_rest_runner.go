@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,7 +43,7 @@ func RunProofHarnessREST(ctx context.Context, baseURL string, hc *http.Client) (
 		}
 
 		for _, step := range sc.Steps {
-			stepRes := runProofStep(ctx, hc, base, pctx, sc.ID, step)
+			stepRes := runProofStep(ctx, hc, base, pctx, sc.ID, sc.Suite, step)
 			sr.Steps = append(sr.Steps, stepRes)
 			if !stepRes.Pass {
 				sr.AllPassed = false
@@ -61,7 +62,11 @@ func RunProofHarnessREST(ctx context.Context, baseURL string, hc *http.Client) (
 			}
 		}
 
-		log.Printf("[PROOF] scenario=%s suite=%s status=%s", sc.ID, sc.Suite, passFailStr(sr.AllPassed))
+		lp := "[PROOF]"
+		if strings.EqualFold(strings.TrimSpace(sc.Suite), "episodic") {
+			lp = "[EPISODIC PROOF]"
+		}
+		log.Printf("%s scenario=%s suite=%s aggregate=%s", lp, sc.ID, sc.Suite, passFailStr(sr.AllPassed))
 		rep.Scenarios = append(rep.Scenarios, sr)
 	}
 
@@ -75,13 +80,17 @@ func passFailStr(ok bool) string {
 	return "fail"
 }
 
-func runProofStep(ctx context.Context, hc *http.Client, base string, pctx *ProofRunContext, scenarioID string, step ProofStep) ProofStepResult {
+func runProofStep(ctx context.Context, hc *http.Client, base string, pctx *ProofRunContext, scenarioID, suite string, step ProofStep) ProofStepResult {
 	res := ProofStepResult{ScenarioID: scenarioID, StepID: step.ID, Path: step.Path, Pass: true}
+	logPrefix := "[PROOF]"
+	if strings.EqualFold(strings.TrimSpace(suite), "episodic") {
+		logPrefix = "[EPISODIC PROOF]"
+	}
 	method := strings.ToUpper(strings.TrimSpace(step.Method))
 	if method == "" {
 		method = http.MethodGet
 	}
-	path := step.Path
+	path := substituteProofVars(step.Path, pctx)
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
@@ -91,7 +100,7 @@ func runProofStep(ctx context.Context, hc *http.Client, base string, pctx *Proof
 		res.Pass = false
 		res.Detail = err.Error()
 		res.Status = 0
-		log.Printf("[PROOF] step=%s path=%s status=fail details=%s", step.ID, path, res.Detail)
+		log.Printf("%s scenario=%s phase=%s path=%s status=fail details=%s", logPrefix, scenarioID, step.ID, path, res.Detail)
 		return res
 	}
 	if len(body) > 0 {
@@ -101,7 +110,7 @@ func runProofStep(ctx context.Context, hc *http.Client, base string, pctx *Proof
 	if err != nil {
 		res.Pass = false
 		res.Detail = err.Error()
-		log.Printf("[PROOF] step=%s path=%s status=fail details=%s", step.ID, path, res.Detail)
+		log.Printf("%s scenario=%s phase=%s path=%s status=fail details=%s", logPrefix, scenarioID, step.ID, path, res.Detail)
 		return res
 	}
 	defer resp.Body.Close()
@@ -115,7 +124,7 @@ func runProofStep(ctx context.Context, hc *http.Client, base string, pctx *Proof
 	if resp.StatusCode != expect {
 		res.Pass = false
 		res.Detail = fmt.Sprintf("want status %d got %d body=%s", expect, resp.StatusCode, truncateBody(rb))
-		log.Printf("[PROOF] step=%s path=%s status=fail details=%s", step.ID, path, res.Detail)
+		log.Printf("%s scenario=%s phase=%s path=%s status=fail details=%s", logPrefix, scenarioID, step.ID, path, res.Detail)
 		return res
 	}
 
@@ -123,7 +132,7 @@ func runProofStep(ctx context.Context, hc *http.Client, base string, pctx *Proof
 		if ok, msg := applyProofAssert(a, rb); !ok {
 			res.Pass = false
 			res.Detail = msg
-			log.Printf("[PROOF] step=%s path=%s status=fail details=%s", step.ID, path, msg)
+			log.Printf("%s scenario=%s phase=%s path=%s status=fail details=%s", logPrefix, scenarioID, step.ID, path, msg)
 			return res
 		}
 	}
@@ -136,7 +145,7 @@ func runProofStep(ctx context.Context, hc *http.Client, base string, pctx *Proof
 				if !ok {
 					res.Pass = false
 					res.Detail = fmt.Sprintf("capture missing field %q", field)
-					log.Printf("[PROOF] step=%s path=%s status=fail details=%s", step.ID, path, res.Detail)
+					log.Printf("%s scenario=%s phase=%s path=%s status=fail details=%s", logPrefix, scenarioID, step.ID, path, res.Detail)
 					return res
 				}
 				var s string
@@ -149,9 +158,26 @@ func runProofStep(ctx context.Context, hc *http.Client, base string, pctx *Proof
 		} else if len(step.CaptureFields) > 0 {
 			res.Pass = false
 			res.Detail = "capture_fields set but response is not json object"
-			log.Printf("[PROOF] step=%s path=%s status=fail details=%s", step.ID, path, res.Detail)
+			log.Printf("%s scenario=%s phase=%s path=%s status=fail details=%s", logPrefix, scenarioID, step.ID, path, res.Detail)
 			return res
 		}
+	}
+
+	for varName, jpath := range step.CaptureJSONPath {
+		val, err := captureJSONPath(rb, jpath)
+		if err != nil {
+			res.Pass = false
+			res.Detail = fmt.Sprintf("capture_json_path %q: %v", varName, err)
+			log.Printf("%s scenario=%s phase=%s path=%s status=fail details=%s", logPrefix, scenarioID, step.ID, path, res.Detail)
+			return res
+		}
+		if strings.TrimSpace(val) == "" {
+			res.Pass = false
+			res.Detail = fmt.Sprintf("capture_json_path %q: empty value at %q", varName, jpath)
+			log.Printf("%s scenario=%s phase=%s path=%s status=fail details=%s", logPrefix, scenarioID, step.ID, path, res.Detail)
+			return res
+		}
+		pctx.Vars[varName] = val
 	}
 
 	if step.StoreAs != "" {
@@ -160,20 +186,68 @@ func runProofStep(ctx context.Context, hc *http.Client, base string, pctx *Proof
 		pctx.Stored[step.StoreAs] = cp
 	}
 
-	log.Printf("[PROOF] step=%s path=%s http=%d status=pass", step.ID, path, resp.StatusCode)
+	log.Printf("%s scenario=%s phase=%s path=%s http=%d status=pass", logPrefix, scenarioID, step.ID, path, resp.StatusCode)
 	return res
+}
+
+// captureJSONPath reads a string or number from JSON using dot-separated path; array segments use numeric indices (e.g. candidates.0.candidate_id).
+func captureJSONPath(body []byte, path string) (string, error) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "", fmt.Errorf("empty path")
+	}
+	var root interface{}
+	if err := json.Unmarshal(body, &root); err != nil {
+		return "", err
+	}
+	parts := strings.Split(path, ".")
+	cur := root
+	for _, p := range parts {
+		if idx, err := strconv.Atoi(p); err == nil {
+			arr, ok := cur.([]interface{})
+			if !ok || idx < 0 || idx >= len(arr) {
+				return "", fmt.Errorf("invalid array index %q in path %q", p, path)
+			}
+			cur = arr[idx]
+			continue
+		}
+		m, ok := cur.(map[string]interface{})
+		if !ok {
+			return "", fmt.Errorf("expected object at segment %q in path %q", p, path)
+		}
+		v, ok := m[p]
+		if !ok {
+			return "", fmt.Errorf("missing key %q in path %q", p, path)
+		}
+		cur = v
+	}
+	switch v := cur.(type) {
+	case string:
+		return v, nil
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64), nil
+	case bool:
+		return strconv.FormatBool(v), nil
+	case nil:
+		return "", fmt.Errorf("null at end of path %q", path)
+	default:
+		return "", fmt.Errorf("unsupported JSON type %T at end of path %q", cur, path)
+	}
+}
+
+func substituteProofVars(s string, pctx *ProofRunContext) string {
+	s = strings.ReplaceAll(s, "{{RUN_ID}}", pctx.RunID)
+	for k, v := range pctx.Vars {
+		s = strings.ReplaceAll(s, "{{"+k+"}}", v)
+	}
+	return s
 }
 
 func substituteProofBody(raw json.RawMessage, pctx *ProofRunContext) []byte {
 	if len(raw) == 0 {
 		return nil
 	}
-	s := string(raw)
-	s = strings.ReplaceAll(s, "{{RUN_ID}}", pctx.RunID)
-	for k, v := range pctx.Vars {
-		s = strings.ReplaceAll(s, "{{"+k+"}}", v)
-	}
-	return []byte(s)
+	return []byte(substituteProofVars(string(raw), pctx))
 }
 
 func applyProofAssert(a ProofAssert, body []byte) (bool, string) {

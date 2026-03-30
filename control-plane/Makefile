@@ -23,3 +23,8 @@ test:
 .PHONY: proof-rest
 proof-rest:
 	go test -tags=integration -count=1 -v ./internal/eval/... -run TestProofHarnessREST_Postgres
+
+# Episodic REST proof: full proof-rest JSON suite + sprint integration scenarios (same DSN + integration tag).
+.PHONY: proof-episodic
+proof-episodic:
+	go test -tags=integration -count=1 -v ./internal/eval/... -run 'TestProofHarnessREST_Postgres|TestEpisodicProofSprintREST_Postgres'

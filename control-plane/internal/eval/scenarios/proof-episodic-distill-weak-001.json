@@ -1,0 +1,20 @@
+{
+  "id": "proof-episodic-distill-weak-001",
+  "suite": "episodic",
+  "description": "Inline distill of vague text with no keyword signals yields no candidates (no accidental canon funnel).",
+  "steps": [
+    {
+      "id": "distill_weak_inline",
+      "method": "POST",
+      "path": "/v1/episodes/distill",
+      "body": {
+        "summary": "things were fine today nothing special happened",
+        "tags": ["proof:weak:{{RUN_ID}}"]
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"candidates\":null"}
+      ]
+    }
+  ]
+}

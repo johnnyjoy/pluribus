@@ -56,3 +56,8 @@ integration-test:
 
 # Reasonable one-command technical-preview proof path.
 test-drive: test eval
+
+# Episodic advisory + distillation + curation + recall/enforcement boundary (host Postgres; matches CI regression stack).
+.PHONY: proof-episodic
+proof-episodic:
+	cd control-plane && TEST_PG_DSN="$${TEST_PG_DSN}" $(MAKE) proof-episodic

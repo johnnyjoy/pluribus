@@ -57,6 +57,48 @@ func TestScore_authorityAndRecency(t *testing.T) {
 	}
 }
 
+func TestScore_recency_prefersOccurredAtOverUpdatedAt(t *testing.T) {
+	w := DefaultRankingWeights()
+	req := ScoreRequest{}
+	ref := time.Date(2025, 12, 15, 12, 0, 0, 0, time.UTC)
+	ingested := ref
+	oldEvent := time.Date(2010, 1, 1, 0, 0, 0, 0, time.UTC)
+	recentEvent := time.Date(2025, 11, 1, 0, 0, 0, 0, time.UTC)
+	memOldFact := memory.MemoryObject{
+		ID: uuid.New(), Kind: api.MemoryKindDecision, Authority: 5,
+		UpdatedAt: ingested, OccurredAt: &oldEvent,
+	}
+	memRecentFact := memory.MemoryObject{
+		ID: uuid.New(), Kind: api.MemoryKindDecision, Authority: 5,
+		UpdatedAt: ingested, OccurredAt: &recentEvent,
+	}
+	sOld := scoreAt(memOldFact, req, w, 10, ref)
+	sRecent := scoreAt(memRecentFact, req, w, 10, ref)
+	if sRecent <= sOld {
+		t.Fatalf("recent event time should score higher recency than old event: %v vs %v", sRecent, sOld)
+	}
+}
+
+func TestScore_evolutionInvalidatedDeprioritizes(t *testing.T) {
+	w := DefaultRankingWeights()
+	req := ScoreRequest{}
+	base := memory.MemoryObject{
+		ID: uuid.New(), Kind: api.MemoryKindDecision, Authority: 7,
+		UpdatedAt: time.Now(),
+	}
+	corrID := uuid.New()
+	payload, _ := json.Marshal(map[string]any{
+		"pluribus_evolution": map[string]any{"invalidated_by": corrID.String()},
+	})
+	inv := base
+	inv.Payload = payload
+	sBase := Score(base, req, w, 10)
+	sInv := Score(inv, req, w, 10)
+	if sInv >= sBase {
+		t.Fatalf("invalidated memory should score lower: base=%v inv=%v", sBase, sInv)
+	}
+}
+
 func TestScore_tagMatch(t *testing.T) {
 	w := DefaultRankingWeights()
 	req := ScoreRequest{Tags: []string{"go", "api"}}

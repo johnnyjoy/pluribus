@@ -1,0 +1,110 @@
+{
+  "id": "proof-episodic-pipeline-materialize-001",
+  "suite": "episodic",
+  "description": "REST chain: ingest → similar (entity+time) → distill → review → materialize first governing constraint → recall shows canon; duplicate materialize 400; enforcement hits shipped normative heuristic (SQLite vs trusted prohibition).",
+  "steps": [
+    {
+      "id": "ingest_episode",
+      "method": "POST",
+      "path": "/v1/advisory-episodes",
+      "body": {
+        "summary": "EPISODIC PROOF MARKER {{RUN_ID}} never use SQLite for durable project database storage because migration error caused production data loss incident",
+        "source": "manual",
+        "tags": ["proof:episodic:pipe:{{RUN_ID}}"],
+        "occurred_at": "2019-03-10T10:00:00Z",
+        "entities": ["sqlite", "database"]
+      },
+      "expect_status": 201,
+      "capture_fields": { "episode_id": "id" }
+    },
+    {
+      "id": "similar_by_entity_and_time",
+      "method": "POST",
+      "path": "/v1/advisory-episodes/similar",
+      "body": {
+        "query": "sqlite database migration episodic proof marker",
+        "tags": ["proof:episodic:pipe:{{RUN_ID}}"],
+        "entities": ["sqlite"],
+        "occurred_after": "2019-01-01T00:00:00Z",
+        "occurred_before": "2019-12-31T23:59:59Z",
+        "max_results": 5
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "EPISODIC PROOF MARKER"}
+      ]
+    },
+    {
+      "id": "distill_episode",
+      "method": "POST",
+      "path": "/v1/episodes/distill",
+      "body": { "episode_id": "{{episode_id}}" },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"candidate_id\""},
+        {"kind": "body_contains", "value": "\"kind\":\"constraint\""}
+      ],
+      "capture_json_path": { "cand": "candidates.0.candidate_id" }
+    },
+    {
+      "id": "candidate_review",
+      "method": "GET",
+      "path": "/v1/curation/candidates/{{cand}}/review",
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"explanation\":"},
+        {"kind": "body_not_contains", "value": "\"explanation\":\"\""},
+        {"kind": "body_contains", "value": "\"promotion_preview\""}
+      ]
+    },
+    {
+      "id": "materialize_candidate",
+      "method": "POST",
+      "path": "/v1/curation/candidates/{{cand}}/materialize",
+      "body": {},
+      "expect_status": 201,
+      "capture_fields": { "memory_id": "id" }
+    },
+    {
+      "id": "materialize_duplicate_fails",
+      "method": "POST",
+      "path": "/v1/curation/candidates/{{cand}}/materialize",
+      "body": {},
+      "expect_status": 400,
+      "asserts": [
+        {"kind": "body_contains", "value": "promoted"}
+      ]
+    },
+    {
+      "id": "recall_surfaces_canonical",
+      "method": "POST",
+      "path": "/v1/recall/compile",
+      "body": {
+        "retrieval_query": "EPISODIC PROOF MARKER {{RUN_ID}} sqlite durable database",
+        "tags": ["proof:episodic:pipe:{{RUN_ID}}"],
+        "max_per_kind": 8,
+        "max_total": 40
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "EPISODIC PROOF MARKER"}
+      ]
+    },
+    {
+      "id": "enforcement_sees_canon",
+      "method": "POST",
+      "path": "/v1/enforcement/evaluate",
+      "body": {
+        "proposal_text": "We will migrate durable storage to SQLite for simplicity EPISODIC PROOF MARKER {{RUN_ID}}.",
+        "intent": "datastore",
+        "tags": ["proof:episodic:pipe:{{RUN_ID}}"]
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_not_contains", "value": "\"triggered_memories\":[]"},
+        {"kind": "body_contains_any", "values": ["\"decision\":\"block\"", "\"decision\":\"require_review\"", "\"decision\":\"block_overrideable\""]},
+        {"kind": "body_contains", "value": "normative_conflict"}
+      ]
+    }
+  ]
+}
