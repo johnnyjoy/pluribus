@@ -53,6 +53,8 @@ For **`GET /v1/recall/`**, **`POST /v1/recall/preflight`**, **`POST /v1/recall/c
 
 All creates and searches below persist to **`memories`** and **`memories_tags`** in Postgres. JSON responses use **`MemoryObject`** from `control-plane/internal/memory/types.go`.
 
+**Timing fields:** **`created_at`** / **`updated_at`** are system timestamps (recorded / last updated). Optional **`occurred_at`** is **event time** — when the underlying fact or event took place. Recall ranking uses effective recency **`coalesce(occurred_at, updated_at)`** so a memory ingested today about a long-ago event is not treated as “new” merely because of ingest time. Advisory / episodic similarity remains a separate lane; see [episodic-similarity.md](episodic-similarity.md).
+
 ---
 
 ## `POST /v1/memories`
@@ -61,7 +63,7 @@ All creates and searches below persist to **`memories`** and **`memories_tags`**
 
 ### Request
 
-Required: **`kind`**, **`statement`**. Optional: **`tags`**, **`authority`** (default 5 if omitted/zero), **`payload`** (required shape for `object_lesson`), **`status`**.
+Required: **`kind`**, **`statement`**. Optional: **`tags`**, **`authority`** (default 5 if omitted/zero), **`payload`** (required shape for `object_lesson`), **`status`**, **`occurred_at`** (RFC3339 event time).
 
 Same validation and duplicate semantics as **`POST /v1/memory`** (including **`409`** duplicate memory when dedup applies).
 
@@ -98,7 +100,7 @@ Optional: **`query`**, **`tags`**, **`status`** (default `active`), **`max`** (c
 
 ### Request
 
-Required: `kind`, `authority`, `statement` (and for `object_lesson`, structured `payload` per validation). Optional: `applicability`, `tags`, `supersedes_id`, `ttl_seconds`, `payload`, `status`.
+Required: `kind`, `authority`, `statement` (and for `object_lesson`, structured `payload` per validation). Optional: `applicability`, `tags`, `supersedes_id`, `ttl_seconds`, `payload`, `status`, `occurred_at` (RFC3339 event time).
 
 See `control-plane/internal/memory/types.go` (`CreateRequest`) and `pkg/api` enums for allowed `kind` / `applicability`.
 

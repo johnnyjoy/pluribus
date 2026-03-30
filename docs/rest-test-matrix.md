@@ -2,7 +2,7 @@
 
 **Purpose:** Map **shipped HTTP routes** to **required behavior**, **forbidden wire shapes**, and **tests that lock the service boundary**. MCP and LSP are adapters; this document is about **REST as product truth**.
 
-**If you only need one command:** *“Does the memory substrate behave as claimed?”* → **`cd control-plane && TEST_PG_DSN='…' make proof-rest`** (Postgres **+ pgvector**, clean DB). That is the **canonical behavioral proof** at the HTTP boundary. This matrix maps routes to tests; full verification story: [evaluation.md](evaluation.md) and [evidence/memory-proof.md](../evidence/memory-proof.md).
+**If you only need one command:** *“Does the memory substrate behave as claimed?”* → **`cd control-plane && TEST_PG_DSN='…' make proof-rest`** (Postgres **+ pgvector**, clean DB). That is the **canonical behavioral proof** at the HTTP boundary. For the **advisory episodic** lane under stress, add **`make proof-episodic`** — [evidence/episodic-proof.md](../evidence/episodic-proof.md). This matrix maps routes to tests; full verification story: [evaluation.md](evaluation.md) and [evidence/memory-proof.md](../evidence/memory-proof.md).
 
 **Authority:** [memory-doctrine.md](memory-doctrine.md) (model) → [http-api-index.md](http-api-index.md) (route/type map) → Go `json` tags + handlers → this matrix (what CI must prove).
 
@@ -30,7 +30,8 @@
 
 | Aspect | Required | Forbidden | Primary tests |
 |--------|----------|-----------|---------------|
-| Create behavioral row | Valid `kind`, `statement`, `authority`; optional `tags` | Required container IDs | `cmd/controlplane` `TestIntegration_memories_createSearch`; `internal/memory` `TestHandlers_Create_*` |
+| Create behavioral row | Valid `kind`, `statement`, `authority`; optional `tags`, optional `occurred_at` (RFC3339 event time) | Required container IDs | `cmd/controlplane` `TestIntegration_memories_createSearch`; `internal/memory` `TestHandlers_Create_*` |
+| Event time vs ingest | Optional `occurred_at`; recall recency uses event time when set | — | `cmd/controlplane` `TestREST_memories_occurredAt_createAndRecallRank` (integration); `internal/recall` `TestScore_recency_prefersOccurredAtOverUpdatedAt` |
 | Unknown JSON keys | **400** | Silently ignored fields | `cmd/controlplane` `TestREST_memoryCreate_rejectsContainerOntologyJSON` |
 | Batch create API | `POST /v1/memories` same semantics | — | `TestIntegration_memories_createSearch` |
 | Search | `POST /v1/memories/search` by `query` + optional `tags` | Container-scoped search | `TestIntegration_memories_createSearch` |
@@ -68,12 +69,15 @@
 |--------|----------|-----------|---------------|
 | Digest | `work_summary`; optional `curation_answers`, `options.dry_run` | `target_id`, `context_id` on wire | `cmd/controlplane` `TestREST_curationDigest_dryRun`; `internal/curation/service_digest_test.go` |
 
-### Curation — `GET /v1/curation/pending`, materialize / promote / reject
+### Curation — `GET /v1/curation/pending`, `GET /v1/curation/candidates/{id}/review`, materialize / promote / reject
 
 | Aspect | Required | Primary tests |
 |--------|----------|---------------|
 | Pending list | No query params | `docs/curation-loop.md` + handler tests |
-| Materialize | Path `{id}` | `cmd/controlplane` `TestIntegration_promoteCandidateToPattern` (service path); extend HTTP materialize when needed |
+| Candidate review | **Read-only** JSON: `explanation`, `signal_strength` + `signal_detail`, `supporting_episodes` (≤3 summaries), `promotion_preview`; **no** memory writes | `cmd/controlplane` `TestREST_candidateReview_fields`; `internal/curation` `review_build_test.go` |
+| Review isolation | Recall compile and enforcement unchanged by review; **no** new `memories` rows from GET review | `cmd/controlplane` `TestREST_candidateReview_isolation_noMemoryWrite` |
+| Materialize | Path `{id}`; **validation** + **`payload.pluribus_promotion`** trace | `internal/curation` `service_digest_test.go` |
+| Materialize | Path `{id}` (legacy flows) | `cmd/controlplane` `TestIntegration_promoteCandidateToPattern` (service path) |
 
 ---
 
@@ -94,7 +98,13 @@
 
 | Endpoint group | Class | Primary tests |
 |----------------|--------|---------------|
-| Evidence, contradictions, ingest, advisory-episodes | Support | Package tests under `internal/evidence`, `contradiction`, `ingest`, `similarity` |
+| Evidence, contradictions, ingest | Support | Package tests under `internal/evidence`, `contradiction`, `ingest` |
+| Advisory episodes (`/v1/advisory-episodes`, `/similar`) | Advisory ingest + time/entity filters + similarity; enforcement ignores advisory; recall compile does not surface episode text; inverted time window **400** | `cmd/controlplane` `advisory_episodes_episodic_integration_test.go` (integration); `internal/similarity` unit tests; proofs **`proof-episodic-advisory-001`**, **`proof-episodic-time-window-bad-001`** in `make proof-rest` / `make proof-episodic` |
+| Automatic distillation (post-advisory ingest) | Same keyword path as **`POST /v1/episodes/distill`** when **`distillation.auto_from_advisory_episodes`**; **`pluribus_distill_origin`** auto/manual/mixed; merge/suppression unchanged; ingest **201** if distill fails | `cmd/controlplane` `advisory_auto_distill_integration_test.go`; `internal/similarity/handlers_create_test.go` (`TestCreate_Advisory201WhenAutoDistillFails`); sprint subtest **`auto_distill_on_ingest_pending_without_explicit_distill`** in `internal/eval/episodic_proof_sprint_integration_test.go` |
+| Episode distillation (`POST /v1/episodes/distill`) | Keyword distillation → `candidate_events`; pending **merge** on kind + statement key; repetition strengthens salience/support count; weak text → no candidates; not recall / not enforcement until materialized | `cmd/controlplane` `episode_distill_integration_test.go` (`TestREST_episodeDistill_consolidatesDuplicates`, …); `internal/distillation` unit tests; proofs **`proof-episodic-distill-weak-001`**, **`proof-episodic-repetition-merge-001`** |
+| Episodic → canon chain (materialize + recall + enforcement) | End-to-end REST: distill → `GET …/review` → materialize → duplicate materialize **400** → recall surfaces statement → enforcement **`normative_conflict`** on modeled proposal; plus backward-compat ingest, equal time bound, supersession search, sprint cases (time inversion, weak distill, pending vs enforcement, recall repeatability, review episode cap **3**, auto-promote on/off, entity-noise ranking, soak loops) — see [evidence/episodic-proof.md](../evidence/episodic-proof.md) | **`proof-episodic-*.json`**; **`TestEpisodicProofSprintREST_Postgres`** in `internal/eval`; `make proof-episodic` |
+| Candidate review (`GET /v1/curation/candidates/{id}/review`) | Assistance only; deterministic explanation + bounded episode summaries + interpretable signal + promotion preview | `cmd/controlplane` `candidate_review_integration_test.go`; `internal/curation` unit tests |
+| Controlled promotion (`POST /v1/curation/auto-promote`, `promotion_readiness` on pending) | Auto-promote **403** when disabled; when enabled, batch promotes only threshold-eligible rows; `[AUTO PROMOTE]` logs | `cmd/controlplane` `controlled_promotion_integration_test.go`; `internal/curation` `promotion_*_test.go` |
 | `POST /v1/drift/check` | Support | `internal/drift` |
 | `GET /healthz`, `GET /readyz` | Meta | `cmd/controlplane` `TestIntegration_restHealthReadyAndRecall`, `internal/httpx/ready_test.go` |
 

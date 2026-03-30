@@ -9,6 +9,7 @@ This page **surfaces receipts** for what the system has actually demonstrated in
 | Receipt | What it proves | Where |
 |---------|----------------|--------|
 | **REST adversarial proof harness** | Memory/recall/enforcement **invariants** over **HTTP only**, with **determinism** (two full passes, matching signature); enforcement **rule scope** + semantic **fallback visibility** scenarios included | **`cd control-plane && TEST_PG_DSN='…' make proof-rest`** — scenarios `internal/eval/scenarios/proof-*.json`; artifact [evidence/memory-proof.md](../evidence/memory-proof.md); narrative [evaluation.md](evaluation.md) |
+| **Episodic advisory + distillation proof** | Advisory ingest, time/entity **similar**, inverted window errors, weak distill suppression, repetition merge, full chain **distill → review → materialize → recall → enforcement** (modeled normative case); adversarial Go sprint (conflict, time skew, boundary, soak) | **`make proof-episodic`** (root or `control-plane/`); [evidence/episodic-proof.md](../evidence/episodic-proof.md); [episodic-similarity.md](episodic-similarity.md) |
 
 **MCP / LSP** are **not** this layer’s primary proof surfaces — prove the **service** at REST first.
 

@@ -73,7 +73,30 @@ The intended loop is:
 
 **Experience → memory (distilled) → behavior (recall + enforcement) → learning (curation / promote) → repeat.**
 
-Recall comes **before** substantive action; enforcement gates **risky** proposals; curation captures **validated** learning, not noise.
+**Advisory episodes** may be **distilled** into **candidate** rows (`POST /v1/episodes/distill`) as *possible* structured learning; those candidates are **not** memory until curated and materialized. Recall comes **before** substantive action; enforcement gates **risky** proposals; curation captures **validated** learning, not noise.
+
+### Controlled promotion (automation without guessing)
+
+- **Truth stays explicit** — durable memory created from candidates carries **traceability** (`payload.pluribus_promotion`: originating `candidate_id`, supporting advisory episode ids, `distill_support_count_at_promotion`).
+- **Automation is gated** — optional **`promotion.auto_promote`** with conservative thresholds (`min_support_count`, `min_salience`, `allowed_kinds`); default **off**. **`POST /v1/curation/auto-promote`** returns **403** when disabled.
+- **Guardrails** apply before **any** materialize (manual or auto): validation rejects vague statements, missing evidence when required, duplicate statement keys (unless **`supersedes_memory_id`** matches the duplicate), and inconsistent signals.
+- **No destructive retire** — there is no retire/archive endpoint. Memory is **permanent** in the store; influence changes through **authority, ranking, contradiction policy, supersession**, and **additive payload relationships** — not subtraction.
+- **No recall / enforcement drift from candidates** — candidates do not affect recall or enforcement until **materialized**; ranking and compile behavior are unchanged by this path.
+
+### Memory evolution (non-destructive)
+
+- **Corrections are additive** — express change with **new** memories, stronger authority, and optional **`payload.pluribus_evolution`**: `superseded_by`, `contradicts`, `invalidated_by` (memory UUID strings). No agent-facing API archives or hides rows to “undo” truth.
+- **Supersession** — **`POST /v1/memory`** accepts **`supersedes_id`**; materialize accepts **`supersedes_memory_id`** on the candidate proposal when replacing a row with the same statement key. Prior row moves to **`superseded`** (relationship + lifecycle), not deleted.
+- **Invalidation signal** — `pluribus_evolution.invalidated_by` keeps the row **auditable**; recall scoring applies a **deprioritization penalty** so influence drops without erasure.
+
+Details: [curation-loop.md](curation-loop.md) (Controlled Promotion + Memory evolution).
+
+---
+
+## Timing (canonical memory)
+
+- **`created_at` / `updated_at`** — system timestamps when the row was created or last updated.
+- **`occurred_at`** (optional) — when the **described event or fact** took place. Omitted means “unspecified”; ranking and recency use **`coalesce(occurred_at, updated_at)`** for temporal honesty. This does **not** turn canonical memory into a diary; it is still constraints, decisions, patterns, failures, and state — distinct from **advisory** episodic similarity ([episodic-similarity.md](episodic-similarity.md)).
 
 ---
 
@@ -82,3 +105,4 @@ Recall comes **before** substantive action; enforcement gates **risky** proposal
 - [anti-regression.md](anti-regression.md) — enforcement and review rules.
 - [architecture.md](architecture.md) — system shape aligned with this doctrine.
 - [pluribus-memory-first-ontology.md](pluribus-memory-first-ontology.md) — narrative companion (must stay consistent with this file).
+- [episodic-similarity.md](episodic-similarity.md) — **advisory** episodic recall only (“what happened / when / involving whom”); subordinate to canonical memory and not enforcement truth.

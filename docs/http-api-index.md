@@ -84,6 +84,8 @@
 | `POST` | `/v1/curation/digest` | `internal/curation/types.go` — `DigestRequest` | `curation_digest` | core |
 | `POST` | `/v1/curation/evaluate` | `EvaluateRequest` (curation package) | — | support |
 | `GET` | `/v1/curation/pending` | **No query parameters** | — | core |
+| `GET` | `/v1/curation/candidates/{id}/review` | — (path id); `CandidateReviewResponse` in `internal/curation/types.go` | — | core |
+| `POST` | `/v1/curation/auto-promote` | optional `{}` body; `AutoPromoteResponse`; **403** if `promotion.auto_promote` is false | — | core |
 | `POST` | `/v1/curation/candidates/{id}/materialize` | — (path id) | `curation_materialize` | core |
 | `POST` | `/v1/curation/candidates/{id}/promote` | optional body per handler | — | support |
 | `POST` | `/v1/curation/candidates/{id}/reject` | optional body per handler | — | support |
@@ -132,8 +134,15 @@ Types: `internal/evidence`.
 |--------|------|----------|--------|
 | `POST` | `/v1/advisory-episodes` | — | support |
 | `POST` | `/v1/advisory-episodes/similar` | — | support |
+| `POST` | `/v1/episodes/distill` | — | support |
 
 Advisory only — not canonical recall authority per [episodic-similarity.md](episodic-similarity.md).
+
+**Create:** `summary` (required), optional `source` (default `manual`), `tags`, `occurred_at`, `entities`, `related_memory_id`. **201** response always includes **`tags`** and **`entities`** arrays (possibly empty). When **`distillation.enabled`** and **`distillation.auto_from_advisory_episodes`** are **true**, the server may append **pending** distilled candidates (same rules as **`POST /v1/episodes/distill`**) after the write; failures there do **not** change the **201** status (logged only). See [episodic-similarity.md](episodic-similarity.md).
+
+**Similar:** `query` (required), optional `tags`, `occurred_after` / `occurred_before` (inclusive on **effective** time), `entity` and/or **`entities`** (any overlap). If both time bounds are set, **`occurred_after` ≤ `occurred_before`** or **400**. **200** body: `{ "advisory_similar_cases": [ … ] }`.
+
+**Distill:** `episode_id` (loads `advisory_episodes`) **or** inline **`summary`** (optional `tags` / `entities`). **200** → `{ "candidates": [ … ] }` each with `candidate_id`, `kind`, `distill_support_count`, `merged`, `source_advisory_episode_ids`, traceability. Pending rows **dedupe** by kind + normalized statement; repeats **merge** (see [episodic-similarity.md](episodic-similarity.md)). **403** if `distillation.enabled` is false. Does **not** write `memories`.
 
 ---
 
@@ -142,6 +151,7 @@ Advisory only — not canonical recall authority per [episodic-similarity.md](ep
 | Entry | Purpose |
 |-------|--------|
 | `make eval` / `make stress-eval` | Go tests in `internal/eval` — see [evaluation.md](evaluation.md) |
+| `make proof-rest` / `make proof-episodic` | Postgres + integration: **`proof-rest`** = all **`proof-*.json`** with two-pass determinism; **`proof-episodic`** = same JSON suite **plus** **`TestEpisodicProofSprintREST_Postgres`** (extended adversarial episodic chain). Wrapper: **`scripts/proof-episodic.sh`**. See [evaluation.md](evaluation.md), [evidence/episodic-proof.md](../evidence/episodic-proof.md). |
 
 ---
 
@@ -153,7 +163,7 @@ Fields on **`POST /v1/curation/digest`**: `work_summary` (required), `signals`, 
 
 ## Database baseline
 
-Embedded SQL: `control-plane/migrations/0001_memory_baseline.sql` (applied on server boot). **`candidate_events`** columns: `id`, `raw_text`, `salience_score`, `promotion_status`, `proposal_json`, `created_at` — no separate migration file per table in-repo.
+Embedded SQL: `control-plane/migrations/0001_memory_baseline.sql`, `0002_advisory_episodes_episodic.sql`, `0003_memories_occurred_at.sql` (applied on server boot). Canonical **`memories.occurred_at`** is optional event time; see [api-contract.md](api-contract.md). **`candidate_events`** columns: `id`, `raw_text`, `salience_score`, `promotion_status`, `proposal_json`, `created_at` — no separate migration file per table in-repo.
 
 ---
 

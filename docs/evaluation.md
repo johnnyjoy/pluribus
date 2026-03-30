@@ -11,6 +11,10 @@ TEST_PG_DSN='postgres://USER:PASS@HOST:PORT/DB?sslmode=disable' make proof-rest
 
 That runs the **adversarial REST proof harness** (`internal/eval/scenarios/proof-*.json`): HTTP-only steps, structured `[PROOF]` logs, and **two full in-process passes** with an identical pass/fail signature (determinism). See [evidence/memory-proof.md](../evidence/memory-proof.md) for the receipt artifact.
 
+Episodic advisory behavior is covered by multiple **`proof-episodic-*.json`** scenarios and **`TestEpisodicProofSprintREST_Postgres`** (including optional **automatic** distillation on advisory ingest when configured) — see [episodic-similarity.md](episodic-similarity.md) and the inventory in [evidence/episodic-proof.md](../evidence/episodic-proof.md).
+
+**Full episodic pipeline proof** (explicit distill and/or **auto-from-advisory** when enabled in sprint servers → review → materialize → recall + enforcement boundary, plus adversarial Go scenarios): **`make proof-episodic`** from repo root or **`cd control-plane && make proof-episodic`** — runs `TestProofHarnessREST_Postgres` **and** `TestEpisodicProofSprintREST_Postgres`. Inventory and limits: [evidence/episodic-proof.md](../evidence/episodic-proof.md).
+
 ### Clean database (enforced)
 
 Before boot, the integration test checks that **`public.memories` does not exist**. If it does, you get an immediate error: proof requires a **fresh** database so baseline migrate and scenarios stay deterministic. Use a new DB name or `dropdb`/`createdb`; see [scripts/proof-fresh-db.sh](../scripts/proof-fresh-db.sh).
@@ -67,6 +71,8 @@ make test-drive
 | `make regression` | **CI batch gate:** Docker Postgres + `go test -tags=integration -count=1 ./...` (includes YAML proof scenarios) |
 | `make test-drive` | Fast confidence path (`test` + `eval`) |
 | `cd control-plane && make proof-rest` | **Canonical memory-substrate proof** — REST-only `proof-*.json` + two-pass determinism |
+| `make proof-episodic` | **Episodic lane stress proof** — all `proof-*.json` (two-pass determinism) + `TestEpisodicProofSprintREST_Postgres` adversarial subtests (see [evidence/episodic-proof.md](../evidence/episodic-proof.md)) |
+| `scripts/proof-episodic.sh` | Same as `make proof-episodic` after checking `TEST_PG_DSN` is set |
 
 ---
 
