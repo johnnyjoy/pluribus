@@ -112,6 +112,8 @@ Point every client at the **same** API base URL (default **`http://127.0.0.1:812
 
 Each **`integrations/<platform>/`** pack includes a pointer **`rules.md`**, editor-native templates where applicable, **[`integrations/pluribus-instructions.md`](integrations/pluribus-instructions.md)** (canonical loop text), **`skill.md`**, **`README.md`**, and usually **`mcp-config.example.json`**—directive templates, **do not commit secrets**.
 
+**Cursor (full “plugin” pack):** **[`integrations/cursor/`](integrations/cursor/)** bundles MCP JSON (**`mcp-config.json`**, no-auth + LAN examples), **`pluribus.mdc`**, optional **`pluribus-stricter.mdc`**, Agent Skill, **[`prompts.md`](integrations/cursor/prompts.md)**, **[`commands.md`](integrations/cursor/commands.md)**, **[`helper/verify-mcp.sh`](integrations/cursor/helper/verify-mcp.sh)**, and **[`plugin-plan.md`](integrations/cursor/plugin-plan.md)** (what Cursor actually supports). Prefer **user-level** **`~/.cursor/mcp.json`** and **user rules** so Pluribus applies in every repository—see **[`integrations/cursor/README.md`](integrations/cursor/README.md)**.
+
 **Optional auth:** if the server has **`PLURIBUS_API_KEY`** set, send **`X-API-Key`** on HTTP MCP and in **`headers`** below; if unset, omit them. [docs/authentication.md](docs/authentication.md).
 
 ### SDKs for custom agents (Go + Python)
@@ -137,7 +139,7 @@ Use these as templates; adjust host, port, and paths for your machine.
 
 #### Cursor
 
-**Global** `~/.cursor/mcp.json` is ideal so Pluribus MCP is available in **every** project; use **repository-local** `.cursor/mcp.json` only for overrides. [Cursor MCP reference](https://cursor.com/docs/context/mcp).
+**Global** `~/.cursor/mcp.json` is ideal so Pluribus MCP is available in **every** repository you open; use **repository-local** `.cursor/mcp.json` only for overrides. [Cursor MCP reference](https://cursor.com/docs/context/mcp).
 
 **Preferred — HTTP MCP** (no local `pluribus-mcp` binary):
 
