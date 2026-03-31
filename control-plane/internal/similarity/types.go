@@ -10,17 +10,20 @@ import (
 // ErrSimilarityDisabled is returned when the feature is off in config.
 var ErrSimilarityDisabled = errors.New("similarity: feature disabled")
 
-// ValidSources for advisory_episodes.source (must match DB CHECK).
+// ValidSources lists allowed JSON/DB values for `source` (ingest channel: how the episode entered).
+// Field name on wire remains `source` (must match DB CHECK).
 var ValidSources = map[string]struct{}{
 	"manual":             {},
 	"digest":             {},
 	"ingestion_summary": {},
+	"mcp":                {},
 }
 
 // Record is a persisted advisory episode row.
 type Record struct {
 	ID              uuid.UUID  `json:"id"`
 	SummaryText     string     `json:"summary_text"`
+	// Source is the ingest channel (JSON field `source`; how the episode entered).
 	Source          string     `json:"source"`
 	Tags            []string   `json:"tags"`
 	RelatedMemoryID *uuid.UUID `json:"related_memory_id,omitempty"`
@@ -29,16 +32,21 @@ type Record struct {
 	OccurredAt *time.Time `json:"occurred_at,omitempty"`
 	// Entities are normalized strings (e.g. people, systems) for overlap filters; not a graph.
 	Entities []string `json:"entities,omitempty"`
+	// Deduplicated is true when this response reuses an existing row (MCP ingest duplicate within configured window; no second insert).
+	Deduplicated bool `json:"deduplicated,omitempty"`
 }
 
 // CreateRequest is POST /v1/advisory-episodes body.
 type CreateRequest struct {
 	Summary         string     `json:"summary"`
 	Tags            []string   `json:"tags,omitempty"`
+	// Source is the ingest channel (JSON field `source`).
 	Source          string     `json:"source"`
 	RelatedMemoryID *uuid.UUID `json:"related_memory_id,omitempty"`
 	OccurredAt      *time.Time `json:"occurred_at,omitempty"`
 	Entities        []string   `json:"entities,omitempty"`
+	// CorrelationID optional client/session id (stored as tag mcp:session:<id> when non-empty; for traceability).
+	CorrelationID string `json:"correlation_id,omitempty"`
 }
 
 // SimilarRequest is POST /v1/advisory-episodes/similar body.

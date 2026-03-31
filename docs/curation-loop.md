@@ -2,13 +2,19 @@
 
 Pluribus can turn post-work signals into **pending candidate rows** with structured JSON, then **materialize** them into durable memory (and optional evidence links), using the same **promotion** gates as other promotion paths (`promotion.*` in config).
 
+**Terminology:** **`proposal_json.pluribus_distill_origin`** is the **distill mode** (how the candidate was produced). Advisory episodes use **`source`** as the **ingest channel**. Canonical mapping: [memory-doctrine.md](memory-doctrine.md) (Terminology).
+
 **Wire truth:** `control-plane/internal/curation/types.go` (`DigestRequest`, `DigestResult`, …) and handlers in `internal/curation/handlers.go`. **Full route list:** [http-api-index.md](http-api-index.md).
 
 ### Distillation (advisory → candidate)
 
-**`POST /v1/episodes/distill`** (see [episodic-similarity.md](episodic-similarity.md)) creates **pending** rows in the same **`candidate_events`** queue using keyword rules over advisory episode text. It is **not** digest and **not** LLM-based; it exists to funnel “possible learning” from episodes into **review**, not into canonical memory. **`proposal_json`** may include **`source_advisory_episode_id`** for traceability. When **`distillation.auto_from_advisory_episodes`** is enabled, **ingesting** an advisory episode can create or merge the **same** kind of pending rows **without** calling distill explicitly — still **candidate-only**, still reviewable, still not canon until materialized. **Materialize** is unchanged: a human/process still promotes to durable memory when appropriate. **REST proof** for distill → review → materialize (and boundaries vs recall/enforcement): [evidence/episodic-proof.md](../evidence/episodic-proof.md), **`make proof-episodic`**.
+**`POST /v1/episodes/distill`** (see [episodic-similarity.md](episodic-similarity.md)) creates **pending** rows in the same **`candidate_events`** queue using keyword rules over advisory episode text. It is **not** digest and **not** LLM-based; it exists to funnel “possible learning” from episodes into **review**, not into canonical memory. **`proposal_json`** may include **`source_advisory_episode_id`** for traceability. When **`distillation.auto_from_advisory_episodes`** is enabled, **ingesting** an advisory episode (including via MCP **`mcp_episode_ingest`**) can create or merge the **same** kind of pending rows **without** calling distill explicitly — still **candidate-only**, still reviewable, still not canon until materialized. **Materialize** is unchanged: a human/process still promotes to durable memory when appropriate. **REST proof** for distill → review → materialize (and boundaries vs recall/enforcement): [evidence/episodic-proof.md](../evidence/episodic-proof.md), **`make proof-episodic`**.
 
 **Consolidation:** repeated distillations that would produce the same **kind + normalized statement** update the **existing pending row** (higher **`distill_support_count`**, merged **`source_advisory_episode_ids`**, slightly higher salience) instead of flooding the queue. Review stays **one row per distinct lesson**, not five near-duplicates.
+
+**Relationship hints (optional):** `GET /v1/curation/candidates/{id}/review` may include **`relationship_hints`** — short lines when **`supersedes_memory_id`** is set (prior memory still exists; optional count of existing edges on that prior id). This is not a graph dump; see [memory-doctrine.md](memory-doctrine.md) (lightweight relationships).
+
+**Canonical consolidation (optional):** When **`promotion.canonical_consolidation.enabled`** is **true**, **`POST .../materialize`** may **strengthen** an existing canonical memory instead of inserting a new row: same **statement key**, or **near** lexical match (configurable Jaccard floor) with **tag** / **entity** overlap and **same kind**. The response is **`MaterializeOutcome`** (`created`, `strengthened`, `consolidated_into_memory_id`, `consolidation_reason`). **`GET .../review`** includes **`consolidation_preview`** (`action`: `create_new` | `reinforce` | `contradict_new`). History is preserved in **`payload.pluribus_consolidation`** and promotion traces; see [memory-doctrine.md](memory-doctrine.md) (Canonical convergence).
 
 ---
 
@@ -18,10 +24,12 @@ Pluribus can turn post-work signals into **pending candidate rows** with structu
 |--------|------|---------|
 | `POST` | `/v1/curation/digest` | Classify `curation_answers` + `work_summary` into `proposal_json` rows (or `dry_run` only). |
 | `POST` | `/v1/episodes/distill` | Optional: advisory episode (or inline `summary`) → pending `candidate_events` via keyword distillation (`distillation.enabled`). |
-| `GET` | `/v1/curation/pending` | List **all** pending candidates (**no query parameters**). Entries with `proposal_json` include `structured_kind` and `statement_preview`. |
+| `GET` | `/v1/curation/pending` | List **all** pending candidates (**no query parameters**). Entries with `proposal_json` include `structured_kind` and `statement_preview`. MCP tool: **`curation_pending`**. |
+| `GET` | `/v1/curation/promotion-suggestions` | Subset of pending where **`promotion_readiness`** is **`review_recommended`** or **`high_confidence`** — **suggestions only**; does not materialize. MCP tool: **`curation_promotion_suggestions`**. |
+| `GET` | `/v1/curation/strengthened` | Pending rows with **`distill_support_count`** ≥ `min_support` query (default **2**). MCP tool: **`curation_strengthened`**. |
 | `GET` | `/v1/curation/candidates/{id}/review` | Read-only **review assistance** for a pending candidate (explanation, signal, supporting episode summaries, promotion preview). **No writes.** |
 | `POST` | `/v1/curation/evaluate` | Salience evaluate a single text (`EvaluateRequest` in curation package — **`text`** field). |
-| `POST` | `/v1/curation/candidates/{id}/materialize` | Create memory from `proposal_json`, link evidence IDs, mark candidate `promoted`. |
+| `POST` | `/v1/curation/candidates/{id}/materialize` | Create or **consolidate into** memory from `proposal_json`, link evidence IDs, mark candidate `promoted`. Returns **`MaterializeOutcome`** (memory + `created` / `strengthened` / `consolidated_into_memory_id`). |
 | `POST` | `/v1/curation/auto-promote` | Optional **batch** auto-materialization when `promotion.auto_promote` is **true** and thresholds pass (see Controlled Promotion). |
 | `POST` | `/v1/curation/candidates/{id}/promote` | Alternate promote path (empty body or payload per handler — object-lesson flows). |
 | `POST` | `/v1/curation/candidates/{id}/reject` | Reject candidate. |
@@ -53,7 +61,7 @@ Each successful auto run logs **`[AUTO PROMOTE]`** with `candidate_id`, `memory_
 
 ### Guardrails (manual and auto)
 
-**`ValidatePromotionCandidate`** runs before any materialize: minimum statement length, evidence gates, duplicate **active/pending memory** (same statement key), and inconsistent salience vs merged support. Failures return **`promotion validation: …`**.
+**`ValidatePromotionCandidate`** runs before any materialize: minimum statement length, evidence gates, **`supersedes_memory_id`** consistency when a duplicate statement key is explicitly superseded, and inconsistent salience vs merged support. **Duplicate statement keys without `supersedes_memory_id`** are allowed so materialize can **reinforce** existing canonical memory (see **Canonical consolidation**). Failures return **`promotion validation: …`**.
 
 ### Traceability into canonical memory
 
@@ -92,6 +100,7 @@ Recall applies a **score penalty** when **`pluribus_evolution.invalidated_by`** 
 | `tags_grouped` | **`entities`** (from `entity:*` tags) vs **`domain`** (other tags), deduped. |
 | `entities_display` | Same entity names as `tags_grouped.entities` for quick scanning. |
 | `promotion_preview` | Read-only projection of what **`POST .../materialize`** would apply (kind, statement, tags, authority, applicability, pending vs active note). **Does not** create memory. |
+| `consolidation_preview` | When **`canonical_consolidation`** is configured, deterministic preview: **create** vs **reinforce** vs **contradict_new**, matched memory id, reason, expected effect. |
 | `promotion_readiness` / `readiness_reason` | Same derived classification as **`GET /v1/curation/pending`** (see Controlled Promotion). |
 
 **Recall / enforcement:** Candidates remain **out of** recall bundles and **out of** enforcement bindings until **materialized** into durable memory; this endpoint does not change that.

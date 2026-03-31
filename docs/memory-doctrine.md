@@ -79,9 +79,16 @@ The intended loop is:
 
 - **Truth stays explicit** — durable memory created from candidates carries **traceability** (`payload.pluribus_promotion`: originating `candidate_id`, supporting advisory episode ids, `distill_support_count_at_promotion`).
 - **Automation is gated** — optional **`promotion.auto_promote`** with conservative thresholds (`min_support_count`, `min_salience`, `allowed_kinds`); default **off**. **`POST /v1/curation/auto-promote`** returns **403** when disabled.
-- **Guardrails** apply before **any** materialize (manual or auto): validation rejects vague statements, missing evidence when required, duplicate statement keys (unless **`supersedes_memory_id`** matches the duplicate), and inconsistent signals.
+- **Guardrails** apply before **any** materialize (manual or auto): validation rejects vague statements, missing evidence when required, inconsistent signals, and **`supersedes_memory_id`** mismatches when a duplicate statement key is explicitly superseded. **Duplicate statement keys without supersession** are **not** rejected: promotion **converges** into the existing canonical row when **`promotion.canonical_consolidation`** is enabled (deterministic match), or **reinforces authority** on exact dedup via the memory create path when consolidation is off.
 - **No destructive retire** — there is no retire/archive endpoint. Memory is **permanent** in the store; influence changes through **authority, ranking, contradiction policy, supersession**, and **additive payload relationships** — not subtraction.
 - **No recall / enforcement drift from candidates** — candidates do not affect recall or enforcement until **materialized**; ranking and compile behavior are unchanged by this path.
+
+### Canonical convergence (truth gains strength, not copies)
+
+- **Repeated validated lessons** should **strengthen** an existing canonical statement when the server can **match** them deterministically (normalized **statement key**, bounded **lexical** similarity on canonical text, **tag** / **entity** overlap, same **kind**) — not spawn endless near-duplicate rows.
+- **Non-destructive** — nothing is deleted. The **dominant** row gains **bounded** authority increments and **`payload.pluribus_consolidation`** lineage (`support_count`, `reinforcing_candidates`, last reason / jaccard). Weaker signals remain traceable through candidate ids and payload, not through row removal.
+- **Contradiction** — when a guard detects **opposing** canonical statements (e.g. negation heuristic), materialize may **create a new** memory and record a **`contradicts`** edge; dominance is decided by **scoring + relationships**, not overwrite.
+- **Explainable** — every merge decision is **reproducible** from inputs and config (no LLM consolidation).
 
 ### Memory evolution (non-destructive)
 
@@ -91,12 +98,49 @@ The intended loop is:
 
 Details: [curation-loop.md](curation-loop.md) (Controlled Promotion + Memory evolution).
 
+### Lightweight memory relationships (additive, not a graph product)
+
+- **Typed edges** between **canonical** `memories` rows are stored in **`memory_relationships`** (`supports`, `contradicts`, `supersedes`, `same_pattern_family`, `derived_from`). They **annotate** how truths connect; they **do not** replace memory as the unit of recall or enforcement.
+- **REST:** `POST /v1/memory/relationships`, `GET /v1/memory/{id}/relationships`. **Automation (bounded):** creating a memory with **`supersedes_id`** also records a **`supersedes`** edge (new → prior row). No container ontology; no graph traversal requirement for basic recall.
+- **Recall:** table-backed **`supersedes`** edges **merge** into the existing **pattern supersession** map used for elevation suppression — a **small**, explainable tie-in; ranking is not rewritten around arbitrary graph walks.
+
 ---
 
 ## Timing (canonical memory)
 
 - **`created_at` / `updated_at`** — system timestamps when the row was created or last updated.
 - **`occurred_at`** (optional) — when the **described event or fact** took place. Omitted means “unspecified”; ranking and recency use **`coalesce(occurred_at, updated_at)`** for temporal honesty. This does **not** turn canonical memory into a diary; it is still constraints, decisions, patterns, failures, and state — distinct from **advisory** episodic similarity ([episodic-similarity.md](episodic-similarity.md)).
+
+---
+
+## Terminology (ingest channel vs distill mode)
+
+Pluribus distinguishes **how an advisory episode entered the system** from **how a pending candidate was produced by distillation**. The **JSON field names and stored values are unchanged**; this section is the canonical **conceptual** vocabulary.
+
+### Ingest channel (advisory episodes)
+
+**Concept:** **ingest channel** — the path or kind of ingestion for an **`advisory_episodes`** row.
+
+**Wire / storage:** the JSON and Postgres field is still **`source`**. Examples of stored values: `manual`, `digest`, `ingestion_summary`, `mcp`. In prose, say “ingest channel **`mcp`**” rather than overloading the word “source” when explaining behavior.
+
+### Distill mode (pending candidates)
+
+**Concept:** **distill mode** — how **`candidate_events`** rows were created or updated by the distillation pipeline (explicit distill vs automatic run after ingest vs merge).
+
+**Wire / storage:** the JSON field inside **`proposal_json`** is still **`pluribus_distill_origin`**.
+
+**Conceptual mapping** (stored wire strings are fixed; names on the right are documentation-only):
+
+| Stored `pluribus_distill_origin` | Distill mode (concept) |
+|----------------------------------|-------------------------|
+| `manual` | **explicit** (explicit `POST /v1/episodes/distill`) |
+| `auto` | **auto_from_advisory** (after `POST /v1/advisory-episodes`) |
+| `auto:mcp` | **auto_from_advisory_mcp** (after ingest when ingest channel is `mcp`) |
+| `mixed` | **mixed** (merged provenance) |
+
+### Tags
+
+The distilled tag **`origin:mcp`** means the episode ingest channel was **`mcp`**. In documentation, **ingest:mcp** may be used as a **semantic alias** for the same idea. **Only** `origin:mcp` is emitted in `proposal_json` tags today (no dual-tag emission).
 
 ---
 

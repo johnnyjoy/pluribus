@@ -1,0 +1,7 @@
+{
+  "documentation": "Verify against Zed MCP settings for your version — use these values when adding a server",
+  "url": "http://127.0.0.1:8123/v1/mcp",
+  "headers": {
+    "X-API-Key": "${env:PLURIBUS_API_KEY}"
+  }
+}

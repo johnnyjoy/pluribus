@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"control-plane/internal/memory"
 	"control-plane/pkg/api"
 
 	"github.com/google/uuid"
@@ -181,6 +182,46 @@ func uniqueEpisodeIDsInOrder(ids []string, single string) []uuid.UUID {
 	}
 	try(single)
 	return out
+}
+
+func buildConsolidationPreview(dec *memory.ConsolidationDecision) *ConsolidationPreview {
+	if dec == nil {
+		return nil
+	}
+	switch dec.Kind {
+	case memory.ConsolidationReinforce:
+		var mid string
+		if dec.TargetID != nil {
+			mid = dec.TargetID.String()
+		}
+		return &ConsolidationPreview{
+			Action:                 "reinforce",
+			MatchedMemoryID:        mid,
+			ConsolidationReason:    dec.Reason,
+			ExpectedEffect:         "Strengthens existing canonical memory (bounded authority, tag union, lineage in payload).",
+			LexicalJaccard:         dec.Jaccard,
+			ExactStatementKeyMatch: dec.ExactStatementKey,
+		}
+	case memory.ConsolidationContradictNew:
+		var mid string
+		if dec.ConflictTargetID != nil {
+			mid = dec.ConflictTargetID.String()
+		}
+		return &ConsolidationPreview{
+			Action:              "contradict_new",
+			MatchedMemoryID:     mid,
+			ConsolidationReason: dec.Reason,
+			ExpectedEffect:      "Creates a new canonical row and links contradicts to the matched memory (no overwrite).",
+			LexicalJaccard:      dec.Jaccard,
+		}
+	default:
+		return &ConsolidationPreview{
+			Action:              "create_new",
+			ConsolidationReason: dec.Reason,
+			ExpectedEffect:      "Creates a new canonical memory row.",
+			LexicalJaccard:      dec.Jaccard,
+		}
+	}
 }
 
 func buildPromotionPreview(p *ProposalPayloadV1, promo *PromotionDigestConfig) *PromotionPreview {

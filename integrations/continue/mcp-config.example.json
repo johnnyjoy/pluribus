@@ -1,0 +1,7 @@
+{
+  "documentation": "Not Continue's native schema — copy endpoint and headers into Continue MCP settings per https://docs.continue.dev/customize/deep-dives/mcp",
+  "endpoint": "http://127.0.0.1:8123/v1/mcp",
+  "headers": {
+    "X-API-Key": "${env:PLURIBUS_API_KEY}"
+  }
+}

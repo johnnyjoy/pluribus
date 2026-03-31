@@ -3,6 +3,7 @@ package curation
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
@@ -52,6 +53,14 @@ func (f *fakeMemoryCreator) Create(ctx context.Context, req memory.CreateRequest
 		return f.create(ctx, req)
 	}
 	return &memory.MemoryObject{ID: uuid.New(), Kind: req.Kind, Statement: req.Statement}, nil
+}
+
+func (f *fakeMemoryCreator) FindCanonicalConsolidationMatch(_ context.Context, _ *memory.CanonicalConsolidationConfig, _ *memory.ConsolidationProposalInput) (*memory.ConsolidationDecision, error) {
+	return &memory.ConsolidationDecision{Kind: memory.ConsolidationCreateNew, Reason: "fake_stub"}, nil
+}
+
+func (f *fakeMemoryCreator) ConsolidatePromotion(_ context.Context, _ memory.ConsolidatePromotionRequest) (*memory.MemoryObject, error) {
+	return nil, fmt.Errorf("consolidate not implemented in fake")
 }
 
 func TestService_PromoteToPattern_success(t *testing.T) {

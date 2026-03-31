@@ -122,7 +122,7 @@ func (s *Service) Compile(ctx context.Context, req CompileRequest) (*RecallBundl
 	s.enrichCompileSymbols(ctx, &req)
 	key := cache.RecallBundleKey(req.Tags, maxPerKind, req.MaxTotal, req.MaxTokens,
 		req.RetrievalQuery, req.ProposalText,
-		req.Symbols, req.RepoRoot, req.LSPFocusPath, req.LSPFocusLine, req.LSPFocusColumn, s.evidenceBundleCacheKey())
+		req.Symbols, req.RepoRoot, req.LSPFocusPath, req.LSPFocusLine, req.LSPFocusColumn, strings.TrimSpace(req.CorrelationID), s.evidenceBundleCacheKey())
 	if s.Cache != nil && s.CacheTTL > 0 {
 		if b, err := s.Cache.Get(ctx, key); err == nil && len(b) > 0 {
 			var bundle RecallBundle
@@ -148,6 +148,7 @@ func (s *Service) Compile(ctx context.Context, req CompileRequest) (*RecallBundl
 	if err := s.hydrateEvidence(ctx, bundle); err != nil {
 		return nil, err
 	}
+	AugmentWhyMattersWithEvidence(bundle)
 	if s.Cache != nil && s.CacheTTL > 0 {
 		if b, err := json.Marshal(bundle); err == nil {
 			_ = s.Cache.Set(ctx, key, b, s.CacheTTL)

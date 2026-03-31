@@ -1,0 +1,13 @@
+{
+  "documentation": "Merge into your VS Code / Copilot MCP config per current Microsoft docs — values below are for Pluribus",
+  "mcp": {
+    "servers": {
+      "pluribus": {
+        "url": "http://127.0.0.1:8123/v1/mcp",
+        "headers": {
+          "X-API-Key": "${env:PLURIBUS_API_KEY}"
+        }
+      }
+    }
+  }
+}

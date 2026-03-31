@@ -66,7 +66,7 @@ func run() error {
 		case "tools/list":
 			writeResult(req.ID, map[string]any{"tools": mcp.ToolDefinitions()})
 		case "tools/call":
-			res, err := mcp.HandleToolsCall(client, base, apiKey, req.Params)
+			res, err := mcp.HandleToolsCall(client, base, apiKey, req.Params, mcp.DefaultMemoryFormationPolicy())
 			if err != nil {
 				writeErr(req.ID, -32000, err.Error(), nil)
 				continue

@@ -16,6 +16,52 @@ func TestToolDefinitions_noProjectCRUDTools(t *testing.T) {
 	}
 }
 
+func TestToolDefinitions_behaviorFirstAndCompatAliases(t *testing.T) {
+	tools := ToolDefinitions()
+	found := map[string]string{}
+	order := []string{}
+	for _, tool := range tools {
+		name, _ := tool["name"].(string)
+		desc, _ := tool["description"].(string)
+		if strings.TrimSpace(desc) == "" {
+			t.Fatalf("tool %q has empty description", name)
+		}
+		found[name] = desc
+		order = append(order, name)
+	}
+	for _, name := range []string{"recall_context", "record_experience", "memory_context_resolve", "mcp_episode_ingest"} {
+		if _, ok := found[name]; !ok {
+			t.Fatalf("tools/list must include %q", name)
+		}
+	}
+	// Primary loop tools should appear before compatibility aliases in tools/list.
+	iRecall := indexOf(order, "recall_context")
+	iCompatRecall := indexOf(order, "memory_context_resolve")
+	iRecord := indexOf(order, "record_experience")
+	iCompatRecord := indexOf(order, "mcp_episode_ingest")
+	if iRecall < 0 || iCompatRecall < 0 || iRecord < 0 || iCompatRecord < 0 {
+		t.Fatal("missing tool in order slice")
+	}
+	if iRecall >= iCompatRecall {
+		t.Fatalf("recall_context should sort before memory_context_resolve: %v", order)
+	}
+	if iRecord >= iCompatRecord {
+		t.Fatalf("record_experience should sort before mcp_episode_ingest: %v", order)
+	}
+	if indexOf(order, "health") != len(order)-1 {
+		t.Fatalf("health should be last tool in list, got order: %v", order)
+	}
+}
+
+func indexOf(slice []string, s string) int {
+	for i, v := range slice {
+		if v == s {
+			return i
+		}
+	}
+	return -1
+}
+
 func TestBuildRecallGetURL_tagsWithoutLegacyIDs(t *testing.T) {
 	url, err := BuildRecallGetURL("http://localhost:8123", json.RawMessage(`{"retrieval_query":"ship API","tags":["go"]}`))
 	if err != nil {

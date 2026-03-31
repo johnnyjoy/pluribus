@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"control-plane/internal/memory"
 	"control-plane/pkg/api"
 
 	"github.com/google/uuid"
@@ -125,7 +126,7 @@ type ProposalPayloadV1 struct {
 	SourceAdvisoryEpisodeIDs []string `json:"source_advisory_episode_ids,omitempty"`
 	// DistillSupportCount is how many distill operations merged into this row (repetition strengthening).
 	DistillSupportCount int `json:"distill_support_count,omitempty"`
-	// PluribusDistillOrigin is how the row was produced: "manual" (explicit POST /v1/episodes/distill), "auto" (post-advisory ingest), or "mixed" (merged from both). Omitted on legacy rows (treated as manual).
+	// PluribusDistillOrigin is the distill mode on wire (JSON field `pluribus_distill_origin`): how the candidate was produced — e.g. "manual" (explicit distill), "auto" (post-advisory ingest), "auto:mcp" (ingest channel mcp), "mixed". See docs/memory-doctrine.md Terminology. Omitted on legacy rows (treated as manual).
 	PluribusDistillOrigin string `json:"pluribus_distill_origin,omitempty"`
 	// SupersedesMemoryID when set to an existing memory UUID, materialize creates the new row with CreateRequest.supersedes_id (marks prior row superseded — additive evolution, not archive).
 	SupersedesMemoryID string `json:"supersedes_memory_id,omitempty"`
@@ -191,15 +192,39 @@ type AutoPromoteResultRow struct {
 
 // CandidateReviewResponse is GET /v1/curation/candidates/{id}/review — assistance for humans only.
 type CandidateReviewResponse struct {
-	CandidateID          string                     `json:"candidate_id"`
-	PromotionStatus      string                     `json:"promotion_status"`
-	PromotionReadiness   string                     `json:"promotion_readiness,omitempty"`
-	ReadinessReason      string                     `json:"readiness_reason,omitempty"`
-	Explanation          string                     `json:"explanation"`
-	SupportingEpisodes   []SupportingEpisodeSummary `json:"supporting_episodes,omitempty"`
-	SignalStrength       string                     `json:"signal_strength"` // "low" | "moderate" | "strong"
-	SignalDetail         string                     `json:"signal_detail"`
-	TagsGrouped          TagsGrouped                `json:"tags_grouped"`
-	EntitiesDisplay      []string                   `json:"entities_display,omitempty"`
-	PromotionPreview     *PromotionPreview          `json:"promotion_preview,omitempty"`
+	CandidateID        string                     `json:"candidate_id"`
+	PromotionStatus    string                     `json:"promotion_status"`
+	PromotionReadiness string                     `json:"promotion_readiness,omitempty"`
+	ReadinessReason    string                     `json:"readiness_reason,omitempty"`
+	Explanation        string                     `json:"explanation"`
+	SupportingEpisodes []SupportingEpisodeSummary `json:"supporting_episodes,omitempty"`
+	SignalStrength     string                     `json:"signal_strength"` // "low" | "moderate" | "strong"
+	SignalDetail       string                     `json:"signal_detail"`
+	TagsGrouped        TagsGrouped                `json:"tags_grouped"`
+	EntitiesDisplay    []string                   `json:"entities_display,omitempty"`
+	PromotionPreview   *PromotionPreview          `json:"promotion_preview,omitempty"`
+	// RelationshipHints are short deterministic lines (not raw graph dumps).
+	RelationshipHints []string `json:"relationship_hints,omitempty"`
+	// ConsolidationPreview is deterministic: create vs strengthen vs contradict-new (no writes).
+	ConsolidationPreview *ConsolidationPreview `json:"consolidation_preview,omitempty"`
+}
+
+// ConsolidationPreview describes what materialize would do for canonical convergence (read-only).
+type ConsolidationPreview struct {
+	Action                 string  `json:"action"` // create_new | reinforce | contradict_new
+	MatchedMemoryID        string  `json:"matched_memory_id,omitempty"`
+	ConsolidationReason    string  `json:"consolidation_reason,omitempty"`
+	ExpectedEffect         string  `json:"expected_effect,omitempty"`
+	LexicalJaccard         float64 `json:"lexical_jaccard,omitempty"`
+	ExactStatementKeyMatch bool    `json:"exact_statement_key_match,omitempty"`
+}
+
+// MaterializeOutcome is returned from POST materialize (memory plus convergence metadata).
+type MaterializeOutcome struct {
+	Memory                   *memory.MemoryObject `json:"memory"`
+	Created                  bool                 `json:"created"`
+	ConsolidatedIntoMemoryID *string              `json:"consolidated_into_memory_id,omitempty"`
+	Strengthened             bool                 `json:"strengthened"`
+	ConsolidationReason      string               `json:"consolidation_reason,omitempty"`
+	ContradictsMemoryID      *string              `json:"contradicts_memory_id,omitempty"`
 }

@@ -14,7 +14,8 @@ import (
 
 // Handlers provides HTTP handlers for memory objects.
 type Handlers struct {
-	Service *Service
+	Service         *Service
+	Relationships *RelationshipRepo // optional: POST/GET memory relationships
 }
 
 // Create handles POST /v1/memory.

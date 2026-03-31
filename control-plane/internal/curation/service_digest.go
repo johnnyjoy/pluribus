@@ -25,6 +25,8 @@ type PromotionDigestConfig struct {
 	AutoMinSupportCount int
 	AutoMinSalience     float64
 	AutoAllowedKinds    []string
+	// CanonicalConsolidation merges similar promotions into existing canonical rows (deterministic; default off).
+	CanonicalConsolidation *memory.CanonicalConsolidationConfig
 }
 
 // Service already has Repo, Config, Memory; extend in service.go with:
@@ -205,11 +207,11 @@ func isBehaviorKind(k api.MemoryKind) bool {
 }
 
 // Materialize creates a memory object from a digest candidate's proposal_json and marks the candidate promoted.
-func (s *Service) Materialize(ctx context.Context, candidateID uuid.UUID) (*memory.MemoryObject, error) {
+func (s *Service) Materialize(ctx context.Context, candidateID uuid.UUID) (*MaterializeOutcome, error) {
 	return s.materializeInternal(ctx, candidateID, false)
 }
 
-func (s *Service) materializeInternal(ctx context.Context, candidateID uuid.UUID, auto bool) (*memory.MemoryObject, error) {
+func (s *Service) materializeInternal(ctx context.Context, candidateID uuid.UUID, auto bool) (*MaterializeOutcome, error) {
 	if s.Memory == nil {
 		return nil, fmt.Errorf("memory service required for materialize")
 	}
@@ -268,6 +270,115 @@ func (s *Service) materializeInternal(ctx context.Context, candidateID uuid.UUID
 		req.SupersedesID = &u
 	}
 
+	var preDup *uuid.UUID
+	if s.MemoryDup != nil {
+		sk := memorynorm.StatementKey(p.Statement)
+		if sk != "" {
+			preDup, _ = s.MemoryDup.FindActiveDuplicate(ctx, p.Kind, sk)
+		}
+	}
+
+	ccfg := memory.NormalizeCanonicalConsolidation(&memory.CanonicalConsolidationConfig{Enabled: false})
+	if promo != nil && promo.CanonicalConsolidation != nil {
+		ccfg = memory.NormalizeCanonicalConsolidation(promo.CanonicalConsolidation)
+	}
+
+	supersedesSet := strings.TrimSpace(p.SupersedesMemoryID) != ""
+
+	if !supersedesSet && ccfg.Enabled {
+		dec, err := s.Memory.FindCanonicalConsolidationMatch(ctx, ccfg, &memory.ConsolidationProposalInput{
+			Kind:      p.Kind,
+			Statement: p.Statement,
+			Tags:      p.Tags,
+		})
+		if err != nil {
+			return nil, err
+		}
+		switch dec.Kind {
+		case memory.ConsolidationReinforce:
+			if dec.TargetID == nil {
+				break
+			}
+			var plb []byte
+			if pl := buildMaterializePayload(candidateID, &p); pl != nil {
+				plb = *pl
+			}
+			obj, err := s.Memory.ConsolidatePromotion(ctx, memory.ConsolidatePromotionRequest{
+				TargetID:           *dec.TargetID,
+				CandidateID:        candidateID,
+				IncomingTags:       p.Tags,
+				AuthorityDelta:     ccfg.AuthorityDeltaPerReinforcement,
+				Jaccard:            dec.Jaccard,
+				Reason:             dec.Reason,
+				ExactKeyMatch:      dec.ExactStatementKey,
+				MaterializePayload: plb,
+			})
+			if err != nil {
+				return nil, err
+			}
+			if len(p.EvidenceIDs) > 0 {
+				if s.Evidence == nil {
+					return nil, fmt.Errorf("evidence service required to link evidence_ids")
+				}
+				if err := s.Evidence.LinkPromotedEvidence(ctx, obj.ID, p.EvidenceIDs); err != nil {
+					return nil, err
+				}
+			}
+			if err := s.Repo.UpdatePromotionStatus(ctx, candidateID, "promoted"); err != nil {
+				return nil, err
+			}
+			if auto {
+				rd, msg := ClassifyPromotionReadiness(&p, c.SalienceScore)
+				slog.Info(strings.TrimSpace(fmt.Sprintf("[AUTO PROMOTE] candidate_id=%s memory_id=%s readiness=%s reason=%s",
+					candidateID.String(), obj.ID.String(), rd, msg)))
+			}
+			sid := dec.TargetID.String()
+			return &MaterializeOutcome{
+				Memory:                   obj,
+				Created:                  false,
+				ConsolidatedIntoMemoryID: &sid,
+				Strengthened:             true,
+				ConsolidationReason:      dec.Reason,
+			}, nil
+
+		case memory.ConsolidationContradictNew:
+			obj, err := s.Memory.Create(ctx, req)
+			if err != nil {
+				return nil, err
+			}
+			if s.Relationships != nil && dec.ConflictTargetID != nil {
+				if _, err := s.Relationships.CreateRelationship(ctx, obj.ID, *dec.ConflictTargetID, memory.RelContradicts,
+					dec.Reason, "curation_materialize_contradiction"); err != nil {
+					return nil, fmt.Errorf("contradiction edge: %w", err)
+				}
+			}
+			if len(p.EvidenceIDs) > 0 {
+				if s.Evidence == nil {
+					return nil, fmt.Errorf("evidence service required to link evidence_ids")
+				}
+				if err := s.Evidence.LinkPromotedEvidence(ctx, obj.ID, p.EvidenceIDs); err != nil {
+					return nil, err
+				}
+			}
+			if err := s.Repo.UpdatePromotionStatus(ctx, candidateID, "promoted"); err != nil {
+				return nil, err
+			}
+			if auto {
+				rd, msg := ClassifyPromotionReadiness(&p, c.SalienceScore)
+				slog.Info(strings.TrimSpace(fmt.Sprintf("[AUTO PROMOTE] candidate_id=%s memory_id=%s readiness=%s reason=%s",
+					candidateID.String(), obj.ID.String(), rd, msg)))
+			}
+			cid := dec.ConflictTargetID.String()
+			return &MaterializeOutcome{
+				Memory:              obj,
+				Created:             true,
+				Strengthened:        false,
+				ConsolidationReason: dec.Reason,
+				ContradictsMemoryID: &cid,
+			}, nil
+		}
+	}
+
 	obj, err := s.Memory.Create(ctx, req)
 	if err != nil {
 		return nil, err
@@ -288,5 +399,17 @@ func (s *Service) materializeInternal(ctx context.Context, candidateID uuid.UUID
 		slog.Info(strings.TrimSpace(fmt.Sprintf("[AUTO PROMOTE] candidate_id=%s memory_id=%s readiness=%s reason=%s",
 			candidateID.String(), obj.ID.String(), rd, msg)))
 	}
-	return obj, nil
+	out := &MaterializeOutcome{
+		Memory:       obj,
+		Created:      true,
+		Strengthened: false,
+	}
+	if preDup != nil && obj != nil && obj.ID == *preDup {
+		out.Created = false
+		out.Strengthened = true
+		sid := preDup.String()
+		out.ConsolidatedIntoMemoryID = &sid
+		out.ConsolidationReason = "memory_create_exact_dedup"
+	}
+	return out, nil
 }

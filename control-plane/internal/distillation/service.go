@@ -14,10 +14,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// Wire values for proposal_json.pluribus_distill_origin (distill mode); see docs/memory-doctrine.md Terminology.
 const (
-	originManual = "manual"
-	originAuto   = "auto"
-	originMixed  = "mixed"
+	originManual  = "manual"   // explicit distill (concept: explicit)
+	originAuto    = "auto"     // auto_from_advisory
+	originAutoMCP = "auto:mcp" // auto_from_advisory_mcp when ingest channel is mcp
+	originMixed   = "mixed"
 )
 
 const (
@@ -67,7 +69,14 @@ func (s *Service) DistillAfterAdvisoryIngest(ctx context.Context, episodeID uuid
 	if s == nil || s.Config == nil || !s.Config.Enabled || !s.Config.AutoFromAdvisoryEpisodes {
 		return nil
 	}
-	_, err := s.distillWithOrigin(ctx, DistillRequest{EpisodeID: episodeID.String(), OriginDistill: originAuto})
+	origin := originAuto
+	if s.Episodes != nil {
+		rec, err := s.Episodes.GetByID(ctx, episodeID)
+		if err == nil && rec != nil && rec.Source == "mcp" {
+			origin = originAutoMCP
+		}
+	}
+	_, err := s.distillWithOrigin(ctx, DistillRequest{EpisodeID: episodeID.String(), OriginDistill: origin})
 	return err
 }
 
@@ -101,6 +110,7 @@ func (s *Service) distillWithOrigin(ctx context.Context, req DistillRequest) (*D
 	var tags []string
 	var sourceEpisodeID string
 	var entities []string
+	var episodeSource string
 
 	switch {
 	case strings.TrimSpace(req.EpisodeID) != "":
@@ -122,6 +132,7 @@ func (s *Service) distillWithOrigin(ctx context.Context, req DistillRequest) (*D
 		tags = append([]string(nil), rec.Tags...)
 		entities = rec.Entities
 		sourceEpisodeID = rec.ID.String()
+		episodeSource = rec.Source
 	case strings.TrimSpace(req.Summary) != "":
 		summary = strings.TrimSpace(req.Summary)
 		tags = append([]string(nil), req.Tags...)
@@ -136,7 +147,7 @@ func (s *Service) distillWithOrigin(ctx context.Context, req DistillRequest) (*D
 		return &DistillResponse{Candidates: nil}, nil
 	}
 
-	baseTags := distilledTags(tags, entities)
+	baseTags := distilledTags(tags, entities, episodeSource)
 	minLen := s.minChars()
 	var out []DistillCandidateOut
 
@@ -302,7 +313,7 @@ func unionTags(a, b []string) []string {
 	return out
 }
 
-func distilledTags(inherited []string, entities []string) []string {
+func distilledTags(inherited []string, entities []string, episodeSource string) []string {
 	seen := make(map[string]struct{})
 	var out []string
 	add := func(s string) {
@@ -317,6 +328,9 @@ func distilledTags(inherited []string, entities []string) []string {
 		out = append(out, s)
 	}
 	add("distilled-from-advisory")
+	if strings.TrimSpace(episodeSource) == "mcp" {
+		add("origin:mcp")
+	}
 	for _, t := range inherited {
 		add(t)
 	}

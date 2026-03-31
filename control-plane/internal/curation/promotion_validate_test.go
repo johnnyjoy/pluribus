@@ -28,11 +28,11 @@ func TestValidatePromotionCandidate_shortStatement(t *testing.T) {
 	}
 }
 
-func TestValidatePromotionCandidate_duplicateMemory(t *testing.T) {
+func TestValidatePromotionCandidate_duplicateMemory_allowsConsolidation(t *testing.T) {
 	did := uuid.MustParse("a0000000-0000-0000-0000-000000000001")
 	svc := &Service{
 		Promotion: &PromotionDigestConfig{},
-		MemoryDup:   &stubDupChecker{dup: &did},
+		MemoryDup: &stubDupChecker{dup: &did},
 	}
 	c := &CandidateEvent{SalienceScore: 0.5}
 	p := &ProposalPayloadV1{
@@ -40,8 +40,8 @@ func TestValidatePromotionCandidate_duplicateMemory(t *testing.T) {
 		Statement: "this statement is long enough for the minimum validation rule sixteen",
 	}
 	v := svc.ValidatePromotionCandidate(context.Background(), c, p)
-	if v.Allow {
-		t.Fatal("expected deny")
+	if !v.Allow {
+		t.Fatalf("expected allow (duplicate consolidates into canonical memory): %s", v.Reason)
 	}
 }
 

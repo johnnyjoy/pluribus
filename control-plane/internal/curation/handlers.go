@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -39,7 +41,7 @@ func (h *Handlers) Materialize(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid candidate id: expected a UUID")
 		return
 	}
-	obj, err := h.Service.Materialize(r.Context(), id)
+	out, err := h.Service.Materialize(r.Context(), id)
 	if err != nil {
 		if err.Error() == "candidate not found" {
 			httpx.WriteError(w, http.StatusNotFound, err.Error())
@@ -48,7 +50,7 @@ func (h *Handlers) Materialize(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	httpx.WriteJSONStatus(w, http.StatusCreated, obj)
+	httpx.WriteJSONStatus(w, http.StatusCreated, out)
 }
 
 // Evaluate handles POST /v1/curation/evaluate.
@@ -73,6 +75,46 @@ func (h *Handlers) ListPending(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	list, err := h.Service.ListPending(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if list == nil {
+		list = []CandidateEvent{}
+	}
+	httpx.WriteJSON(w, list)
+}
+
+// PromotionSuggestions handles GET /v1/curation/promotion-suggestions — pending candidates ready for human/agent promotion assist (never auto-materializes).
+func (h *Handlers) PromotionSuggestions(w http.ResponseWriter, r *http.Request) {
+	if h.Service == nil {
+		httpx.WriteError(w, http.StatusInternalServerError, "curation service not configured")
+		return
+	}
+	list, err := h.Service.ListPromotionSuggestions(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if list == nil {
+		list = []CandidateEvent{}
+	}
+	httpx.WriteJSON(w, list)
+}
+
+// Strengthened handles GET /v1/curation/strengthened?min_support=N — pending distilled candidates merged multiple times (distill_support_count).
+func (h *Handlers) Strengthened(w http.ResponseWriter, r *http.Request) {
+	if h.Service == nil {
+		httpx.WriteError(w, http.StatusInternalServerError, "curation service not configured")
+		return
+	}
+	min := 2
+	if s := strings.TrimSpace(r.URL.Query().Get("min_support")); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n >= 1 {
+			min = n
+		}
+	}
+	list, err := h.Service.ListStrengthened(r.Context(), min)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, err.Error())
 		return

@@ -94,7 +94,9 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		memorySvc.Semantic = cfg.Recall.SemanticRetrieval
 		memorySvc.Embedder = memory.NewEmbedderFromConfig(cfg.Recall.SemanticRetrieval)
 	}
-	memoryHandlers := &memory.Handlers{Service: memorySvc}
+	memoryRelRepo := &memory.RelationshipRepo{DB: container.DB}
+	memorySvc.Relationships = memoryRelRepo
+	memoryHandlers := &memory.Handlers{Service: memorySvc, Relationships: memoryRelRepo}
 
 	contradictionRepo := &contradiction.Repo{DB: container.DB}
 	contradictionSvc := &contradiction.Service{Repo: contradictionRepo, MemoryRepo: memoryRepo}
@@ -109,8 +111,9 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 
 	recallRepo := &recall.Repo{DB: container.DB}
 	recallCompiler := &recall.Compiler{
-		Memory:        memorySvc,
-		Contradiction: contradictionSvc,
+		Memory:          memorySvc,
+		Contradiction:   contradictionSvc,
+		Relationships:   memoryRelRepo,
 	}
 	if cfg.Memory.Dedup != nil {
 		recallCompiler.NearDupJaccardThreshold = cfg.Memory.Dedup.NearDupJaccardThreshold
@@ -301,6 +304,8 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		Repo:           curationRepo,
 		Config:         curationConfig,
 		Memory:         memorySvc,
+		MemoryLookup:   memorySvc,
+		Relationships:  memoryRelRepo,
 		MemoryDup:      memoryRepo,
 		FailureCounter: memoryRepo,
 		Episodes:       simRepo,
@@ -312,13 +317,14 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		},
 		Evidence: evidenceSvc,
 		Promotion: &curation.PromotionDigestConfig{
-			RequireEvidence:     cfg.Promotion.RequireEvidence,
-			MinEvidenceLinks:    cfg.Promotion.MinEvidenceLinks,
-			RequireReview:       cfg.Promotion.RequireReview,
-			AutoPromote:         cfg.Promotion.AutoPromote,
-			AutoMinSupportCount: cfg.Promotion.AutoMinSupportCount,
-			AutoMinSalience:     cfg.Promotion.AutoMinSalience,
-			AutoAllowedKinds:    cfg.Promotion.AutoAllowedKinds,
+			RequireEvidence:        cfg.Promotion.RequireEvidence,
+			MinEvidenceLinks:       cfg.Promotion.MinEvidenceLinks,
+			RequireReview:          cfg.Promotion.RequireReview,
+			AutoPromote:            cfg.Promotion.AutoPromote,
+			AutoMinSupportCount:    cfg.Promotion.AutoMinSupportCount,
+			AutoMinSalience:        cfg.Promotion.AutoMinSalience,
+			AutoAllowedKinds:       cfg.Promotion.AutoAllowedKinds,
+			CanonicalConsolidation: memory.NormalizeCanonicalConsolidation(cfg.Promotion.CanonicalConsolidation),
 		},
 	}
 	curationHandlers := &curation.Handlers{Service: curationSvc}
@@ -328,12 +334,25 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	ingestSvc.AutoPromote = cfg.Ingest.AutoPromote
 	ingestSvc.Promoter = memorySvc
 	ingestHandlers := &ingest.Handlers{Service: ingestSvc}
+	dedupEnabled := true
+	dedupWin := 120 * time.Second
+	if cfg.MCP != nil && cfg.MCP.MemoryFormation != nil {
+		mf := cfg.MCP.MemoryFormation
+		if mf.DedupEnabled != nil {
+			dedupEnabled = *mf.DedupEnabled
+		}
+		if mf.DedupWindowSeconds > 0 {
+			dedupWin = time.Duration(mf.DedupWindowSeconds) * time.Second
+		}
+	}
 	simCfg := &similarity.Config{
 		Enabled:         cfg.Similarity.Enabled,
 		MaxSummaryBytes: cfg.Similarity.MaxSummaryBytes,
 		MaxEpisodesScan: cfg.Similarity.MaxEpisodesScan,
 		MaxResults:      cfg.Similarity.MaxResults,
 		MinResemblance:  cfg.Similarity.MinResemblance,
+		McpDedupEnabled: dedupEnabled,
+		McpDedupWindow:  dedupWin,
 	}
 	simSvc := &similarity.Service{Repo: simRepo, Config: simCfg}
 	simHandlers := &similarity.Handlers{Service: simSvc}
@@ -358,6 +377,8 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			r.Post("/search", memoryHandlers.SearchMemories)
 		})
 		r.Route("/memory", func(r chi.Router) {
+			r.Post("/relationships", memoryHandlers.CreateRelationship)
+			r.Get("/{id}/relationships", memoryHandlers.ListRelationships)
 			r.Post("/", memoryHandlers.Create)
 			r.Post("/pattern-elevation/run", memoryHandlers.RunPatternElevation)
 			r.Post("/promote", memoryHandlers.Promote)
@@ -378,6 +399,8 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			r.Post("/evaluate", curationHandlers.Evaluate)
 			r.Post("/auto-promote", curationHandlers.AutoPromote)
 			r.Get("/pending", curationHandlers.ListPending)
+			r.Get("/promotion-suggestions", curationHandlers.PromotionSuggestions)
+			r.Get("/strengthened", curationHandlers.Strengthened)
 			r.Get("/candidates/{id}/review", curationHandlers.Review)
 			r.Post("/candidates/{id}/materialize", curationHandlers.Materialize)
 			r.Post("/candidates/{id}/promote", curationHandlers.MarkPromoted)

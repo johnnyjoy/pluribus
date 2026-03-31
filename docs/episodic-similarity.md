@@ -2,6 +2,8 @@
 
 This layer is **subordinate** to canonical recall. It surfaces **advisory episodes** from `advisory_episodes` using **in-process** signals: token overlap (Jaccard on normalized words), tag overlap, optional **event time** filters, optional **entity** overlap, a small **time-proximity** boost inside a bounded window, and tie-breaks. It answers **“what happened / when / involving whom or what”** in a **weak, non-binding** lane—not **“what must we obey”** (that remains canonical memory).
 
+**Terminology:** the JSON field **`source`** is the **ingest channel** (how the episode entered). Pending **`candidate_events`** use **`pluribus_distill_origin`** for **distill mode** (how the candidate was produced). Canonical definitions and mapping: [memory-doctrine.md](memory-doctrine.md) (Terminology section).
+
 ## What this is not
 
 - **Not** canonical memory — episodes do not replace durable rows in `memories` or recall bundles as authority.
@@ -17,7 +19,7 @@ This layer is **subordinate** to canonical recall. It surfaces **advisory episod
 
 ## Storage
 
-- Table: **`advisory_episodes`** — `summary_text`, `source`, `tags`, optional `related_memory_id`, `created_at`.
+- Table: **`advisory_episodes`** — `summary_text`, **`source`** (ingest channel), `tags`, optional `related_memory_id`, `created_at`.
 - **Episodic fields (advisory only):**
   - **`occurred_at`** — when the episode *occurred* (optional). If omitted, effective time for filtering and tie-breaks is **`COALESCE(occurred_at, created_at)`**.
   - **`entities`** — JSON array of normalized strings (e.g. people, systems, topics) for **overlap** with request filters—not a graph and not a partition ID.
@@ -29,7 +31,8 @@ This layer is **subordinate** to canonical recall. It surfaces **advisory episod
 | Field | Required | Notes |
 |--------|----------|--------|
 | `summary` | yes | Non-empty after trim; stored as `summary_text`. |
-| `source` | no | Defaults to **`manual`**. One of: `manual`, `digest`, `ingestion_summary`. |
+| `source` | no | **Ingest channel** (field name unchanged). Defaults to **`manual`**. One of: `manual`, `digest`, `ingestion_summary`, **`mcp`**. |
+| `correlation_id` | no | Optional string; stored as tag **`mcp:session:<correlation_id>`** for traceability (MCP clients often set this). |
 | `tags` | no | Soft filters for similar search; normalized lower-case overlap. |
 | `occurred_at` | no | RFC3339; omitted rows use `created_at` as effective time. |
 | `entities` | no | String list; normalized (trim, lower-case, dedupe, max length/count). |
@@ -89,7 +92,13 @@ Default: **off**. See `control-plane/configs/config.example.yaml`. The **`make p
 
 **`POST /v1/episodes/distill`** (requires **`distillation.enabled`**) turns advisory episode text into **`candidate_events`** rows with structured `proposal_json` — **not** into `memories`. It uses **deterministic keyword** rules (failure, decision, pattern, constraint signals) and sets **`source_advisory_episode_id`** in the proposal when distilling by **`episode_id`**.
 
-**Automatic distillation (optional, default off):** when **`distillation.enabled`** is **true** and **`distillation.auto_from_advisory_episodes`** is **true**, the server runs the **same** extraction and consolidation logic **after a successful** **`POST /v1/advisory-episodes`** — no second code path. Pending proposals record **`pluribus_distill_origin`** **`auto`** (explicit HTTP distill uses **`manual`**; merges can show **`mixed`**). Candidates remain **non-authoritative**; review and materialization rules are unchanged. If background distillation fails, the episode response is still **201**; the failure is **logged** only and does not corrupt candidates.
+**Automatic distillation (optional, default off):** when **`distillation.enabled`** is **true** and **`distillation.auto_from_advisory_episodes`** is **true**, the server runs the **same** extraction and consolidation logic **after a successful** **`POST /v1/advisory-episodes`** — no second code path. Pending proposals record **`pluribus_distill_origin`** (distill mode) **`auto`** (concept: **auto_from_advisory**), **`auto:mcp`** when the ingested episode’s ingest channel **`source`** is **`mcp`** (concept: **auto_from_advisory_mcp**; explicit HTTP distill uses **`manual`** / **explicit**; merges can show **`mixed`**). Distilled tags include **`origin:mcp`** (documentation alias **ingest:mcp**) for MCP-originated episodes. Candidates remain **non-authoritative**; review and materialization rules are unchanged. If background distillation fails, the episode response is still **201**; the failure is **logged** only and does not corrupt candidates.
+
+### MCP as producer (not shortcut)
+
+Agents using **`POST /v1/mcp`** can call tool **`mcp_episode_ingest`** to append **structured advisory episodes** with **`source: mcp`**. The MCP layer applies **conservative, deterministic** validation (minimum summary length, required learning-signal keywords unless disabled in **`mcp.memory_formation`**) so the path stays **signal, not chat logs**. That is still **`POST /v1/advisory-episodes`** on the wire — **no** direct write to **`memories`**, **no** bypass of distill → candidate → review → materialize. See [mcp-usage.md](mcp-usage.md) and [curation-loop.md](curation-loop.md).
+
+**Dedup / throttle (MCP):** For **`source: mcp`**, the server can **reuse** a recent row with the same **`summary_text`** and **matching** `mcp:session:<correlation_id>` (or both empty) within **`mcp.memory_formation.dedup_window_seconds`** (default **120**). The **201** response includes **`deduplicated: true`** and **does not** run auto-distill again. Disable with **`dedup_enabled: false`**. Automated proof: [evaluation.md](evaluation.md), [evidence/episodic-proof.md](../evidence/episodic-proof.md).
 
 ### Consolidation (pending dedup)
 

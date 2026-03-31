@@ -1,6 +1,6 @@
 # Pluribus — HTTP API and MCP surface index (canonical)
 
-**Purpose:** One map from **implemented routes** (`control-plane/internal/apiserver/router.go`) to **Go request types**, **default MCP tools** (`control-plane/internal/mcp/tools.go`), and **capability class**. This is the **authoritative route list** for the shipped binary.
+**Purpose:** One map from **implemented routes** (`control-plane/internal/apiserver/router.go`) to **Go request types**, **MCP tools** (`control-plane/internal/mcp/tools.go`), and **capability class**. This is the **authoritative route list** for the shipped binary. **Tool names** are defined in **`tools.go`**; the **MCP tool** column below may lag — when in doubt, run **`tools/list`** or read **`tools.go`**.
 
 **Not duplicated here:** field-by-field JSON semantics for the **RC1 subset** — see [api-contract.md](api-contract.md) (**subset** contract: health, ready, minimal memory, compile, enforcement, run-multi). For any route, the **source of truth for JSON keys** is the `json` struct tags in the referenced `internal/*/types.go` file (handlers use `DisallowUnknownFields` where noted in handler code).
 
@@ -38,6 +38,8 @@
 | `POST` | `/v1/memories` | `internal/memory/types.go` — `MemoriesCreateRequest` | — | core |
 | `POST` | `/v1/memories/search` | `MemoriesSearchRequest` | — | core |
 | `POST` | `/v1/memory` | `CreateRequest` | `memory_create` | core |
+| `POST` | `/v1/memory/relationships` | `CreateRelationshipRequest` (`internal/memory/relationship_handlers.go`) — typed edge between two memories | `memory_relationships_create` | core |
+| `GET` | `/v1/memory/{id}/relationships` | — | `memory_relationships_get` | core |
 | `POST` | `/v1/memory/promote` | `PromoteRequest` | `memory_promote` | core |
 | `POST` | `/v1/memory/search` | `SearchRequest` | — | core |
 | `POST` | `/v1/memory/pattern-elevation/run` | (handler-specific body) | — | support |
@@ -52,8 +54,8 @@
 | Method | Path | Request type | MCP tool | Class |
 |--------|------|--------------|----------|--------|
 | `GET` | `/v1/recall/` | Query → `CompileRequest` fields (see `handlers_getbundle.go`) | `recall_get` | core |
-| `POST` | `/v1/recall/preflight` | `internal/recall/types.go` — `PreflightRequest` | — | core |
-| `POST` | `/v1/recall/compile` | `CompileRequest` | `recall_compile` | core |
+| `POST` | `/v1/recall/preflight` | `internal/recall/types.go` — `PreflightRequest` | `memory_preflight_check` | core |
+| `POST` | `/v1/recall/compile` | `CompileRequest` | `recall_context`, `memory_context_resolve`, `recall_compile` | core |
 | `POST` | `/v1/recall/compile-multi` | `CompileMultiRequest` | — | core |
 | `POST` | `/v1/recall/run-multi` | `RunMultiRequest` | `recall_run_multi` | core |
 
@@ -79,16 +81,20 @@
 
 ## Curation
 
+**Terminology:** `proposal_json` may include **`pluribus_distill_origin`** (**distill mode** — how the candidate was produced). This is distinct from advisory **`source`** (**ingest channel**). See [memory-doctrine.md](memory-doctrine.md) (Terminology).
+
 | Method | Path | Request type | MCP tool | Class |
 |--------|------|--------------|----------|--------|
 | `POST` | `/v1/curation/digest` | `internal/curation/types.go` — `DigestRequest` | `curation_digest` | core |
 | `POST` | `/v1/curation/evaluate` | `EvaluateRequest` (curation package) | — | support |
-| `GET` | `/v1/curation/pending` | **No query parameters** | — | core |
-| `GET` | `/v1/curation/candidates/{id}/review` | — (path id); `CandidateReviewResponse` in `internal/curation/types.go` | — | core |
-| `POST` | `/v1/curation/auto-promote` | optional `{}` body; `AutoPromoteResponse`; **403** if `promotion.auto_promote` is false | — | core |
-| `POST` | `/v1/curation/candidates/{id}/materialize` | — (path id) | `curation_materialize` | core |
+| `GET` | `/v1/curation/pending` | **No query parameters** | `curation_pending` | core |
+| `GET` | `/v1/curation/promotion-suggestions` | **No query parameters**; candidates with `review_recommended` or `high_confidence` readiness (promotion assist only) | `curation_promotion_suggestions` | core |
+| `GET` | `/v1/curation/strengthened` | query `min_support` (integer, default **2**); `distill_support_count` ≥ threshold | `curation_strengthened` | core |
+| `GET` | `/v1/curation/candidates/{id}/review` | — (path id); `CandidateReviewResponse` in `internal/curation/types.go` | `curation_review_candidate` | core |
+| `POST` | `/v1/curation/auto-promote` | optional `{}` body; `AutoPromoteResponse`; **403** if `promotion.auto_promote` is false | `curation_auto_promote` | core |
+| `POST` | `/v1/curation/candidates/{id}/materialize` | — (path id); response **`MaterializeOutcome`**: `memory`, `created`, `strengthened`, `consolidated_into_memory_id`, `consolidation_reason`, optional `contradicts_memory_id` | `curation_materialize`, `curation_promote_candidate` | core |
 | `POST` | `/v1/curation/candidates/{id}/promote` | optional body per handler | — | support |
-| `POST` | `/v1/curation/candidates/{id}/reject` | optional body per handler | — | support |
+| `POST` | `/v1/curation/candidates/{id}/reject` | optional body per handler | `curation_reject_candidate` | support |
 
 ---
 
@@ -97,8 +103,8 @@
 | Method | Path | MCP tool | Class |
 |--------|------|----------|--------|
 | `POST` | `/v1/contradictions` | — | support |
-| `POST` | `/v1/contradictions/detect` | — | support |
-| `GET` | `/v1/contradictions` | — | support |
+| `POST` | `/v1/contradictions/detect` | `memory_detect_contradictions` | support |
+| `GET` | `/v1/contradictions` | `memory_list_contradictions` | support |
 | `GET` | `/v1/contradictions/{id}` | — | support |
 | `PATCH` | `/v1/contradictions/{id}/resolution` | — | support |
 
@@ -110,10 +116,10 @@ Request/response types: `internal/contradiction` (see handlers).
 
 | Method | Path | Notes | MCP tool | Class |
 |--------|------|--------|----------|--------|
-| `GET` | `/v1/evidence` | `?memory_id=` (traceability + score) or `?kind=` list | — | support |
+| `GET` | `/v1/evidence` | `?memory_id=` (traceability + score) or `?kind=` list | `evidence_list` | support |
 | `POST` | `/v1/evidence` | create | — | support |
 | `GET` | `/v1/evidence/{id}` | metadata | — | support |
-| `POST` | `/v1/evidence/{id}/link` | link to memory | — | support |
+| `POST` | `/v1/evidence/{id}/link` | link to memory | — (use `evidence_attach` for create+link) | support |
 
 Types: `internal/evidence`.
 
@@ -130,19 +136,21 @@ Types: `internal/evidence`.
 
 ## Advisory episodes (similarity)
 
+**Terminology:** **`POST /v1/advisory-episodes`** body field **`source`** is the **ingest channel** (how the episode entered). **`POST /v1/episodes/distill`** produces candidates with **`pluribus_distill_origin`** (**distill mode**). See [memory-doctrine.md](memory-doctrine.md) (Terminology).
+
 | Method | Path | MCP tool | Class |
 |--------|------|----------|--------|
-| `POST` | `/v1/advisory-episodes` | — | support |
-| `POST` | `/v1/advisory-episodes/similar` | — | support |
-| `POST` | `/v1/episodes/distill` | — | support |
+| `POST` | `/v1/advisory-episodes` | `record_experience`, `mcp_episode_ingest` (MCP builds `source: mcp` + low-noise summary); conditional `memory_log_if_relevant` | support |
+| `POST` | `/v1/advisory-episodes/similar` | `episode_search_similar` | support |
+| `POST` | `/v1/episodes/distill` | `episode_distill_explicit` | support |
 
 Advisory only — not canonical recall authority per [episodic-similarity.md](episodic-similarity.md).
 
-**Create:** `summary` (required), optional `source` (default `manual`), `tags`, `occurred_at`, `entities`, `related_memory_id`. **201** response always includes **`tags`** and **`entities`** arrays (possibly empty). When **`distillation.enabled`** and **`distillation.auto_from_advisory_episodes`** are **true**, the server may append **pending** distilled candidates (same rules as **`POST /v1/episodes/distill`**) after the write; failures there do **not** change the **201** status (logged only). See [episodic-similarity.md](episodic-similarity.md).
+**Create:** `summary` (required), optional **`source`** (ingest channel; default `manual`; use **`mcp`** for MCP-originated episodes), `tags`, `occurred_at`, `entities`, `related_memory_id`, optional **`correlation_id`** (stored as tag `mcp:session:<id>` for traceability). **201** response always includes **`tags`** and **`entities`** arrays (possibly empty). When **`source` is `mcp`** and **`mcp.memory_formation` dedup** is enabled (default), a **repeat** ingest with the **same** summary and **same** correlation session within the **dedup window** returns the **existing** episode id and sets **`deduplicated": true`** (no second insert; **no** second auto-distill run). When **`distillation.enabled`** and **`distillation.auto_from_advisory_episodes`** are **true**, the server may append **pending** distilled candidates (same rules as **`POST /v1/episodes/distill`**) after the write **unless** the response was deduplicated; failures there do **not** change the **201** status (logged only). See [episodic-similarity.md](episodic-similarity.md).
 
 **Similar:** `query` (required), optional `tags`, `occurred_after` / `occurred_before` (inclusive on **effective** time), `entity` and/or **`entities`** (any overlap). If both time bounds are set, **`occurred_after` ≤ `occurred_before`** or **400**. **200** body: `{ "advisory_similar_cases": [ … ] }`.
 
-**Distill:** `episode_id` (loads `advisory_episodes`) **or** inline **`summary`** (optional `tags` / `entities`). **200** → `{ "candidates": [ … ] }` each with `candidate_id`, `kind`, `distill_support_count`, `merged`, `source_advisory_episode_ids`, traceability. Pending rows **dedupe** by kind + normalized statement; repeats **merge** (see [episodic-similarity.md](episodic-similarity.md)). **403** if `distillation.enabled` is false. Does **not** write `memories`.
+**Distill:** `episode_id` (loads `advisory_episodes`) **or** inline **`summary`** (optional `tags` / `entities`). **200** → `{ "candidates": [ … ] }` each with `candidate_id`, `kind`, `distill_support_count`, `merged`, `source_advisory_episode_ids`, traceability; candidates carry **`pluribus_distill_origin`** (**distill mode**). Pending rows **dedupe** by kind + normalized statement; repeats **merge** (see [episodic-similarity.md](episodic-similarity.md)). **403** if `distillation.enabled` is false. Does **not** write `memories`.
 
 ---
 

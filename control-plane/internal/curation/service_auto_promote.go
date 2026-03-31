@@ -43,12 +43,16 @@ func (s *Service) AutoPromoteBatch(ctx context.Context) (*AutoPromoteResponse, e
 			out = append(out, AutoPromoteResultRow{CandidateID: c.ID.String(), Status: "skipped", Detail: val.Reason})
 			continue
 		}
-		obj, err := s.materializeInternal(ctx, c.ID, true)
+		mat, err := s.materializeInternal(ctx, c.ID, true)
 		if err != nil {
 			out = append(out, AutoPromoteResultRow{CandidateID: c.ID.String(), Status: "error", Detail: err.Error()})
 			continue
 		}
-		out = append(out, AutoPromoteResultRow{CandidateID: c.ID.String(), MemoryID: obj.ID.String(), Status: "promoted", Detail: "ok"})
+		if mat == nil || mat.Memory == nil {
+			out = append(out, AutoPromoteResultRow{CandidateID: c.ID.String(), Status: "error", Detail: "materialize returned empty"})
+			continue
+		}
+		out = append(out, AutoPromoteResultRow{CandidateID: c.ID.String(), MemoryID: mat.Memory.ID.String(), Status: "promoted", Detail: "ok"})
 	}
 	return &AutoPromoteResponse{Results: out}, nil
 }

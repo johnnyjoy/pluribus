@@ -20,23 +20,24 @@ type EvidenceBundleKey struct {
 // Key format: recall:bundle:{hash} so the same request hits the same entry.
 // symbols and LSP focus fields are included so different symbol sets / files do not collide.
 // evidence includes bounded supporting-evidence mode so bundles with vs without receipts do not collide.
-func RecallBundleKey(tags []string, maxPerKind, maxTotal, maxTokens int, retrievalQuery, proposalText string, symbols []string, repoRoot, lspFocusPath string, lspFocusLine, lspFocusColumn int, evidence EvidenceBundleKey) string {
+func RecallBundleKey(tags []string, maxPerKind, maxTotal, maxTokens int, retrievalQuery, proposalText string, symbols []string, repoRoot, lspFocusPath string, lspFocusLine, lspFocusColumn int, correlationID string, evidence EvidenceBundleKey) string {
 	symCopy := append([]string(nil), symbols...)
 	sort.Strings(symCopy)
 	h := sha256.New()
 	enc := json.NewEncoder(h)
 	_ = enc.Encode(map[string]interface{}{
-		"tags":            tags,
-		"retrieval_query": retrievalQuery,
-		"proposal_text":   proposalText,
-		"max_per_kind":    maxPerKind,
-		"max_total":       maxTotal,
-		"max_tokens":      maxTokens,
-		"symbols":         symCopy,
-		"repo_root":       repoRoot,
-		"lsp_focus_path":  lspFocusPath,
-		"lsp_focus_line":  lspFocusLine,
+		"tags":             tags,
+		"retrieval_query":  retrievalQuery,
+		"proposal_text":    proposalText,
+		"max_per_kind":     maxPerKind,
+		"max_total":        maxTotal,
+		"max_tokens":       maxTokens,
+		"symbols":          symCopy,
+		"repo_root":        repoRoot,
+		"lsp_focus_path":   lspFocusPath,
+		"lsp_focus_line":   lspFocusLine,
 		"lsp_focus_column": lspFocusColumn,
+		"correlation_id":   correlationID,
 		"evidence_in_bundle": map[string]interface{}{
 			"enabled":           evidence.Enabled,
 			"max_per_memory":    evidence.MaxPerMemory,

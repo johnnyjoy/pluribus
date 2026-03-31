@@ -3,6 +3,7 @@ package curation
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"control-plane/internal/evidence"
@@ -16,11 +17,18 @@ import (
 // MemoryCreator creates behavior memory objects from curation signals.
 type MemoryCreator interface {
 	Create(ctx context.Context, req memory.CreateRequest) (*memory.MemoryObject, error)
+	FindCanonicalConsolidationMatch(ctx context.Context, cfg *memory.CanonicalConsolidationConfig, in *memory.ConsolidationProposalInput) (*memory.ConsolidationDecision, error)
+	ConsolidatePromotion(ctx context.Context, req memory.ConsolidatePromotionRequest) (*memory.MemoryObject, error)
 }
 
 // FailureStatementCounter counts durable failures for a statement key (optional; digest repeated-failure promotion).
 type FailureStatementCounter interface {
 	CountActiveFailuresWithStatementKey(ctx context.Context, statementKey string) (int, error)
+}
+
+// MemoryByIDGetter loads a canonical memory by id (review hints).
+type MemoryByIDGetter interface {
+	GetByID(ctx context.Context, id uuid.UUID) (*memory.MemoryObject, error)
 }
 
 // Service provides curation use cases.
@@ -29,6 +37,10 @@ type Service struct {
 	Config *SalienceConfig
 	// Memory is optional; when set, promotions create behavior kinds only.
 	Memory MemoryCreator
+	// MemoryLookup optional: GET review uses for supersedes target preview.
+	MemoryLookup MemoryByIDGetter
+	// Relationships optional: concise edges for review (bounded).
+	Relationships *memory.RelationshipRepo
 	// Digest (optional): structured POST /v1/curation/digest.
 	DigestLimits *DigestLimits
 	Evidence     *evidence.Service
@@ -67,6 +79,30 @@ func (s *Service) Evaluate(ctx context.Context, req EvaluateRequest) (*EvaluateR
 // ListPending returns pending candidates (global queue).
 func (s *Service) ListPending(ctx context.Context) ([]CandidateEvent, error) {
 	return s.Repo.ListPending(ctx)
+}
+
+// ListPromotionSuggestions returns pending candidates surfaced for promotion assist (high_confidence or review_recommended; never auto-promotes).
+func (s *Service) ListPromotionSuggestions(ctx context.Context) ([]CandidateEvent, error) {
+	all, err := s.ListPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []CandidateEvent
+	for _, c := range all {
+		switch c.PromotionReadiness {
+		case ReadinessHighConfidence, ReadinessReviewRecommended:
+			out = append(out, c)
+		}
+	}
+	return out, nil
+}
+
+// ListStrengthened returns pending candidates with distill_support_count >= minSupport (default 2).
+func (s *Service) ListStrengthened(ctx context.Context, minSupport int) ([]CandidateEvent, error) {
+	if s.Repo == nil {
+		return nil, errors.New("curation service not configured")
+	}
+	return s.Repo.ListPendingStrengthened(ctx, minSupport)
 }
 
 // MarkPromoted sets the candidate's promotion_status to "promoted".

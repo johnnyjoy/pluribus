@@ -5,8 +5,15 @@ server:
   bind: ":8123"
 
 # MCP: JSON-RPC over HTTP at POST /v1/mcp (default on). Set disabled: true to skip the MCP wrapper.
+# Optional: gates tool mcp_episode_ingest (low-noise advisory episodes; never canonical).
 # mcp:
 #   disabled: true
+#   memory_formation:
+#     episode_ingest_enabled: true
+#     min_summary_chars: 12
+#     require_signal_keyword: false
+#     dedup_enabled: true
+#     dedup_window_seconds: 120
 
 # Optional backend synthesis for run-multi (single-process; Ollama / OpenAI / Anthropic). Default off — prefer client-side LLM synthesis.
 # See docs/backend-synthesis.md and ../../docs/api-contract.md (run-multi 503 when disabled).
@@ -204,6 +211,15 @@ promotion:
   # min_support_count: 4
   # min_salience: 0.7
   # allowed_kinds: [failure, pattern]
+  # Deterministic canonical convergence on materialize (optional; default off). Strengthens existing memory instead of near-duplicate rows.
+  # canonical_consolidation:
+  #   enabled: true
+  #   near_duplicate_jaccard_min: 0.88
+  #   min_tag_overlap_fraction: 0
+  #   max_candidates_scan: 50
+  #   negation_guard: true
+  #   authority_delta_per_reinforcement: 1
+  #   max_support_count: 100
 
 curation:
   candidate_threshold: 0.5

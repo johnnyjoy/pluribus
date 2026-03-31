@@ -1,0 +1,45 @@
+{
+  "initialize": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2024-11-05",
+      "capabilities": {},
+      "clientInfo": {
+        "name": "example-client",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "tools_list": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/list",
+    "params": {}
+  },
+  "tools_call_memory_context_resolve": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "memory_context_resolve",
+      "arguments": {
+        "task": "Refactor auth middleware safely; respect prior outage lessons."
+      }
+    }
+  },
+  "tools_call_mcp_episode_ingest": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "tools/call",
+    "params": {
+      "name": "mcp_episode_ingest",
+      "arguments": {
+        "summary": "Fixed race in session refresh; added test; rolled back once due to timeout.",
+        "correlation_id": "sess-example",
+        "tags": ["auth", "incident"]
+      }
+    }
+  }
+}

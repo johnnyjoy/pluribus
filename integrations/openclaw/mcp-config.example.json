@@ -1,0 +1,11 @@
+{
+  "pluribus_http_mcp_url": "http://127.0.0.1:8123/v1/mcp",
+  "pluribus_http_headers": {
+    "X-API-Key": "${PLURIBUS_API_KEY}"
+  },
+  "pluribus_stdio_command": "/absolute/path/to/control-plane/pluribus-mcp",
+  "pluribus_stdio_env": {
+    "CONTROL_PLANE_URL": "http://127.0.0.1:8123",
+    "CONTROL_PLANE_API_KEY": "${PLURIBUS_API_KEY}"
+  }
+}

@@ -48,6 +48,8 @@ type LifecycleConfig struct {
 // Service provides memory object use cases.
 type Service struct {
 	Repo      *Repo
+	// Relationships optional: typed memory edges (supersedes on create, explicit API).
+	Relationships *RelationshipRepo
 	Cache     cache.Store
 	CacheTTL  time.Duration
 	Lifecycle *LifecycleConfig // optional; nil = no authority adjustment
@@ -312,12 +314,26 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*MemoryObject,
 				_ = s.Cache.DeleteByPrefix(ctx, "memory:tags:")
 			}
 		}
+		if s.Relationships != nil {
+			if _, err := s.Relationships.CreateRelationship(ctx, obj.ID, *req.SupersedesID, RelSupersedes,
+				"non-destructive supersession", "memory_create_supersedes_id"); err != nil {
+				slog.Warn("[MEMORY REL] could not record supersedes edge", "error", err.Error())
+			}
+		}
 	}
 	if s.Cache != nil {
 		_ = s.Cache.DeleteByPrefix(ctx, "memory:tags:")
 		s.invalidateRecallBundleCache(ctx)
 	}
 	return obj, nil
+}
+
+// GetByID loads one memory by id (for relationship hints and callers that need a pointer).
+func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*MemoryObject, error) {
+	if s == nil || s.Repo == nil {
+		return nil, fmt.Errorf("memory service not configured")
+	}
+	return s.Repo.GetByID(ctx, id)
 }
 
 // Search returns memory objects matching the request, ordered by authority descending. Uses cache when configured.

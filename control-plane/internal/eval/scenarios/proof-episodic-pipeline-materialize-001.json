@@ -1,7 +1,7 @@
 {
   "id": "proof-episodic-pipeline-materialize-001",
   "suite": "episodic",
-  "description": "REST chain: ingest → similar (entity+time) → distill → review → materialize first governing constraint → recall shows canon; duplicate materialize 400; enforcement hits shipped normative heuristic (SQLite vs trusted prohibition).",
+  "description": "REST chain: ingest → similar (entity+time) → distill → review → materialize first governing constraint → recall shows canon; second materialize on same candidate 400 (already promoted); enforcement hits shipped normative heuristic (SQLite vs trusted prohibition).",
   "steps": [
     {
       "id": "ingest_episode",
@@ -63,7 +63,7 @@
       "path": "/v1/curation/candidates/{{cand}}/materialize",
       "body": {},
       "expect_status": 201,
-      "capture_fields": { "memory_id": "id" }
+      "capture_json_path": { "memory_id": "memory.id" }
     },
     {
       "id": "materialize_duplicate_fails",

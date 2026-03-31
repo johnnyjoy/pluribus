@@ -46,7 +46,8 @@ func (s *Service) ValidatePromotionCandidate(ctx context.Context, c *CandidateEv
 		if dupID != nil {
 			sup := strings.TrimSpace(p.SupersedesMemoryID)
 			if sup == "" {
-				return PromotionValidationResult{Allow: false, Reason: "active or pending memory already exists for this statement key"}
+				// Duplicate statement key: allowed — materialize reinforces existing canonical memory (or Create dedup).
+				return PromotionValidationResult{Allow: true, Reason: "ok"}
 			}
 			su, err := uuid.Parse(sup)
 			if err != nil {

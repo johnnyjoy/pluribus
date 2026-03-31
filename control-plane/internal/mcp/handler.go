@@ -14,7 +14,7 @@ import (
 )
 
 // Version is the MCP serverInfo.version (stdio and HTTP share this).
-const Version = "0.1.3"
+const Version = "0.1.8"
 
 const (
 	loopbackHost      = "mcp.loopback.invalid"
@@ -29,7 +29,7 @@ func WrapHandler(inner http.Handler, cfg *app.Config) http.Handler {
 	if cfg == nil || !cfg.MCPEnabled() {
 		return inner
 	}
-	h := NewHTTPHandler(inner)
+	h := NewHTTPHandler(inner, PolicyFromAppConfig(cfg))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && r.URL.Path == "/v1/mcp" {
 			h.ServeHTTP(w, r)
@@ -41,13 +41,13 @@ func WrapHandler(inner http.Handler, cfg *app.Config) http.Handler {
 
 // NewHTTPHandler serves MCP JSON-RPC over HTTP. Tool calls use HTTP client with a loopback
 // RoundTripper into inner (preserves API key middleware on nested requests).
-func NewHTTPHandler(inner http.Handler) http.Handler {
+func NewHTTPHandler(inner http.Handler, policy *MemoryFormationPolicy) http.Handler {
 	client := &http.Client{
 		Transport: &loopbackTransport{h: inner},
 		Timeout:   10 * time.Minute,
 	}
 	base := "http://" + loopbackHost
-	return &httpHandler{client: client, base: base}
+	return &httpHandler{client: client, base: base, policy: policy}
 }
 
 type loopbackTransport struct {
@@ -63,6 +63,7 @@ func (t *loopbackTransport) RoundTrip(req *http.Request) (*http.Response, error)
 type httpHandler struct {
 	client *http.Client
 	base   string
+	policy *MemoryFormationPolicy
 }
 
 type jsonRPCWire struct {
@@ -195,7 +196,7 @@ func (h *httpHandler) dispatch(method string, params json.RawMessage, apiKey str
 	case "tools/list":
 		return map[string]any{"tools": ToolDefinitions()}, nil
 	case "tools/call":
-		res, err := HandleToolsCall(h.client, h.base, apiKey, params)
+		res, err := HandleToolsCall(h.client, h.base, apiKey, params, h.policy)
 		if err != nil {
 			return nil, &jsonRPCErrorObj{Code: -32000, Message: err.Error()}
 		}

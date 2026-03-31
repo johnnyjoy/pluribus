@@ -13,6 +13,8 @@ That runs the **adversarial REST proof harness** (`internal/eval/scenarios/proof
 
 Episodic advisory behavior is covered by multiple **`proof-episodic-*.json`** scenarios and **`TestEpisodicProofSprintREST_Postgres`** (including optional **automatic** distillation on advisory ingest when configured) — see [episodic-similarity.md](episodic-similarity.md) and the inventory in [evidence/episodic-proof.md](../evidence/episodic-proof.md).
 
+**Canonical consolidation** (deterministic convergence on materialize when **`promotion.canonical_consolidation.enabled`** is true) is verified by **`internal/curation/consolidation_integration_test.go`** (integration-tagged; **`TEST_PG_DSN`**). The **`POST /v1/curation/candidates/{id}/materialize`** response exposes **`created`**, **`strengthened`**, and **`consolidated_into_memory_id`** so clients can see whether a new row was inserted or an existing canonical memory was reinforced; see [memory-doctrine.md](memory-doctrine.md) and [curation-loop.md](curation-loop.md).
+
 **Full episodic pipeline proof** (explicit distill and/or **auto-from-advisory** when enabled in sprint servers → review → materialize → recall + enforcement boundary, plus adversarial Go scenarios): **`make proof-episodic`** from repo root or **`cd control-plane && make proof-episodic`** — runs `TestProofHarnessREST_Postgres` **and** `TestEpisodicProofSprintREST_Postgres`. Inventory and limits: [evidence/episodic-proof.md](../evidence/episodic-proof.md).
 
 ### Clean database (enforced)
@@ -27,8 +29,12 @@ There is **no** versioned upgrade path in the product yet (pre-release); boot on
 
 ### Testing doctrine (do not regress)
 
+- **Terminology** for episodes vs candidates (ingest channel vs distill mode) is fixed in [memory-doctrine.md](memory-doctrine.md) (Terminology); wire field names **`source`** and **`pluribus_distill_origin`** are unchanged.
+
 - **REST** is the **canonical service boundary** — proof of core memory/recall/enforcement behavior happens **here first**.
-- **MCP** (`POST /v1/mcp`) is an **adapter** over the same product; adapter tests are **downstream** of a proven service.
+- **MCP** (`POST /v1/mcp`) is an **adapter** over the same product; **`internal/mcp`** unit tests cover tool → HTTP mapping. **Memory formation through MCP** (JSON-RPC on the real router, advisory ingest → auto-distill → curation tools, dedup, optional stdio smoke) is covered by **integration** tests in **`control-plane/cmd/controlplane/mcp_memory_formation_integration_test.go`** — run with Postgres, e.g.  
+  `cd control-plane && TEST_PG_DSN="$TEST_PG_DSN" go test -tags=integration -count=1 -p=1 ./cmd/controlplane/... -run 'TestIntegration_HTTP_MCP|TestIntegration_stdio'`.  
+  **`TestIntegration_HTTP_MCP_parityToolsRegistered`** asserts **`tools/list`** includes agent-parity tools (episodic similarity, explicit distill, curation review/reject/auto-promote, contradictions, evidence, memory relationships). **`TestIntegration_HTTP_MCP_memoryContextResolve`** and **`TestIntegration_HTTP_MCP_memoryLogIfRelevant`** cover the autonomous-memory path (deterministic recall wrapper + opportunistic ingest). **Dual-layer MCP scenarios (see [mcp-poc-contract.md](mcp-poc-contract.md) Dual-layer):** **A** — **`TestIntegration_HTTP_MCP_episodeAutoDistillAndCuration`** (ingest → auto-distill → pending, no explicit distill tool); **B** — **`TestIntegration_HTTP_MCP_memoryContextResolve`** (primary recall returns bundle + `mcp_context`); **C** — **`TestIntegration_HTTP_MCP_noAutoDistillNoCandidate`** vs parity tools (optional inspection without affecting default loop). Full memory behavior remains proven at REST + Postgres; MCP integration tests add **HTTP MCP** as a first-class proof surface.
 - **LSP** is **optional enrichment** for recall; it is **not** the memory contract and **not** the primary proof surface.
 
 ### Why not `go test -count=2` on the same DB?
@@ -68,7 +74,7 @@ make test-drive
 | `make test` | Core control-plane package tests (`go test ./...`) |
 | `make eval` | Deterministic eval harness in `internal/eval` (not the adversarial REST proof suite) |
 | `make stress-eval` | Stress-oriented eval execution/log output |
-| `make regression` | **CI batch gate:** Docker Postgres + `go test -tags=integration -count=1 ./...` (includes YAML proof scenarios) |
+| `make regression` | **CI batch gate:** Docker Postgres + `go test -tags=integration -count=1 ./...` (includes YAML proof scenarios; memory relationship REST tests in `cmd/controlplane` when `TEST_PG_DSN` is set) |
 | `make test-drive` | Fast confidence path (`test` + `eval`) |
 | `cd control-plane && make proof-rest` | **Canonical memory-substrate proof** — REST-only `proof-*.json` + two-pass determinism |
 | `make proof-episodic` | **Episodic lane stress proof** — all `proof-*.json` (two-pass determinism) + `TestEpisodicProofSprintREST_Postgres` adversarial subtests (see [evidence/episodic-proof.md](../evidence/episodic-proof.md)) |

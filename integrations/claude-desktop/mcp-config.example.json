@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "pluribus": {
+      "command": "/absolute/path/to/pluribus/control-plane/pluribus-mcp",
+      "env": {
+        "CONTROL_PLANE_URL": "http://127.0.0.1:8123",
+        "CONTROL_PLANE_API_KEY": "${env:PLURIBUS_API_KEY}"
+      }
+    }
+  }
+}

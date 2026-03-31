@@ -43,6 +43,22 @@ type Config struct {
 type MCPConfig struct {
 	// Disabled skips the MCP wrapper (no MCP endpoint; POST /v1/mcp is not handled by MCP).
 	Disabled bool `yaml:"disabled"`
+	// MemoryFormation gates MCP tools that create advisory episodes / surface candidates (optional).
+	MemoryFormation *MCPMemoryFormationConfig `yaml:"memory_formation,omitempty"`
+}
+
+// MCPMemoryFormationConfig gates mcp_episode_ingest and related tools (low-noise; omit section for server defaults).
+type MCPMemoryFormationConfig struct {
+	// EpisodeIngestEnabled when false, mcp_episode_ingest returns a clear error. Omitted = true (default).
+	EpisodeIngestEnabled *bool `yaml:"episode_ingest_enabled,omitempty"`
+	// MinSummaryChars minimum summary length for mcp_episode_ingest (0 = use server default 12).
+	MinSummaryChars int `yaml:"min_summary_chars"`
+	// RequireSignalKeyword when false, skip keyword gate. Omitted = true.
+	RequireSignalKeyword *bool `yaml:"require_signal_keyword,omitempty"`
+	// DedupEnabled when false, skip time-window dedup for source=mcp advisory episodes. Omitted = true.
+	DedupEnabled *bool `yaml:"dedup_enabled,omitempty"`
+	// DedupWindowSeconds minimum gap before a duplicate MCP episode (same summary + session) inserts again; 0 = server default 120.
+	DedupWindowSeconds int `yaml:"dedup_window_seconds"`
 }
 
 // MCPEnabled returns whether POST /v1/mcp should be served. Default true when mcp section omitted.
@@ -134,6 +150,8 @@ type PromotionConfig struct {
 	AutoMinSalience float64 `yaml:"min_salience"`
 	// AutoAllowedKinds memory kinds allowed for auto-promote (e.g. failure, pattern). Empty = use server default list.
 	AutoAllowedKinds []string `yaml:"allowed_kinds"`
+	// CanonicalConsolidation merges similar digest promotions into existing canonical rows (deterministic; default off).
+	CanonicalConsolidation *memory.CanonicalConsolidationConfig `yaml:"canonical_consolidation,omitempty"`
 }
 
 // IngestConfig controls the cognitive ingest gateway (MCL) and optional promotion bridge.

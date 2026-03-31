@@ -41,6 +41,8 @@ type CompileRequest struct {
 	// - "continuity" (default): balanced continuity/constraints/experience
 	// - "thread": bias toward current-thread continuity slice
 	Mode string `json:"mode,omitempty"`
+	// CorrelationID optional client session id; boosts memories tagged mcp:session:<id> in ranking (does not filter global pool).
+	CorrelationID string `json:"correlation_id,omitempty"`
 }
 
 // TriggerMetadata is included on RecallBundle when enable_triggered_recall is used (see triggered.go).
@@ -91,6 +93,8 @@ type RecallBundle struct {
 	TriggerMetadata *TriggerMetadata `json:"trigger_metadata,omitempty"`
 	// SemanticRetrieval is set when semantic retrieval is enabled and retrieval_query (or effective situation text) was non-empty.
 	SemanticRetrieval *SemanticRetrievalDebug `json:"semantic_retrieval,omitempty"`
+	// RecallPreamble is a single neutral line when any memory is present (deterministic; not marketing copy).
+	RecallPreamble string `json:"recall_preamble,omitempty"`
 }
 
 // EvidenceInBundleConfig controls bounded supporting evidence in recall bundles (YAML: recall.evidence_in_bundle).
@@ -210,6 +214,10 @@ type MemoryItem struct {
 	RIU           *RIUScoreBreakdown `json:"riu,omitempty"`
 	// SupportingEvidence is optional bounded proof for this memory (evidence-in-recall; memory remains authoritative).
 	SupportingEvidence []EvidenceRef `json:"supporting_evidence,omitempty"`
+	// WhyMatters is a short deterministic line: role of this memory + rank rationale (+ evidence when hydrated).
+	WhyMatters string `json:"why_matters,omitempty"`
+	// SessionLocal is true when this row matched correlation_id session tagging (mcp:session:*) for ranking.
+	SessionLocal bool `json:"session_local,omitempty"`
 }
 
 // JustificationMeta explains why a memory was recalled (RIE / Task 73).

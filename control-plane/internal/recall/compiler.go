@@ -78,6 +78,8 @@ type Compiler struct {
 	Semantic *SemanticRecallConfig
 	// LogRankTopN logs top N globally ranked memories after collapse (0 = off). Tuning/debug only (YAML: recall.log_rank_top_n).
 	LogRankTopN int
+	// Relationships optional: merges table-backed supersedes edges into pattern supersession map (light touch).
+	Relationships *memory.RelationshipRepo
 }
 
 // SemanticRecallConfig gates compile-time semantic candidate merge (defaults from recall.semantic_retrieval YAML).
@@ -144,6 +146,7 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 		ApplicablePatterns:   nil,
 		Constraints:          nil,
 	}
+	corrID := strings.TrimSpace(req.CorrelationID)
 
 	// Situation string for retrieval expansion + lexical similarity: caller-provided retrieval_query (+ optional proposal heuristic).
 	situationQuery := enrichSituationQueryWithProposal(strings.TrimSpace(req.RetrievalQuery), req.ProposalText)
@@ -329,13 +332,27 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 		}
 		candSet := BuildCandidateSet(objs)
 		superMap := BuildPatternSupersessionMap(objs)
+		if c.Relationships != nil && len(objs) > 0 {
+			ids := make([]uuid.UUID, 0, len(objs))
+			for _, o := range objs {
+				ids = append(ids, o.ID)
+			}
+			if m, err := c.Relationships.LoadSupersedesMap(ctx, ids); err == nil {
+				for oldID, newID := range m {
+					superMap[oldID] = newID
+				}
+			} else {
+				slog.Warn("[RECALL] relationship supersedes map failed", "error", err.Error())
+			}
+		}
 		scoreReq := ScoreRequest{
-			Tags:               req.Tags,
-			Symbols:            req.Symbols,
-			SituationQuery:     situationQuery,
-			SemanticSimilarity: semanticSim,
-			Supersession:       superMap,
-			CandidateSet:       candSet,
+			Tags:                 req.Tags,
+			Symbols:              req.Symbols,
+			SessionCorrelationID: corrID,
+			SituationQuery:       situationQuery,
+			SemanticSimilarity:   semanticSim,
+			Supersession:         superMap,
+			CandidateSet:         candSet,
 		}
 		weights := c.Ranking
 		if req.VariantModifier != nil && req.VariantModifier.Ranking != nil {
@@ -354,9 +371,9 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 			if c.LogRankTopN > 0 {
 				logRankTrace(scored, c.LogRankTopN)
 			}
-			bucket = c.bucketScored(scored, maxPerKind)
+			bucket = c.bucketScored(scored, maxPerKind, corrID)
 		} else {
-			bucket = c.bucketUnsorted(objs, maxPerKind)
+			bucket = c.bucketUnsorted(objs, maxPerKind, corrID)
 		}
 		trim := func(s []MemoryItem, n int) []MemoryItem {
 			if len(s) <= n {
@@ -435,13 +452,14 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 			}
 		}
 		b.SemanticRetrieval = semRetrievalDbg
-		fillGroupedViews(b, scored, objs, weights != nil, maxPerKind, req.Mode)
+		fillGroupedViews(b, scored, objs, weights != nil, maxPerKind, req.Mode, corrID)
 	}
 	populateAgentGrounding(b)
+	setRecallPreamble(b)
 	return b, nil
 }
 
-func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.MemoryObject, hasRanking bool, maxPerKind int, mode string) {
+func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.MemoryObject, hasRanking bool, maxPerKind int, mode string, corrID string) {
 	if maxPerKind <= 0 {
 		maxPerKind = 5
 	}
@@ -457,15 +475,15 @@ func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.Memor
 		contLim = maxPerKind * 3
 	}
 	if !hasRanking || len(scored) == 0 {
-		b.Continuity = continuityFromRaw(raw, contLim)
-		b.Constraints = constraintsFromRaw(raw, constraintLim)
-		b.Experience = experienceFromRaw(raw, expLim)
+		b.Continuity = continuityFromRaw(raw, contLim, corrID)
+		b.Constraints = constraintsFromRaw(raw, constraintLim, corrID)
+		b.Experience = experienceFromRaw(raw, expLim, corrID)
 		return
 	}
 	var cont, cons, exp []MemoryItem
 	for _, s := range scored {
 		o := s.Object
-		item := memoryItemFromScored(o, s)
+		item := memoryItemFromScored(o, s, corrID)
 		switch o.Kind {
 		case api.MemoryKindState, api.MemoryKindDecision:
 			if len(cont) < contLim {
@@ -486,7 +504,7 @@ func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.Memor
 	b.Experience = exp
 }
 
-func continuityFromRaw(objs []memory.MemoryObject, limit int) []MemoryItem {
+func continuityFromRaw(objs []memory.MemoryObject, limit int, corrID string) []MemoryItem {
 	var out []MemoryItem
 	for _, o := range objs {
 		if o.Kind != api.MemoryKindState && o.Kind != api.MemoryKindDecision {
@@ -495,12 +513,12 @@ func continuityFromRaw(objs []memory.MemoryObject, limit int) []MemoryItem {
 		if len(out) >= limit {
 			break
 		}
-		out = append(out, memoryItemFromObject(o))
+		out = append(out, memoryItemFromObject(o, corrID))
 	}
 	return out
 }
 
-func experienceFromRaw(objs []memory.MemoryObject, limit int) []MemoryItem {
+func experienceFromRaw(objs []memory.MemoryObject, limit int, corrID string) []MemoryItem {
 	var out []MemoryItem
 	for _, o := range objs {
 		if o.Kind != api.MemoryKindPattern {
@@ -509,12 +527,12 @@ func experienceFromRaw(objs []memory.MemoryObject, limit int) []MemoryItem {
 		if len(out) >= limit {
 			return out
 		}
-		out = append(out, memoryItemFromObject(o))
+		out = append(out, memoryItemFromObject(o, corrID))
 	}
 	return out
 }
 
-func constraintsFromRaw(objs []memory.MemoryObject, limit int) []MemoryItem {
+func constraintsFromRaw(objs []memory.MemoryObject, limit int, corrID string) []MemoryItem {
 	var out []MemoryItem
 	for _, o := range objs {
 		if o.Kind != api.MemoryKindConstraint && o.Kind != api.MemoryKindFailure {
@@ -523,7 +541,7 @@ func constraintsFromRaw(objs []memory.MemoryObject, limit int) []MemoryItem {
 		if len(out) >= limit {
 			return out
 		}
-		out = append(out, memoryItemFromObject(o))
+		out = append(out, memoryItemFromObject(o, corrID))
 	}
 	return out
 }
@@ -615,7 +633,7 @@ func situationKeywords(query string) []string {
 	return out
 }
 
-func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int) map[api.MemoryKind][]MemoryItem {
+func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int, corrID string) map[api.MemoryKind][]MemoryItem {
 	bucket := map[api.MemoryKind][]MemoryItem{
 		api.MemoryKindConstraint: nil,
 		api.MemoryKindDecision:   nil,
@@ -624,7 +642,7 @@ func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int) map[api.M
 	}
 	for _, s := range scored {
 		o := s.Object
-		item := memoryItemFromScored(o, s)
+		item := memoryItemFromScored(o, s, corrID)
 		switch o.Kind {
 		case api.MemoryKindConstraint:
 			bucket[api.MemoryKindConstraint] = append(bucket[api.MemoryKindConstraint], item)
@@ -639,7 +657,7 @@ func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int) map[api.M
 	return bucket
 }
 
-func (c *Compiler) bucketUnsorted(objs []memory.MemoryObject, maxPerKind int) map[api.MemoryKind][]MemoryItem {
+func (c *Compiler) bucketUnsorted(objs []memory.MemoryObject, maxPerKind int, corrID string) map[api.MemoryKind][]MemoryItem {
 	bucket := map[api.MemoryKind][]MemoryItem{
 		api.MemoryKindConstraint: nil,
 		api.MemoryKindDecision:   nil,
@@ -647,7 +665,7 @@ func (c *Compiler) bucketUnsorted(objs []memory.MemoryObject, maxPerKind int) ma
 		api.MemoryKindPattern:    nil,
 	}
 	for _, o := range objs {
-		item := memoryItemFromObject(o)
+		item := memoryItemFromObject(o, corrID)
 		switch o.Kind {
 		case api.MemoryKindConstraint:
 			bucket[api.MemoryKindConstraint] = append(bucket[api.MemoryKindConstraint], item)
@@ -681,7 +699,12 @@ func logRankTrace(scored []ScoredMemory, n int) {
 	}
 }
 
-func memoryItemFromScored(o memory.MemoryObject, s ScoredMemory) MemoryItem {
+func memoryItemFromScored(o memory.MemoryObject, s ScoredMemory, corrID string) MemoryItem {
+	sloc := sessionTagMatches(corrID, o.Tags)
+	reason := strings.TrimSpace(s.Reason)
+	if reason == "" {
+		reason = "ranking"
+	}
 	it := MemoryItem{
 		ID:            o.ID.String(),
 		Kind:          string(o.Kind),
@@ -689,6 +712,8 @@ func memoryItemFromScored(o memory.MemoryObject, s ScoredMemory) MemoryItem {
 		Authority:     o.Authority,
 		Justification: &JustificationMeta{Reason: s.Reason, Score: s.Score},
 		RIU:           s.RIU,
+		SessionLocal:  sloc,
+		WhyMatters:      BuildWhyMattersLine(string(o.Kind), reason, 0, sloc),
 	}
 	if o.OccurredAt != nil {
 		t := *o.OccurredAt
@@ -697,16 +722,37 @@ func memoryItemFromScored(o memory.MemoryObject, s ScoredMemory) MemoryItem {
 	return it
 }
 
-func memoryItemFromObject(o memory.MemoryObject) MemoryItem {
+func memoryItemFromObject(o memory.MemoryObject, corrID string) MemoryItem {
+	sloc := sessionTagMatches(corrID, o.Tags)
+	reason := "Kind-bucketed retrieval (ordering before ranking trim)"
 	it := MemoryItem{
 		ID:        o.ID.String(),
 		Kind:      string(o.Kind),
 		Statement: o.Statement,
 		Authority: o.Authority,
+		// Ungrouped bucket path still exposes why this row appears (Task 73 / agent transparency).
+		Justification: &JustificationMeta{
+			Reason: reason,
+			Score:  0.01,
+		},
+		SessionLocal: sloc,
+		WhyMatters:   BuildWhyMattersLine(string(o.Kind), reason, 0, sloc),
 	}
 	if o.OccurredAt != nil {
 		t := *o.OccurredAt
 		it.OccurredAt = &t
 	}
 	return it
+}
+
+func setRecallPreamble(b *RecallBundle) {
+	if b == nil {
+		return
+	}
+	n := len(b.GoverningConstraints) + len(b.Decisions) + len(b.KnownFailures) + len(b.ApplicablePatterns) +
+		len(b.Continuity) + len(b.Constraints) + len(b.Experience)
+	if n == 0 {
+		return
+	}
+	b.RecallPreamble = "Context informed by prior experience."
 }

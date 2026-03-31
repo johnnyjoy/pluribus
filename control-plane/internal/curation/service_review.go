@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
+	"control-plane/internal/memory"
 	"control-plane/internal/similarity"
 
 	"github.com/google/uuid"
@@ -54,8 +56,63 @@ func (s *Service) ReviewCandidate(ctx context.Context, id uuid.UUID) (*Candidate
 
 	out.SupportingEpisodes = loadSupportingSummaries(ctx, s.Episodes, p)
 	out.PromotionPreview = buildPromotionPreview(p, s.Promotion)
+	out.RelationshipHints = buildRelationshipHints(ctx, s, p)
+	out.ConsolidationPreview = buildConsolidationPreviewFromService(ctx, s, p)
 
 	return out, nil
+}
+
+func buildConsolidationPreviewFromService(ctx context.Context, s *Service, p *ProposalPayloadV1) *ConsolidationPreview {
+	if s == nil || s.Memory == nil || p == nil || !isBehaviorKind(p.Kind) {
+		return nil
+	}
+	ccfg := memory.NormalizeCanonicalConsolidation(&memory.CanonicalConsolidationConfig{Enabled: false})
+	if s.Promotion != nil && s.Promotion.CanonicalConsolidation != nil {
+		ccfg = memory.NormalizeCanonicalConsolidation(s.Promotion.CanonicalConsolidation)
+	}
+	if !ccfg.Enabled {
+		return &ConsolidationPreview{
+			Action:              "create_new",
+			ConsolidationReason: "canonical_consolidation_disabled",
+			ExpectedEffect:      "Materialize uses memory create (exact dedup still reinforces authority server-side).",
+		}
+	}
+	dec, err := s.Memory.FindCanonicalConsolidationMatch(ctx, ccfg, &memory.ConsolidationProposalInput{
+		Kind:      p.Kind,
+		Statement: p.Statement,
+		Tags:      p.Tags,
+	})
+	if err != nil || dec == nil {
+		return nil
+	}
+	return buildConsolidationPreview(dec)
+}
+
+func buildRelationshipHints(ctx context.Context, s *Service, p *ProposalPayloadV1) []string {
+	if p == nil {
+		return nil
+	}
+	var hints []string
+	sid := strings.TrimSpace(p.SupersedesMemoryID)
+	if sid != "" && s.MemoryLookup != nil {
+		uid, err := uuid.Parse(sid)
+		if err == nil {
+			old, err := s.MemoryLookup.GetByID(ctx, uid)
+			if err == nil && old != nil {
+				hints = append(hints, fmt.Sprintf("Materialize will supersede prior memory %s (row remains in store; status superseded).", uid.String()))
+				if s.Relationships != nil {
+					outb, inb, rerr := s.Relationships.ListForMemory(ctx, uid)
+					if rerr == nil && len(outb)+len(inb) > 0 {
+						hints = append(hints, fmt.Sprintf("That prior memory already has %d typed relationship edge(s) in the lightweight graph.", len(outb)+len(inb)))
+					}
+				}
+			}
+		}
+	}
+	if len(hints) == 0 {
+		return nil
+	}
+	return hints
 }
 
 func loadSupportingSummaries(ctx context.Context, repo *similarity.Repo, p *ProposalPayloadV1) []SupportingEpisodeSummary {

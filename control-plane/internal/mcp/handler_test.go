@@ -25,7 +25,7 @@ func testInnerRouter(t *testing.T) http.Handler {
 }
 
 func TestHTTPHandler_initialize(t *testing.T) {
-	h := NewHTTPHandler(testInnerRouter(t))
+	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy())
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 
@@ -58,7 +58,7 @@ func TestHTTPHandler_initialize(t *testing.T) {
 }
 
 func TestHTTPHandler_toolsCall_health_loopback(t *testing.T) {
-	h := NewHTTPHandler(testInnerRouter(t))
+	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy())
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 
@@ -92,7 +92,7 @@ func TestHTTPHandler_toolsCall_health_loopback(t *testing.T) {
 }
 
 func TestHTTPHandler_promptsGet(t *testing.T) {
-	h := NewHTTPHandler(testInnerRouter(t))
+	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy())
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 	body := `{"jsonrpc":"2.0","id":3,"method":"prompts/get","params":{"name":"` + PromptMemoryGrounding + `"}}`
@@ -118,7 +118,7 @@ func TestHTTPHandler_promptsGet(t *testing.T) {
 }
 
 func TestHTTPHandler_resourcesRead(t *testing.T) {
-	h := NewHTTPHandler(testInnerRouter(t))
+	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy())
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 	body := `{"jsonrpc":"2.0","id":4,"method":"resources/read","params":{"uri":"` + URIDisciplineDoctrine + `"}}`

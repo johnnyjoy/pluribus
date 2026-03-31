@@ -65,7 +65,10 @@ func (h *Handlers) Create(w http.ResponseWriter, r *http.Request) {
 	if rec.RelatedMemoryID != nil {
 		out["related_memory_id"] = rec.RelatedMemoryID.String()
 	}
-	if h.AutoDistill != nil {
+	if rec.Deduplicated {
+		out["deduplicated"] = true
+	}
+	if h.AutoDistill != nil && !rec.Deduplicated {
 		if err := h.AutoDistill.DistillAfterAdvisoryIngest(r.Context(), rec.ID); err != nil {
 			slog.Warn("[DISTILL AUTO] advisory episode ingest distill failed", "episode_id", rec.ID.String(), "error", err.Error())
 		}

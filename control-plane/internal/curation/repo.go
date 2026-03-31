@@ -112,6 +112,42 @@ func (r *Repo) ListPending(ctx context.Context) ([]CandidateEvent, error) {
 	return out, rows.Err()
 }
 
+// ListPendingStrengthened returns pending candidates whose proposal_json.distill_support_count >= minSupport.
+func (r *Repo) ListPendingStrengthened(ctx context.Context, minSupport int) ([]CandidateEvent, error) {
+	if r == nil || r.DB == nil {
+		return nil, errors.New("curation: repo not configured")
+	}
+	if minSupport <= 0 {
+		minSupport = 2
+	}
+	rows, err := r.DB.QueryContext(ctx,
+		`SELECT id, raw_text, COALESCE(salience_score, 0), promotion_status, created_at, proposal_json
+		 FROM candidate_events
+		 WHERE promotion_status = 'pending'
+		   AND COALESCE((proposal_json->>'distill_support_count')::int, 0) >= $1
+		 ORDER BY created_at DESC`,
+		minSupport,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []CandidateEvent
+	for rows.Next() {
+		var c CandidateEvent
+		var pj []byte
+		if err := rows.Scan(&c.ID, &c.RawText, &c.SalienceScore, &c.PromotionStatus, &c.CreatedAt, &pj); err != nil {
+			return nil, err
+		}
+		if len(pj) > 0 {
+			c.ProposalJSON = pj
+		}
+		enrichPreview(&c)
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
 // UpdatePromotionStatus sets promotion_status for the candidate (e.g. "promoted", "rejected").
 func (r *Repo) UpdatePromotionStatus(ctx context.Context, id uuid.UUID, status string) error {
 	_, err := r.DB.ExecContext(ctx, `UPDATE candidate_events SET promotion_status = $1 WHERE id = $2`, status, id)

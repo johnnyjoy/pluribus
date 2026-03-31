@@ -16,6 +16,10 @@ type Config struct {
 	MaxResults      int
 	// MinResemblance is the minimum combined lexical (+ optional tag) score in [0,1] to include a row.
 	MinResemblance float64
+	// McpDedupEnabled when true, duplicate MCP source episodes with same summary + correlation session within McpDedupWindow return the existing row (no insert; no auto-distill replay).
+	McpDedupEnabled bool
+	// McpDedupWindow bounds duplicate detection for source=mcp (default 120s when zero and McpDedupEnabled).
+	McpDedupWindow time.Duration
 }
 
 // Service provides create + similar-case retrieval using self-contained lexical/metadata signals.
@@ -47,10 +51,29 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Record, error
 	if _, ok := ValidSources[src]; !ok {
 		return nil, errors.New("similarity: invalid source")
 	}
+	tags := append([]string(nil), req.Tags...)
+	corr := strings.TrimSpace(req.CorrelationID)
+	if corr != "" {
+		tags = append(tags, "mcp:session:"+corr)
+	}
+	if src == "mcp" && s.Config != nil && s.Config.McpDedupEnabled && s.Repo != nil {
+		win := s.Config.McpDedupWindow
+		if win <= 0 {
+			win = 120 * time.Second
+		}
+		dup, err := s.Repo.FindMcpDuplicateInWindow(ctx, req.Summary, corr, win)
+		if err != nil {
+			return nil, err
+		}
+		if dup != nil {
+			dup.Deduplicated = true
+			return dup, nil
+		}
+	}
 	rec := &Record{
 		SummaryText:     req.Summary,
 		Source:          src,
-		Tags:            req.Tags,
+		Tags:            tags,
 		RelatedMemoryID: req.RelatedMemoryID,
 		OccurredAt:      req.OccurredAt,
 		Entities:        normalizeEntityList(req.Entities),

@@ -18,6 +18,8 @@
 - [Why use it](#why-use-it)
 - [Quick start (Docker — recommended)](#quick-start-docker--recommended)
 - [Using Pluribus with AI agents](#using-pluribus-with-ai-agents)
+- [Ensuring your agent uses Pluribus](#ensuring-your-agent-uses-pluribus)
+- [Using Pluribus with AI editors and agent systems](#using-pluribus-with-ai-editors-and-agent-systems)
 - [MCP configuration by client](#mcp-configuration-by-client)
 - [Multi-agent shared memory](#multi-agent-shared-memory)
 - [Installation paths](#installation-paths)
@@ -83,6 +85,27 @@ Both should return `ok` when startup has finished.
 ## Using Pluribus with AI agents
 
 Point every client at the **same** API base URL (default **`http://127.0.0.1:8123`**). The process is **concurrent**; Postgres is the shared store. Protocol details: [docs/mcp-service-first.md](docs/mcp-service-first.md).
+
+### Using Pluribus with AI editors and agent systems
+
+**Pluribus is MCP-first** for agents: institutional memory and cognitive extension—not a generic side tool. **REST** remains the service, test, and admin boundary.
+
+| Platform | Guide | Rules / skills / examples |
+|----------|-------|---------------------------|
+| **Hub + matrix** | [docs/integrations/README.md](docs/integrations/README.md) | [docs/integrations/matrix.md](docs/integrations/matrix.md) |
+| **Cursor** | [docs/integrations/cursor.md](docs/integrations/cursor.md) | [integrations/cursor/](integrations/cursor/) |
+| **Claude Code** | [docs/integrations/claude-code.md](docs/integrations/claude-code.md) | [integrations/claude-code/](integrations/claude-code/) |
+| **Claude Desktop** | [docs/integrations/claude-desktop.md](docs/integrations/claude-desktop.md) | [integrations/claude-desktop/](integrations/claude-desktop/) |
+| **OpenClaw** | [docs/integrations/openclaw.md](docs/integrations/openclaw.md) | [integrations/openclaw/](integrations/openclaw/) |
+| **OpenCode** | [docs/integrations/opencode.md](docs/integrations/opencode.md) | [integrations/opencode/](integrations/opencode/) |
+| **Continue** | [docs/integrations/continue.md](docs/integrations/continue.md) | [integrations/continue/](integrations/continue/) |
+| **Zed** | [docs/integrations/zed.md](docs/integrations/zed.md) | [integrations/zed/](integrations/zed/) |
+| **VS Code** | [docs/integrations/vscode.md](docs/integrations/vscode.md) | [integrations/vscode/](integrations/vscode/) |
+| **Any MCP client** | [docs/integrations/generic-mcp.md](docs/integrations/generic-mcp.md) | [integrations/generic-mcp/](integrations/generic-mcp/) |
+
+**Why integrate early:** recall and episodic ingest work best when they are **default habits**—see [docs/integrations/README.md](docs/integrations/README.md) and [docs/memory-doctrine.md](docs/memory-doctrine.md).
+
+Copy-paste artifacts (`mcp-config.example.json`, `rules.md`, `skills.md`) live under **`integrations/<platform>/`**; they are templates—**do not commit secrets**.
 
 **Optional auth:** if the server has **`PLURIBUS_API_KEY`** set, send **`X-API-Key`** on HTTP MCP and in **`headers`** below; if unset, omit them. [docs/authentication.md](docs/authentication.md).
 
@@ -166,6 +189,10 @@ Add **`CONTROL_PLANE_API_KEY`** to **`env`** when the server uses **`PLURIBUS_AP
 
 OpenClaw reads MCP settings from its own config (commonly under **`~/.openclaw/`** — exact filename and schema depend on your OpenClaw version). Use the **stdio** pattern: **`command`** = path to **`pluribus-mcp`**, **`env.CONTROL_PLANE_URL`** = `http://127.0.0.1:8123` (or your host). If your build documents **remote / SSE / URL** MCP servers, configure the URL to **`http://<host>:8123/v1/mcp`** and **`X-API-Key`** when auth is enabled—match the [HTTP verification](docs/mcp-migration-stdio-to-http.md) `curl` there.
 
+#### OpenCode
+
+Add a **`mcp.pluribus`** entry in **`opencode.json`** at the **repository root** or in **`~/.config/opencode/opencode.json`**: **`type": "remote"`**, **`url": "http://127.0.0.1:8123/v1/mcp"`**, **`oauth": false`**. When **`PLURIBUS_API_KEY`** is set on the server, add **`headers`** with **`X-API-Key`** (e.g. **`{env:PLURIBUS_API_KEY}`**). Example: [integrations/opencode/mcp-config.example.json](integrations/opencode/mcp-config.example.json). Full guide: [docs/integrations/opencode.md](docs/integrations/opencode.md). [OpenCode MCP servers](https://dev.opencode.ai/docs/mcp-servers).
+
 #### VS Code, Zed, Windsurf, Claude Code (CLI)
 
 Follow that editor’s MCP panel: **HTTP** → base URL **`http://127.0.0.1:8123`**, MCP path **`/v1/mcp`**; **stdio** → **`pluribus-mcp`** + **`CONTROL_PLANE_URL`**. Claude Code often supports a repository-level MCP file similar to Cursor; use the same **HTTP** or **stdio** blocks as above.
@@ -173,6 +200,12 @@ Follow that editor’s MCP panel: **HTTP** → base URL **`http://127.0.0.1:8123
 #### Workflow and deeper docs
 
 Recommended tool order (ground → act → enforce → learn): [docs/mcp-usage.md](docs/mcp-usage.md#recall-driven-workflow-recommended-order). Full client matrix and edge cases: [docs/mcp-usage.md](docs/mcp-usage.md).
+
+---
+
+## Ensuring your agent uses Pluribus
+
+**MCP is only useful if tools are called.** Default loop in **`tools/list`**: **`recall_context`** before substantial work, **`record_experience`** after (stable aliases **`memory_context_resolve`** / **`mcp_episode_ingest`** still work). Wire the client, add **rules**, and use **REST** when MCP is not in the loop. Operational guide: **[docs/usage/ensuring-agent-usage.md](docs/usage/ensuring-agent-usage.md)**. Copy-paste blocks: [docs/usage/snippets/](docs/usage/snippets/).
 
 ---
 
@@ -235,6 +268,8 @@ Full first-run narrative: [docs/pluribus-quickstart.md](docs/pluribus-quickstart
 | **Curation loop** | [docs/curation-loop.md](docs/curation-loop.md) |
 | **Operations** | [docs/pluribus-operational-guide.md](docs/pluribus-operational-guide.md) |
 | **Full index** | [docs/README.md](docs/README.md) |
+| **AI editor / agent integrations** | [docs/integrations/README.md](docs/integrations/README.md) |
+| **Agent actually uses memory** | [docs/usage/ensuring-agent-usage.md](docs/usage/ensuring-agent-usage.md) |
 
 ---
 
@@ -243,6 +278,7 @@ Full first-run narrative: [docs/pluribus-quickstart.md](docs/pluribus-quickstart
 | Purpose | Location |
 |---------|----------|
 | Control-plane API (Go module) | `control-plane/` |
+| Integration pack (rules, skills, MCP examples) | `integrations/` (+ [docs/integrations/](docs/integrations/)) |
 | Default Compose stack | [docker-compose.yml](docker-compose.yml) |
 | Governing law (this repo) | `constitution.md` |
 | Current focus | `active.md` |

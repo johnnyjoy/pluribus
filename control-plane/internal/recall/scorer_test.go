@@ -130,6 +130,24 @@ func TestScore_tagMatch(t *testing.T) {
 	}
 }
 
+func TestScore_sessionCorrelationBoost(t *testing.T) {
+	w := DefaultRankingWeights()
+	req := ScoreRequest{SessionCorrelationID: "sess-a"}
+	base := memory.MemoryObject{
+		ID: uuid.New(), Kind: api.MemoryKindDecision, Authority: 5,
+		UpdatedAt: time.Now(), Tags: []string{"other"},
+	}
+	sessionTagged := memory.MemoryObject{
+		ID: uuid.New(), Kind: api.MemoryKindDecision, Authority: 5,
+		UpdatedAt: time.Now(), Tags: []string{"mcp:session:sess-a"},
+	}
+	sBase := Score(base, req, w, 10)
+	sSess := Score(sessionTagged, req, w, 10)
+	if sSess <= sBase {
+		t.Fatalf("session-tagged memory should rank higher: base=%v sess=%v", sBase, sSess)
+	}
+}
+
 func TestScore_failureOverlap(t *testing.T) {
 	w := DefaultRankingWeights()
 	req := ScoreRequest{Tags: []string{"auth"}}

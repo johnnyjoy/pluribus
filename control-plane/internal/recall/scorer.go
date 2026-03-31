@@ -233,6 +233,8 @@ func semanticScoreTerm(weights RankingWeights, authNorm, sim float64) float64 {
 type ScoreRequest struct {
 	Tags     []string
 	Symbols  []string // symbol names for overlap boost with memory payload symbols
+	// SessionCorrelationID when set boosts rows tagged mcp:session:<id> (session continuity; does not exclude other memories).
+	SessionCorrelationID string
 	// SituationQuery is the derived "what is this about?" string used for lexical overlap scoring.
 	// Empty => lexical similarity term is 0.
 	SituationQuery string
@@ -318,6 +320,17 @@ func scoreBase(obj memory.MemoryObject, req ScoreRequest, weights RankingWeights
 	score += weights.Recency * recency
 	tagMatch := tagMatchScore(obj.Tags, req.Tags)
 	score += weights.TagMatch * tagMatch
+	if req.SessionCorrelationID != "" {
+		want := "mcp:session:" + strings.TrimSpace(req.SessionCorrelationID)
+		for _, t := range obj.Tags {
+			if t == want {
+				// Fixed boost so session-tagged memories surface without filtering the global pool off the search path.
+				const sessionCorrelationBoost = 0.28
+				score += sessionCorrelationBoost
+				break
+			}
+		}
+	}
 	if obj.Kind == api.MemoryKindFailure && tagMatch > 0 {
 		score += weights.FailureOverlap
 	}

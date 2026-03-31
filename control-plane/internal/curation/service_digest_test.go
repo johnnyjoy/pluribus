@@ -155,12 +155,12 @@ func TestMaterialize_success(t *testing.T) {
 	}
 	svc := &Service{Repo: repo, Memory: mem, Promotion: &PromotionDigestConfig{}}
 
-	obj, err := svc.Materialize(ctx, candidateID)
+	out, err := svc.Materialize(ctx, candidateID)
 	if err != nil {
 		t.Fatalf("Materialize: %v", err)
 	}
-	if obj == nil || gotStmt != "Use migrations before deploy" {
-		t.Fatalf("unexpected: obj=%v stmt=%q", obj, gotStmt)
+	if out == nil || out.Memory == nil || gotStmt != "Use migrations before deploy" {
+		t.Fatalf("unexpected: out=%v stmt=%q", out, gotStmt)
 	}
 	if len(gotTags) != 0 {
 		t.Fatalf("materialize inferred unexpected tags: %v", gotTags)

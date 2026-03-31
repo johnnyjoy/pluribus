@@ -195,6 +195,39 @@ func (r *Repo) UpdatePayload(ctx context.Context, id uuid.UUID, payload []byte) 
 	return err
 }
 
+// MergeTagsIntoMemory inserts tags not already present (case-insensitive dedupe vs existing).
+func (r *Repo) MergeTagsIntoMemory(ctx context.Context, memoryID uuid.UUID, newTags []string) error {
+	if r == nil || r.DB == nil {
+		return errors.New("memory repo: not configured")
+	}
+	existing, err := r.tagsForMemory(ctx, memoryID)
+	if err != nil {
+		return err
+	}
+	seen := make(map[string]struct{}, len(existing))
+	for _, t := range existing {
+		seen[strings.ToLower(strings.TrimSpace(t))] = struct{}{}
+	}
+	for _, t := range newTags {
+		t = strings.TrimSpace(t)
+		if t == "" {
+			continue
+		}
+		key := strings.ToLower(t)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		if _, err := r.DB.ExecContext(ctx,
+			`INSERT INTO memories_tags (memory_id, tag) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+			memoryID, t,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // MarkSuperseded sets status to superseded and deprecated_at to the given time (Task 75).
 func (r *Repo) MarkSuperseded(ctx context.Context, id uuid.UUID, deprecatedAt time.Time) error {
 	_, err := r.DB.ExecContext(ctx,

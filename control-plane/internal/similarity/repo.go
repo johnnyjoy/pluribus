@@ -46,6 +46,40 @@ func (r *Repo) Create(ctx context.Context, rec *Record) error {
 	return r.DB.QueryRowContext(ctx, q, rec.SummaryText, rec.Source, tags, rel, occ, ent).Scan(&rec.ID, &rec.CreatedAt)
 }
 
+// FindMcpDuplicateInWindow returns a recent advisory_episodes row with source=mcp, same summary_text,
+// matching correlation session (see mcpDedupCorrelationMatch), and created_at within the window. Nil if none.
+func (r *Repo) FindMcpDuplicateInWindow(ctx context.Context, summary string, correlationID string, window time.Duration) (*Record, error) {
+	if r == nil || r.DB == nil {
+		return nil, errors.New("similarity: repo not configured")
+	}
+	if window <= 0 {
+		return nil, nil
+	}
+	since := time.Now().Add(-window).UTC()
+	rows, err := r.DB.QueryContext(ctx, `
+		SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities
+		FROM advisory_episodes
+		WHERE source = 'mcp'
+		  AND summary_text = $1
+		  AND created_at > $2
+		ORDER BY created_at DESC
+		LIMIT 32`, summary, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		rec, err := scanOneAdvisoryRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		if mcpDedupCorrelationMatch(correlationID, rec.Tags) {
+			return rec, nil
+		}
+	}
+	return nil, rows.Err()
+}
+
 // ListCandidates returns rows for episodic similarity, ordered by effective time (newest first).
 // occurredAfter / occurredBefore filter on COALESCE(occurred_at, created_at); nil means no bound.
 func (r *Repo) ListCandidates(ctx context.Context, limit int, occurredAfter, occurredBefore *time.Time) ([]Record, error) {

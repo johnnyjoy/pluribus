@@ -1,6 +1,6 @@
 # Episodic REST proof — evidence and inventory
 
-Automated **REST-only** proof for the advisory episodic lane: ingest → similar (time/entity filters) → distill (**explicit** and/or **automatic** post-ingest when enabled in config — same candidate pipeline) → curation (pending, review, materialize, optional auto-promote) → recall / enforcement. Canonical **`memories`** remain the authority for recall and enforcement; advisory rows and pending candidates do not bind until materialized.
+Automated **REST-only** proof for the advisory episodic lane: ingest → similar (time/entity filters) → distill (**explicit** and/or **automatic** post-ingest when enabled in config — same candidate pipeline) → curation (pending, review, materialize, optional auto-promote) → recall / enforcement. Canonical **`memories`** remain the authority for recall and enforcement; advisory rows and pending candidates do not bind until materialized. **Vocabulary:** ingest channel (**`source`**) vs distill mode (**`pluribus_distill_origin`**) — [memory-doctrine.md](../docs/memory-doctrine.md) (Terminology).
 
 ## How to run
 
@@ -39,6 +39,7 @@ Full `make regression` runs `./...` including these tests against ephemeral Post
 |--------|------------|------|
 | JSON scenarios | `TestProofHarnessREST_Postgres` | All embedded `internal/eval/scenarios/proof-*.json` (HTTP-only), **two-pass** pass/fail signature match |
 | Go sprint | `TestEpisodicProofSprintREST_Postgres` | Stateful adversarial subtests (same router, shared DB, unique tags per case) |
+| **HTTP MCP integration** | `TestIntegration_HTTP_MCP_*` / `TestIntegration_stdio_pluribusMcp_smoke` in **`cmd/controlplane/mcp_memory_formation_integration_test.go`** | **JSON-RPC** on **`POST /v1/mcp`** (same router as production): `mcp_episode_ingest` → advisory + auto-distill; curation tools; **no** canonical memory without materialize; **dedup** + optional **stdio** `pluribus-mcp` subprocess smoke. Requires **`go test -tags=integration`** and **`TEST_PG_DSN`**. |
 
 Logging: episodic JSON scenarios and sprint lines use **`[EPISODIC PROOF]`**; other proof JSON uses **`[PROOF]`**.
 

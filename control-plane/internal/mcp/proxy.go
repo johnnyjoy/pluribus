@@ -7,7 +7,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/google/uuid"
 )
@@ -16,7 +18,9 @@ import (
 const EnforcementMaxProposalBytes = 32768
 
 // HandleToolsCall forwards an MCP tools/call to control-plane HTTP (same mapping as the stdio MCP adapter).
-func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMessage) (any, error) {
+// policy gates record_experience / mcp_episode_ingest (nil uses DefaultMemoryFormationPolicy).
+func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMessage, policy *MemoryFormationPolicy) (any, error) {
+	pol := NormalizeMemoryFormation(policy)
 	var p toolsCallParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, err
@@ -34,6 +38,22 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 	)
 
 	switch p.Name {
+	case "recall_context", "memory_context_resolve":
+		return execMemoryContextResolve(client, base, apiKey, p.Arguments), nil
+	case "memory_log_if_relevant", "auto_log_episode_if_relevant":
+		return execMemoryLogIfRelevant(client, base, apiKey, p.Arguments, pol), nil
+	case "record_experience", "mcp_episode_ingest":
+		payload, vErr := buildAdvisoryEpisodeMCPBody(p.Arguments, pol)
+		if vErr != nil {
+			return ToolResultErr(vErr.Error()), nil
+		}
+		b, err := json.Marshal(payload)
+		if err != nil {
+			return nil, err
+		}
+		method = http.MethodPost
+		fullURL = base + "/v1/advisory-episodes"
+		body = bytes.NewReader(b)
 	case "health":
 		method = http.MethodGet
 		fullURL = base + "/healthz"
@@ -78,13 +98,113 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 			return nil, err
 		}
 		body = bytes.NewReader(p.Arguments)
-	case "curation_materialize":
+	case "curation_pending":
+		method = http.MethodGet
+		fullURL = base + "/v1/curation/pending"
+	case "curation_promotion_suggestions":
+		method = http.MethodGet
+		fullURL = base + "/v1/curation/promotion-suggestions"
+	case "curation_strengthened":
+		method = http.MethodGet
+		min := parseOptionalMinSupport(p.Arguments)
+		fullURL = base + "/v1/curation/strengthened?min_support=" + url.QueryEscape(strconv.Itoa(min))
+	case "curation_materialize", "curation_promote_candidate":
 		method = http.MethodPost
 		candID, err := ParseCandidateID(p.Arguments)
 		if err != nil {
 			return nil, err
 		}
 		fullURL = base + "/v1/curation/candidates/" + url.PathEscape(candID) + "/materialize"
+	case "curation_review_candidate":
+		method = http.MethodGet
+		candID, err := ParseCandidateID(p.Arguments)
+		if err != nil {
+			return nil, err
+		}
+		fullURL = base + "/v1/curation/candidates/" + url.PathEscape(candID) + "/review"
+	case "curation_reject_candidate":
+		method = http.MethodPost
+		candID, err := ParseCandidateID(p.Arguments)
+		if err != nil {
+			return nil, err
+		}
+		fullURL = base + "/v1/curation/candidates/" + url.PathEscape(candID) + "/reject"
+	case "curation_auto_promote":
+		method = http.MethodPost
+		fullURL = base + "/v1/curation/auto-promote"
+		if len(bytes.TrimSpace(p.Arguments)) > 0 {
+			body = bytes.NewReader(p.Arguments)
+		} else {
+			body = bytes.NewReader([]byte("{}"))
+		}
+	case "episode_search_similar":
+		method = http.MethodPost
+		fullURL = base + "/v1/advisory-episodes/similar"
+		b, err := buildEpisodeSimilarBody(p.Arguments)
+		if err != nil {
+			return nil, err
+		}
+		body = bytes.NewReader(b)
+	case "episode_distill_explicit":
+		method = http.MethodPost
+		fullURL = base + "/v1/episodes/distill"
+		b, err := buildEpisodeDistillBody(p.Arguments)
+		if err != nil {
+			return nil, err
+		}
+		body = bytes.NewReader(b)
+	case "memory_recall_advanced":
+		method = http.MethodPost
+		fullURL = base + "/v1/recall/compile"
+		b, err := buildRecallAdvancedBody(p.Arguments)
+		if err != nil {
+			return nil, err
+		}
+		body = bytes.NewReader(b)
+	case "memory_preflight_check":
+		method = http.MethodPost
+		fullURL = base + "/v1/recall/preflight"
+		b, err := buildPreflightBody(p.Arguments)
+		if err != nil {
+			return nil, err
+		}
+		body = bytes.NewReader(b)
+	case "memory_detect_contradictions":
+		method = http.MethodPost
+		fullURL = base + "/v1/contradictions/detect"
+		b, err := buildContradictionDetectBody(p.Arguments)
+		if err != nil {
+			return nil, err
+		}
+		body = bytes.NewReader(b)
+	case "memory_list_contradictions":
+		method = http.MethodGet
+		fullURL, err = buildContradictionsListURL(base, p.Arguments)
+		if err != nil {
+			return nil, err
+		}
+	case "evidence_attach":
+		return evidenceAttach(client, base, apiKey, p.Arguments), nil
+	case "evidence_list":
+		method = http.MethodGet
+		fullURL, err = buildEvidenceListURL(base, p.Arguments)
+		if err != nil {
+			return nil, err
+		}
+	case "memory_relationships_get":
+		method = http.MethodGet
+		mid, err := parseRequiredUUIDArg(p.Arguments, "memory_id")
+		if err != nil {
+			return nil, err
+		}
+		fullURL = base + "/v1/memory/" + url.PathEscape(mid) + "/relationships"
+	case "memory_relationships_create":
+		method = http.MethodPost
+		fullURL = base + "/v1/memory/relationships"
+		if len(bytes.TrimSpace(p.Arguments)) == 0 {
+			return nil, fmt.Errorf("memory_relationships_create requires arguments (from_memory_id, to_memory_id, relationship_type)")
+		}
+		body = bytes.NewReader(p.Arguments)
 	case "enforcement_evaluate":
 		method = http.MethodPost
 		fullURL = base + "/v1/enforcement/evaluate"
@@ -116,6 +236,9 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 	if len(rawBody) > 4*1024*1024 {
 		rawBody = append(rawBody[:4*1024*1024], []byte("\n...truncated")...)
 	}
+	if resp.StatusCode < 400 && method == http.MethodPost && strings.HasSuffix(fullURL, "/v1/advisory-episodes") {
+		rawBody = augmentAdvisoryEpisodeSuccessJSON(rawBody)
+	}
 	text := string(rawBody)
 	if resp.StatusCode >= 400 {
 		statusErr = true
@@ -132,6 +255,119 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 type toolsCallParams struct {
 	Name      string          `json:"name"`
 	Arguments json.RawMessage `json:"arguments"`
+}
+
+func parseOptionalMinSupport(arguments json.RawMessage) int {
+	if len(bytes.TrimSpace(arguments)) == 0 {
+		return 2
+	}
+	var m map[string]any
+	if err := json.Unmarshal(arguments, &m); err != nil {
+		return 2
+	}
+	switch v := m["min_support"].(type) {
+	case float64:
+		if v >= 1 {
+			return int(v)
+		}
+	case int:
+		if v >= 1 {
+			return v
+		}
+	}
+	return 2
+}
+
+// augmentAdvisoryEpisodeSuccessJSON adds a single affordance field on successful advisory creates (non-breaking for JSON clients).
+func augmentAdvisoryEpisodeSuccessJSON(raw []byte) []byte {
+	var m map[string]any
+	if json.Unmarshal(raw, &m) != nil {
+		return raw
+	}
+	m["mcp_affordance"] = "Advisory episode stored—not canonical until reviewed and promoted; optional auto-distill may add pending candidates."
+	b, err := json.Marshal(m)
+	if err != nil {
+		return raw
+	}
+	return b
+}
+
+func buildAdvisoryEpisodeMCPBody(arguments json.RawMessage, pol *MemoryFormationPolicy) (map[string]any, error) {
+	if len(bytes.TrimSpace(arguments)) == 0 {
+		return nil, fmt.Errorf("record_experience/mcp_episode_ingest requires arguments with summary")
+	}
+	var m map[string]any
+	if err := json.Unmarshal(arguments, &m); err != nil {
+		return nil, fmt.Errorf("record_experience/mcp_episode_ingest: %w", err)
+	}
+	summary, _ := m["summary"].(string)
+	if err := ValidateMcpEpisodeSummary(summary, pol); err != nil {
+		return nil, err
+	}
+	tags := parseStringSliceField(m, "tags")
+	if ek, ok := m["event_kind"].(string); ok && strings.TrimSpace(ek) != "" {
+		tags = append(tags, "mcp:event:"+sanitizeMcpEventKind(ek))
+	}
+	out := map[string]any{
+		"summary": strings.TrimSpace(summary),
+		"source":  "mcp",
+	}
+	if len(tags) > 0 {
+		out["tags"] = tags
+	}
+	if s, ok := m["correlation_id"].(string); ok && strings.TrimSpace(s) != "" {
+		out["correlation_id"] = strings.TrimSpace(s)
+	}
+	ents := parseStringSliceField(m, "entities")
+	if len(ents) > 0 {
+		out["entities"] = ents
+	}
+	return out, nil
+}
+
+func parseStringSliceField(m map[string]any, key string) []string {
+	v, ok := m[key]
+	if !ok || v == nil {
+		return nil
+	}
+	switch x := v.(type) {
+	case []any:
+		var out []string
+		for _, e := range x {
+			if s, ok := e.(string); ok && strings.TrimSpace(s) != "" {
+				out = append(out, strings.TrimSpace(s))
+			}
+		}
+		return out
+	case []string:
+		var out []string
+		for _, s := range x {
+			if strings.TrimSpace(s) != "" {
+				out = append(out, strings.TrimSpace(s))
+			}
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func sanitizeMcpEventKind(s string) string {
+	s = strings.TrimSpace(strings.ToLower(s))
+	var b strings.Builder
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-' {
+			b.WriteRune(r)
+		}
+	}
+	out := b.String()
+	if len(out) > 64 {
+		out = out[:64]
+	}
+	if out == "" {
+		return "unspecified"
+	}
+	return out
 }
 
 // ValidateDigestArguments ensures MCP calls match DigestRequest requirements before HTTP (clear errors; bounded intent).
