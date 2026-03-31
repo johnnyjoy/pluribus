@@ -37,4 +37,4 @@ If step 1 is skipped by the model, force **`use pluribus`**.
 
 ## Doctrine
 
-Tags + situation text only—no **scope** partitions. **`docs/anti-regression.md`**.
+Tags + situation-shaped retrieval only (`tags`, `retrieval_query`). Do **not** require **workspace**, **hive**, or **scope** partitions on the default Pluribus agent path—the same rules apply in any codebase.

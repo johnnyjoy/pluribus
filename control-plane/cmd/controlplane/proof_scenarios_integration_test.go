@@ -315,14 +315,16 @@ func runProofCurationDigestMaterialize(t *testing.T, base string) {
 		b := readBody(t, mresp)
 		t.Fatalf("materialize status=%d body=%s", mresp.StatusCode, b)
 	}
-	var mobj struct {
-		Kind string `json:"kind"`
+	var matOut struct {
+		Memory struct {
+			Kind string `json:"kind"`
+		} `json:"memory"`
 	}
-	if err := json.NewDecoder(mresp.Body).Decode(&mobj); err != nil {
-		t.Fatalf("decode memory: %v", err)
+	if err := json.NewDecoder(mresp.Body).Decode(&matOut); err != nil {
+		t.Fatalf("decode materialize outcome: %v", err)
 	}
-	if mobj.Kind != string(api.MemoryKindDecision) {
-		t.Fatalf("memory kind=%q want decision", mobj.Kind)
+	if matOut.Memory.Kind != string(api.MemoryKindDecision) {
+		t.Fatalf("memory kind=%q want decision", matOut.Memory.Kind)
 	}
 }
 

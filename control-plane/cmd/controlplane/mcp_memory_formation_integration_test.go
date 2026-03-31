@@ -21,12 +21,27 @@ import (
 
 	"control-plane/internal/apiserver"
 	"control-plane/internal/app"
+	"control-plane/internal/migrate"
 
 	_ "github.com/lib/pq"
 )
 
 func bootMCPProof(t *testing.T, dsn string, autoDistill bool) (*httptest.Server, *sql.DB, func()) {
 	t.Helper()
+	// go test runs TestREST_* before TestIntegration_*; REST tests (e.g. controlled promotion) may
+	// materialize memories. MCP proof tests expect a clean memories table — reset when the regression
+	// harness allows it (same as internal/eval proof_clean).
+	if strings.TrimSpace(os.Getenv("TEST_PG_RESET_SCHEMA")) == "1" {
+		pgdb, err := sql.Open("postgres", dsn)
+		if err != nil {
+			t.Fatalf("open postgres for integration reset: %v", err)
+		}
+		if err := migrate.MaybeResetPublicSchemaForIntegrationTests(context.Background(), pgdb); err != nil {
+			_ = pgdb.Close()
+			t.Fatalf("reset schema: %v", err)
+		}
+		_ = pgdb.Close()
+	}
 	cfg, err := app.LoadConfig(integrationConfigPath(t))
 	if err != nil {
 		t.Fatalf("load config: %v", err)
@@ -195,9 +210,9 @@ func TestIntegration_HTTP_MCP_episodeAutoDistillAndCuration(t *testing.T) {
 	summary := fmt.Sprintf(`MCP proof %s deployment failure error required rollback decision after timeout incident during peak traffic`, tag)
 
 	txt, errCall := mcpToolText(t, base, "mcp_episode_ingest", map[string]any{
-		"summary":          summary,
-		"correlation_id":   "sess-proof-1",
-		"event_kind":       "failure",
+		"summary":        summary,
+		"correlation_id": "sess-proof-1",
+		"event_kind":     "failure",
 	})
 	if errCall {
 		t.Fatalf("mcp_episode_ingest isError: %s", txt)
@@ -342,8 +357,8 @@ func TestIntegration_stdio_pluribusMcp_smoke(t *testing.T) {
 		"params": map[string]any{
 			"name": "mcp_episode_ingest",
 			"arguments": map[string]any{
-				"summary":          "stdio smoke test failure error decision rollback incident during deploy learning constraint fix",
-				"correlation_id":   "stdio-smoke",
+				"summary":        "stdio smoke test failure error decision rollback incident during deploy learning constraint fix",
+				"correlation_id": "stdio-smoke",
 			},
 		},
 	})

@@ -5,7 +5,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -20,12 +22,33 @@ import (
 	"control-plane/internal/enforcement"
 	"control-plane/internal/httpx"
 	"control-plane/internal/memory"
+	"control-plane/internal/migrate"
 	"control-plane/pkg/api"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
+
+// TestMain resets the public schema when TEST_PG_RESET_SCHEMA=1 (same contract as internal/eval proof
+// harness). Regression compose sets this so cmd/controlplane integration tests start from an empty
+// database and do not inherit rows from prior runs or other packages sharing TEST_PG_DSN.
+func TestMain(m *testing.M) {
+	if dsn := strings.TrimSpace(os.Getenv("TEST_PG_DSN")); dsn != "" && os.Getenv("TEST_PG_RESET_SCHEMA") == "1" {
+		db, err := sql.Open("postgres", dsn)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "TestMain: postgres open: %v\n", err)
+			os.Exit(1)
+		}
+		if err := migrate.MaybeResetPublicSchemaForIntegrationTests(context.Background(), db); err != nil {
+			_ = db.Close()
+			fmt.Fprintf(os.Stderr, "TestMain: reset schema: %v\n", err)
+			os.Exit(1)
+		}
+		_ = db.Close()
+	}
+	os.Exit(m.Run())
+}
 
 // integrationConfigPath returns a path to the example config. go test runs with cwd = the
 // package directory (e.g. cmd/controlplane), so relative "configs/..." from LoadConfig's default
@@ -381,4 +404,3 @@ func TestIntegration_enforcementEvaluate_postgresVsSqlite(t *testing.T) {
 		}
 	})
 }
-

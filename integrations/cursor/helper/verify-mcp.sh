@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Verify Pluribus HTTP MCP responds (JSON-RPC initialize). Does not use Cursor.
+# Usage: PLURIBUS_URL=http://127.0.0.1:8123 ./verify-mcp.sh
+#        PLURIBUS_API_KEY=... ./verify-mcp.sh  (if server requires key)
+
+set -euo pipefail
+BASE="${PLURIBUS_URL:-http://127.0.0.1:8123}"
+URL="${BASE%/}/v1/mcp"
+BODY='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"verify-mcp","version":"0.0.1"}}}'
+
+hdr=(-H "Content-Type: application/json")
+if [[ -n "${PLURIBUS_API_KEY:-}" ]]; then
+  hdr+=(-H "X-API-Key: ${PLURIBUS_API_KEY}")
+fi
+
+echo "POST $URL"
+if ! out=$(curl -fsS "${hdr[@]}" -d "$BODY" "$URL"); then
+  echo "curl failed — is Pluribus up? ($URL)" >&2
+  exit 1
+fi
+
+if echo "$out" | grep -q '"error"'; then
+  echo "$out"
+  echo "MCP returned an error payload." >&2
+  exit 1
+fi
+
+echo "OK — MCP endpoint responded."
+exit 0
