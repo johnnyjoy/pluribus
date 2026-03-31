@@ -1,6 +1,4 @@
-# Pluribus — VS Code / Copilot-adjacent
+# Pluribus — rules pointer
 
-- Treat Pluribus MCP as the **default** institutional memory when enabled.  
-- **Recall** (`memory_context_resolve`) before large refactors or policy-sensitive edits.  
-- **Ingest** (`mcp_episode_ingest`) after meaningful incidents or decisions.  
-- REST endpoints are for CI and operators—not the primary coding workflow.
+- **Canonical behavior:** [`pluribus-instructions.md`](../pluribus-instructions.md)  
+- **GitHub Copilot:** copy **`github-copilot-instructions.template.md`** → **`.github/copilot-instructions.md`**, then merge **`snippets/context-prime.txt`** ([Custom instructions](https://code.visualstudio.com/docs/copilot/customization/custom-instructions)).

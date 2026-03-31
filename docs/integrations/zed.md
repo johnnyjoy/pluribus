@@ -10,9 +10,9 @@ Zed has been adding **MCP** support; exact UI and config paths depend on version
 
 **Example stub:** **[integrations/zed/mcp-config.example.json](../../integrations/zed/mcp-config.example.json)** — illustrative only; confirm against [Zed documentation](https://zed.dev/docs) for MCP.
 
-## Rules
+## Rules + skill
 
-Use **[integrations/zed/rules.md](../../integrations/zed/rules.md)** as assistant / project instructions if Zed exposes a field for them.
+**Canonical:** **[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)**. Paste **[integrations/zed/agent-context.template.md](../../integrations/zed/agent-context.template.md)** into Zed **Agent** instructions (no shared repo path across versions); add **`snippets/context-prime.txt`**. Use **[integrations/zed/skill.md](../../integrations/zed/skill.md)** for the step table. Pack: **[integrations/zed/README.md](../../integrations/zed/README.md)**.
 
 ## Limitations
 

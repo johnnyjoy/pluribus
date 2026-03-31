@@ -1,0 +1,36 @@
+---
+description: SkillKit skills integration - provides specialized capabilities and domain knowledge
+globs: "**/*"
+alwaysApply: true
+---
+# Skills System
+
+You have access to specialized skills that can help complete tasks. Use the skillkit CLI to load skill instructions when needed.
+
+## Available Skills
+
+- **pluribus**: Default agent loop when Pluribus MCP is connected—recall_context (pre-action), then plan and act, then record_experience (post-action). Apply to non-trivial coding, refactors, incidents, and multi-step tasks.
+- **ui-design-brain**: Generate production-grade UI using real component patterns and best practices from 60+ documented interface components. Use when the user asks to build web interfaces, pages, dashboards, forms, navigation, or any UI — ensures modern, minimal, SaaS-quality output grounded in design system conventions rather than generic AI patterns.
+
+## How to Use Skills
+
+When a task matches a skill's description, load it with:
+```bash
+skillkit read <skill-name>
+```
+
+The skill will provide detailed instructions for completing the task.
+
+<!-- SKILLS_DATA_START -->
+<skill>
+<name>pluribus</name>
+<description>Default agent loop when Pluribus MCP is connected—recall_context (pre-action), then plan and act, then record_experience (post-action). Apply to non-trivial coding, refactors, incidents, and multi-step tasks.</description>
+<location>global</location>
+</skill>
+
+<skill>
+<name>ui-design-brain</name>
+<description>Generate production-grade UI using real component patterns and best practices from 60+ documented interface components. Use when the user asks to build web interfaces, pages, dashboards, forms, navigation, or any UI — ensures modern, minimal, SaaS-quality output grounded in design system conventions rather than generic AI patterns.</description>
+<location>global</location>
+</skill>
+<!-- SKILLS_DATA_END -->

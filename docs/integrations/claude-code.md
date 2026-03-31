@@ -11,14 +11,10 @@ Claude Code supports **MCP servers** from the project or user configuration. Plu
 
 Official reference: [Claude Code MCP documentation](https://docs.anthropic.com/en/docs/claude-code/mcp) (verify current URL).
 
-## Rules / instructions
+## Rules / skill
 
-- Use project **`CLAUDE.md`** or Claude Code’s instructions field for **memory-first** behavior.
-- Copy distilled rules from **[integrations/claude-code/rules.md](../../integrations/claude-code/rules.md)**.
-
-## Skills
-
-Portable templates: **[integrations/claude-code/skills.md](../../integrations/claude-code/skills.md)**.
+- **Canonical:** **[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)**. Copy **[integrations/claude-code/CLAUDE.template.md](../../integrations/claude-code/CLAUDE.template.md)** to project-root **`CLAUDE.md`**, then append **`snippets/context-prime.txt`** ([Claude Code](https://docs.anthropic.com/en/docs/claude-code)).
+- **Agent Skill:** copy **[integrations/claude-code/skills/pluribus/](../../integrations/claude-code/skills/pluribus/)** into your project skills path, or paste **[integrations/claude-code/skill.md](../../integrations/claude-code/skill.md)** into **`CLAUDE.md`**. Pack: **[integrations/claude-code/README.md](../../integrations/claude-code/README.md)**.
 
 ## Limitations
 

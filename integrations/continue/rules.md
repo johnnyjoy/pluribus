@@ -1,6 +1,5 @@
-# Pluribus — Continue
+# Pluribus — rules pointer
 
-- Use Pluribus MCP tools as the **default memory layer** for this workspace.  
-- **`memory_context_resolve`** before large edits or architecture discussion.  
-- **`mcp_episode_ingest`** after significant outcomes.  
-- Align terminology with `docs/memory-doctrine.md` (**ingest channel**, **distill mode**).
+- **Canonical behavior:** [`pluribus-instructions.md`](../pluribus-instructions.md)  
+- **Continue (native):** copy **`rules/pluribus.md`** → **`.continue/rules/pluribus.md`** ([Continue rules](https://docs.continue.dev/customize/deep-dives/rules)).  
+- Append **`snippets/context-prime.txt`** via an extra rule file or your **`config.yaml`** `rules` list.

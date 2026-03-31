@@ -9,9 +9,9 @@ Visual Studio Code can use MCP through **extensions** or **workspace configurati
 
 **Example stub:** **[integrations/vscode/mcp-config.example.json](../../integrations/vscode/mcp-config.example.json)** — merge into whatever MCP config your VS Code setup expects (often a JSON file under `.vscode/` or user settings—**vendor-specific**).
 
-## Rules
+## Rules + skill
 
-Use **[integrations/vscode/rules.md](../../integrations/vscode/rules.md)** in **Copilot instructions**, **`.github/copilot-instructions.md`**, or workspace prompts where your stack allows.
+**Canonical:** **[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)**. Copy **[integrations/vscode/github-copilot-instructions.template.md](../../integrations/vscode/github-copilot-instructions.template.md)** to **`.github/copilot-instructions.md`** ([VS Code custom instructions](https://code.visualstudio.com/docs/copilot/customization/custom-instructions)); merge **`snippets/context-prime.txt`**. Use **[integrations/vscode/skill.md](../../integrations/vscode/skill.md)** for the step table. Pack: **[integrations/vscode/README.md](../../integrations/vscode/README.md)**.
 
 ## Limitations
 

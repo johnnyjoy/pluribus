@@ -1,0 +1,3 @@
+Pluribus (MCP connected):
+recall_context → plan → act → record_experience
+Do not open complex work without step 1; do not close meaningful work without step 4.

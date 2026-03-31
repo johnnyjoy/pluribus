@@ -16,9 +16,9 @@ Use **absolute path** to the binary in **`command`**. Set **`env.CONTROL_PLANE_U
 
 Copy-ready: **[integrations/claude-desktop/mcp-config.example.json](../../integrations/claude-desktop/mcp-config.example.json)** (same shape as [mcp-usage.md](../mcp-usage.md)).
 
-## Rules
+## Rules + skill
 
-Desktop does not use Cursor-style rule files. Apply **system prompt** or **project instructions** manually, or keep a short doc open—see **[integrations/claude-desktop/rules.md](../../integrations/claude-desktop/rules.md)** for pasteable text.
+**Canonical:** **[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)**. Paste **[integrations/claude-desktop/custom-instructions.template.md](../../integrations/claude-desktop/custom-instructions.template.md)** into Desktop **custom instructions**; add **`snippets/context-prime.txt`**. Optional **[integrations/claude-desktop/skill.md](../../integrations/claude-desktop/skill.md)**. Pack: **[integrations/claude-desktop/README.md](../../integrations/claude-desktop/README.md)**.
 
 ## Limitations
 

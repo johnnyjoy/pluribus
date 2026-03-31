@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pluribus-sdk"
+version = "0.1.0"
+description = "Minimal Pluribus SDK for agent memory workflows"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["requests>=2.31.0"]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]

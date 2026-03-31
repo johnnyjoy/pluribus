@@ -19,16 +19,10 @@ OpenCode names tools with an MCP prefix (e.g. **`pluribus_*`**). You can nudge t
 
 Use **`type": "local"`** with a **`command`** array pointing at your **`pluribus-mcp`** binary and **`environment`** for **`CONTROL_PLANE_URL`** (and **`CONTROL_PLANE_API_KEY`** when the server uses **`PLURIBUS_API_KEY`**). Build: `cd control-plane && go build -o pluribus-mcp ./cmd/pluribus-mcp`. Same behavior as other clients; see [mcp-usage.md](../mcp-usage.md).
 
-## Rules / instructions
+## Rules + core skill
 
-- **`instructions`** in **`opencode.json`** can reference globs (e.g. rules markdown)—see [OpenCode rules](https://dev.opencode.ai/docs/rules).
-- Project **`AGENTS.md`** (from **`/init`**) is a natural place to state **memory-first** habits.
-
-Copy distilled behavior from **[integrations/opencode/rules.md](../../integrations/opencode/rules.md)** into **`AGENTS.md`**, a tracked rules file, or **`instructions`**.
-
-## Skills
-
-OpenCode supports markdown under **`.opencode/skills/`** (and global **`~/.config/opencode/skills/`**). Use **[integrations/opencode/skills.md](../../integrations/opencode/skills.md)** as templates or paste into **`AGENTS.md`**.
+- **`instructions`** / **`AGENTS.md`** / **`.opencode/skills/`** — see [OpenCode rules](https://dev.opencode.ai/docs/rules).
+- **Canonical:** **[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)**. Follow **[integrations/opencode/AGENTS.template.md](../../integrations/opencode/AGENTS.template.md)** for **`AGENTS.md`** (or merge the same text into **`opencode.json`** **`instructions`**). Optionally copy **[integrations/opencode/skills/pluribus/](../../integrations/opencode/skills/pluribus/)** to **`.opencode/skills/pluribus/`** or paste **[integrations/opencode/skill.md](../../integrations/opencode/skill.md)** into **`AGENTS.md`**. Pack: **[integrations/opencode/README.md](../../integrations/opencode/README.md)**.
 
 ## Verification
 

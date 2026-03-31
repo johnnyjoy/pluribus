@@ -29,9 +29,9 @@ Layer-2 tools (curation, contradictions, etc.) are **optional**—see [mcp-poc-c
 
 Same as other MCP servers: `initialize`, `tools/list`, `tools/call`, optional `prompts/list` / `resources/list` on the **HTTP** adapter (stdio binary may omit some surfaces).
 
-## Copy-paste rules
+## Behavioral pack
 
-See **[integrations/generic-mcp/rules.md](../../integrations/generic-mcp/rules.md)** and **[integrations/generic-mcp/skills.md](../../integrations/generic-mcp/skills.md)**.
+**[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)** (behavior), **[integrations/generic-mcp/skill.md](../../integrations/generic-mcp/skill.md)**, **[integrations/generic-mcp/skills/pluribus/SKILL.md](../../integrations/generic-mcp/skills/pluribus/SKILL.md)** (Agent Skills format), **[integrations/generic-mcp/README.md](../../integrations/generic-mcp/README.md)**.
 
 ## Examples
 

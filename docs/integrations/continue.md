@@ -12,9 +12,9 @@ Continue typically uses a YAML or JSON config (path varies by version—**`~/.co
 
 **Example stub:** **[integrations/continue/mcp-config.example.json](../../integrations/continue/mcp-config.example.json)** — **merge** keys into Continue’s actual schema per [Continue MCP docs](https://docs.continue.dev/customize/deep-dives/mcp) (verify URL).
 
-## Rules
+## Rules + skill
 
-Paste or adapt **[integrations/continue/rules.md](../../integrations/continue/rules.md)** into Continue **rules** / **system message** fields where supported.
+**Canonical:** **[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)**. Copy **[integrations/continue/rules/pluribus.md](../../integrations/continue/rules/pluribus.md)** to **`.continue/rules/pluribus.md`** ([Continue rules](https://docs.continue.dev/customize/deep-dives/rules)); add **`snippets/context-prime.txt`** as another rule or YAML entry. Use **[integrations/continue/skill.md](../../integrations/continue/skill.md)** for the compact step table. Pack: **[integrations/continue/README.md](../../integrations/continue/README.md)**.
 
 ## Limitations
 

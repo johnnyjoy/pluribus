@@ -1,5 +1,4 @@
-# Pluribus — Zed
+# Pluribus — rules pointer
 
-- Prefer **`memory_context_resolve`** before substantial edits.  
-- Use **`mcp_episode_ingest`** to log outcomes worth remembering.  
-- Pluribus is **shared memory**—tags + retrieval query, not silos.
+- **Canonical behavior:** [`pluribus-instructions.md`](../pluribus-instructions.md)  
+- **Zed:** paste **`agent-context.template.md`** into the Agent instructions / profile UI (there is no single standard repo path).

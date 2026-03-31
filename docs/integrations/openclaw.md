@@ -15,8 +15,8 @@ OpenClaw is an **MCP-capable** agent/gateway ecosystem. Treat Pluribus as a **st
 ## First-class usage pattern
 
 1. Register Pluribus MCP (HTTP preferred if your gateway supports URL + headers).
-2. Encode **aggressive defaults**: recall first, ingest after meaningful work—see **[integrations/openclaw/rules.md](../../integrations/openclaw/rules.md)** and **[integrations/openclaw/skills.md](../../integrations/openclaw/skills.md)**.
-3. Use **`recall_context`** + **`record_experience`** as the primary pair (aliases **`memory_context_resolve`** / **`mcp_episode_ingest`**); layer-2 tools optional.
+2. Load **[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)** via **[integrations/openclaw/policy.template.md](../../integrations/openclaw/policy.template.md)** + **`snippets/context-prime.txt`** into the agent’s pinned policy; merge **[integrations/openclaw/skill.md](../../integrations/openclaw/skill.md)** if you want the step table (**recall_context** → work → **record_experience**).
+3. Enforce **`recall_context` → work → `record_experience`** every substantive run. (Aliases **`memory_context_resolve`** / **`mcp_episode_ingest`**.) Pull curation/contradictions only when debugging.
 
 ## Example stub
 
