@@ -6,6 +6,40 @@ import (
 	"testing"
 )
 
+func TestToolDefinitions_recallRecordLoopDescriptions(t *testing.T) {
+	tools := ToolDefinitions()
+	var recallDesc, recordDesc string
+	for _, tool := range tools {
+		name, _ := tool["name"].(string)
+		switch name {
+		case "recall_context":
+			recallDesc, _ = tool["description"].(string)
+		case "record_experience":
+			recordDesc, _ = tool["description"].(string)
+		}
+	}
+	for _, pair := range []struct {
+		desc, needle string
+	}{
+		{recallDesc, "BEFORE complex reasoning"},
+		{recallDesc, "reuse proven patterns"},
+		{recordDesc, "AFTER solving"},
+		{recordDesc, "future tasks benefit"},
+	} {
+		if !strings.Contains(pair.desc, pair.needle) {
+			t.Fatalf("description must contain %q, got %q", pair.needle, pair.desc)
+		}
+	}
+}
+
+func TestInitializeResult_memoryLoopInstructions(t *testing.T) {
+	res := InitializeResult("test", "0.0.0")
+	inst, _ := res["instructions"].(string)
+	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") {
+		t.Fatalf("instructions: %q", inst)
+	}
+}
+
 func TestToolDefinitions_noProjectCRUDTools(t *testing.T) {
 	tools := ToolDefinitions()
 	for _, tool := range tools {

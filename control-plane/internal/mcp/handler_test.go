@@ -55,6 +55,10 @@ func TestHTTPHandler_initialize(t *testing.T) {
 	if si["version"] != Version {
 		t.Fatalf("serverInfo.version = %v", si["version"])
 	}
+	inst, _ := out.Result["instructions"].(string)
+	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") {
+		t.Fatalf("initialize instructions should bias the memory loop, got %q", inst)
+	}
 }
 
 func TestHTTPHandler_toolsCall_health_loopback(t *testing.T) {

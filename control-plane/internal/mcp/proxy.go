@@ -284,7 +284,7 @@ func augmentAdvisoryEpisodeSuccessJSON(raw []byte) []byte {
 	if json.Unmarshal(raw, &m) != nil {
 		return raw
 	}
-	m["mcp_affordance"] = "Advisory experience stored. Server may create probationary memory immediately when learning signals qualify; otherwise reject bucket only. Optional auto-distill may add pending candidates."
+	m["mcp_affordance"] = "Outcome recorded. Prefer recall_context before complex work next time; use record_experience after meaningful outcomes. Advisory experience stored — server may create probationary memory when learning signals qualify; otherwise reject bucket only. Optional auto-distill may add pending candidates."
 	b, err := json.Marshal(m)
 	if err != nil {
 		return raw

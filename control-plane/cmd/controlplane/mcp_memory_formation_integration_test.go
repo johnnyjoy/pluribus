@@ -145,6 +145,10 @@ func TestIntegration_HTTP_MCP_initializeAndToolsList(t *testing.T) {
 	if res["serverInfo"] == nil {
 		t.Fatalf("initialize: %v", init)
 	}
+	inst, _ := res["instructions"].(string)
+	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") {
+		t.Fatalf("initialize should include memory-loop instructions, got %q", inst)
+	}
 
 	list := mcpCall(t, base, "tools/list", map[string]any{})
 	toolsRaw, _ := list["result"].(map[string]any)["tools"]
@@ -159,6 +163,42 @@ func TestIntegration_HTTP_MCP_initializeAndToolsList(t *testing.T) {
 		if !found[name] {
 			t.Fatalf("tools/list missing %q", name)
 		}
+	}
+}
+
+// TestIntegration_HTTP_MCP_memoryLoopSequence simulates a multi-step agent path: initialize → recall_context → record_experience.
+func TestIntegration_HTTP_MCP_memoryLoopSequence(t *testing.T) {
+	dsn := os.Getenv("TEST_PG_DSN")
+	if dsn == "" {
+		t.Skip("TEST_PG_DSN not set")
+	}
+	srv, _, cleanup := bootMCPProof(t, dsn, true)
+	defer cleanup()
+	base := srv.URL
+
+	init := mcpCall(t, base, "initialize", map[string]any{})
+	res, _ := init["result"].(map[string]any)
+	inst, _ := res["instructions"].(string)
+	if !strings.Contains(inst, "Pluribus is your memory system") {
+		t.Fatalf("expected initialize instructions, got %q", inst)
+	}
+
+	text, isErr := mcpToolText(t, base, "recall_context", map[string]any{
+		"task": "integration multi-step MCP memory loop sequence test",
+		"tags": []string{"integration", "mcp"},
+	})
+	if isErr || !strings.Contains(text, "mcp_context") {
+		t.Fatalf("recall_context: isErr=%v text_prefix=%.200q", isErr, text)
+	}
+
+	text2, isErr2 := mcpToolText(t, base, "record_experience", map[string]any{
+		"summary": "Integration: completed memory loop sequence test after recall; outcome recorded for harness proof.",
+	})
+	if isErr2 {
+		t.Fatalf("record_experience: %s", text2)
+	}
+	if !strings.Contains(text2, "mcp_affordance") && !strings.Contains(text2, `"id"`) {
+		t.Fatalf("record_experience: expected advisory JSON, got %.300q", text2)
 	}
 }
 
