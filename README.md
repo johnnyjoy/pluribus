@@ -331,7 +331,7 @@ go test ./...
 go vet ./...
 ```
 
-**Repo Makefile targets** (from root): `make test`, `make eval`, `make regression`—see [BUILD.md](BUILD.md).
+**Repo Makefile targets** (from root): `make test`, `make eval`, `make integration-go` (ephemeral Postgres + integration tests), `make regression`—see [BUILD.md](BUILD.md).
 
 **Substrate proof** (integration test against Postgres; needs **`TEST_PG_DSN`**; uses a **clean** database for deterministic scenarios): `cd control-plane && make proof-rest` — details [docs/evaluation.md](docs/evaluation.md), receipt [evidence/memory-proof.md](evidence/memory-proof.md). **Episodic pipeline stress proof** (advisory episodes, distillation, curation, materialize, recall/enforcement): `make proof-episodic` — [evidence/episodic-proof.md](evidence/episodic-proof.md). **Normal `docker compose` restarts** reuse your existing database; the clean-DB rule applies to **that** harness only.
 

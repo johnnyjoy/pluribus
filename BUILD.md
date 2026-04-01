@@ -59,7 +59,10 @@ make test-drive
 Optional host-managed integration targets:
 
 ```bash
-# requires TEST_PG_DSN
+# automated: starts ephemeral Postgres and runs full integration-tagged suite (generated DSN)
+make integration-go
+
+# manual: you supply TEST_PG_DSN
 make api-test
 make integration-test
 ```

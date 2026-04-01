@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Ephemeral Postgres (Docker) + host Go: runs //go:build integration tests with a generated TEST_PG_DSN.
+# You are not testing the DSN — this is disposable infrastructure (same idea as CI's compose stack).
+#
+# Usage (repo root): ./scripts/run-integration-tests.sh [extra go test args]
+# Requires: Docker, Go 1.22+
+#
+# Optional: INTEGRATION_PG_PORT=15432 to pin a host port; default is a random free port on 127.0.0.1.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+IMAGE="${INTEGRATION_PG_IMAGE:-pgvector/pgvector:pg18}"
+
+cleanup() {
+  if [[ -n "${CID:-}" ]]; then
+    docker rm -f "$CID" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT
+
+# Random localhost port unless INTEGRATION_PG_PORT is set (avoids clashes with dev Postgres / prior runs).
+if [[ -n "${INTEGRATION_PG_PORT:-}" ]]; then
+  PUBLISH=(-p "127.0.0.1:${INTEGRATION_PG_PORT}:5432")
+else
+  PUBLISH=(-p "127.0.0.1::5432")
+fi
+
+CID="$(docker run -d \
+  -e POSTGRES_USER=controlplane \
+  -e POSTGRES_PASSWORD=controlplane \
+  -e POSTGRES_DB=controlplane \
+  "${PUBLISH[@]}" \
+  "$IMAGE")"
+
+if [[ -n "${INTEGRATION_PG_PORT:-}" ]]; then
+  PORT="${INTEGRATION_PG_PORT}"
+else
+  PORT="$(docker port "$CID" 5432 | head -1 | awk -F: '{print $NF}')"
+fi
+
+for _ in $(seq 1 45); do
+  if docker exec "$CID" pg_isready -U controlplane -d controlplane >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+if ! docker exec "$CID" pg_isready -U controlplane -d controlplane >/dev/null 2>&1; then
+  echo "run-integration-tests.sh: Postgres did not become ready in time" >&2
+  exit 1
+fi
+
+export TEST_PG_DSN="postgres://controlplane:controlplane@127.0.0.1:${PORT}/controlplane?sslmode=disable"
+export TEST_PG_RESET_SCHEMA=1
+
+cd "$ROOT/control-plane"
+go test -tags=integration -count=1 -p 1 ./... "$@"

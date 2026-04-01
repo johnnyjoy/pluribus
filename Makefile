@@ -1,9 +1,9 @@
 # Recall repo — release/test-drive automation entrypoints.
 #
 # GitHub CI runs: (1) cd control-plane && go test ./...  (2) make regression.
-# Plain `go test ./...` does NOT compile //go:build integration tests — use `make regression`
-# or `make ci-local` before pushing to match CI.
-.PHONY: test regression ci-local eval stress-eval api-test integration-test test-drive image
+# Plain `go test ./...` does NOT compile //go:build integration tests — use `make regression`,
+# `make integration-go` (ephemeral Postgres + host Go, no Compose image build), or `make ci-local`.
+.PHONY: test regression integration-go ci-local eval stress-eval api-test integration-test test-drive image
 
 COMPOSE_REGRESSION := docker compose -p recall-regression -f docker-compose.regression.yml
 ARTIFACTS_DIR ?= artifacts
@@ -26,6 +26,11 @@ regression:
 	$(COMPOSE_REGRESSION) run --rm --build regression-runner \
 		&& $(COMPOSE_REGRESSION) down -v --remove-orphans \
 		|| { $(COMPOSE_REGRESSION) down -v --remove-orphans; exit 1; }
+
+# Host Go + ephemeral Postgres (Docker on localhost). Sets TEST_PG_DSN / TEST_PG_RESET_SCHEMA — you are
+# not testing the DSN. Avoids Compose image/buildx when you only need integration-tagged tests locally.
+integration-go:
+	@./scripts/run-integration-tests.sh
 
 # Core unit and package tests for the authoritative module.
 test:
