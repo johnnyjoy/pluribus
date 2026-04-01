@@ -4,10 +4,19 @@
 
 ---
 
+## New here?
+
+**→ [get-started.md](get-started.md)** (three steps + links).
+
+Everything below is **reference** — use the table when you need a specific topic.
+
+---
+
 ## Public release surface (start here)
 
 | Doc | Purpose |
 |-----|---------|
+| **[get-started.md](get-started.md)** | **Minimal path** — run, connect agent, optional doctrine |
 | **[memory-doctrine.md](memory-doctrine.md)** | **Canonical product model — highest authority** |
 | [anti-regression.md](anti-regression.md) | Reviewer enforcement; banned patterns; CI guard pointers |
 | [architecture.md](architecture.md) | System shape aligned with the doctrine |
@@ -15,7 +24,9 @@
 | [authentication.md](authentication.md) | Auth model for technical preview |
 | [mcp-usage.md](mcp-usage.md) | **MCP client setup** — Cursor, Claude Desktop, HTTP vs stdio; workflow; troubleshooting |
 | **[integrations/README.md](integrations/README.md)** | **AI editors & agent systems** — platform matrix, [`pluribus-instructions.md`](../integrations/pluribus-instructions.md), native templates, `skill.md`, MCP examples ([integrations/](../integrations/) artifacts) |
-| **[usage/ensuring-agent-usage.md](usage/ensuring-agent-usage.md)** | **Default usage** — MCP + rules + REST fallback; failure modes; [snippets](usage/snippets/) |
+| **[integrations/usage.md](integrations/usage.md)** | **Adoption layer** — behavioral loop, MCP vs REST, verification, links (not duplicate of ensuring-agent) |
+| **[integrations/skills-model.md](integrations/skills-model.md)** | Four behavioral intents → MCP tools; one **`skills/pluribus/`** pack per platform |
+| **[usage/ensuring-agent-usage.md](usage/ensuring-agent-usage.md)** | **Operational depth** — MCP + rules + REST fallback; failure modes; [snippets](usage/snippets/) |
 | [evaluation.md](evaluation.md) | **Canonical verification:** `make proof-rest` + `make proof-episodic` + eval/stress/CI targets |
 | [walkthrough-single-agent.md](walkthrough-single-agent.md) | Continuity walkthrough |
 | [walkthrough-multi-agent.md](walkthrough-multi-agent.md) | Multi-agent coordination walkthrough |

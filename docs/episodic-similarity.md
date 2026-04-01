@@ -84,7 +84,7 @@ Response items may include **`resemblance_signals`** (e.g. `lexical_overlap`, `s
 
 ## Config (`similarity`)
 
-Default: **off**. See `control-plane/configs/config.example.yaml`. The **`make proof-rest`** and **`make proof-episodic`** harnesses enable **`similarity.enabled`** (and **`distillation.enabled`** for the full pipeline) in-process so episodic JSON scenarios run without editing YAML.
+Shipped **`config.example.yaml`** / **`config.yaml`** set **`similarity.enabled: true`** so **`POST /v1/advisory-episodes`** and MCP **`record_experience`** work without a 403. If the **`similarity`** section is omitted entirely, **`enabled`** defaults to **on** in code (set **`enabled: false`** to disable). The **`make proof-rest`** and **`make proof-episodic`** harnesses also enable similarity (and **`distillation.enabled`** for the full pipeline) in-process when needed.
 
 - `max_summary_bytes`, `max_episodes_scan`, `max_results`, **`min_resemblance`**.
 

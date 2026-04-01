@@ -20,7 +20,7 @@
 ## How this complements the Pluribus Cursor rule
 
 - The **rule** (e.g. **`pluribus.mdc`**) states the **non‑negotiable loop** in Agent context.
-- The **pack** makes the loop **easier to run**: MCP wired, prompts for recall/record, verification, and optional stricter rule variant.
+- The **pack** makes the loop **easier to run**: MCP wired, prompts for recall/record, verification, and one canonical rule (stricter anti-deferral included).
 - Neither replaces the other: **rule = obligation**, **pack = ergonomics + visibility**.
 
 ## Limitations (unchanged)

@@ -2,7 +2,7 @@
 
 Cursor is a **first-class** target: **HTTP MCP** to Pluribus, **user- or repository-scoped rules**, and optional **Agent Skills**. Cursor’s model is documented in **[Rules](https://cursor.com/docs/rules)** (rules under **`.cursor/rules`**, user rules, team rules, **`AGENTS.md`**) and **[Agent Skills](https://cursor.com/docs/context/skills)**.
 
-**Integration pack (“plugin”):** the full Cursor-facing bundle—MCP JSON variants, **`pluribus.mdc`**, optional **`pluribus-stricter.mdc`**, prompts, helpers, and the honest platform model—is in **[integrations/cursor/README.md](../../integrations/cursor/README.md)** with rationale in **[integrations/cursor/plugin-plan.md](../../integrations/cursor/plugin-plan.md)**.
+**Integration pack (“plugin”):** the full Cursor-facing bundle—MCP JSON variants, **`pluribus.mdc`** (single canonical rule), prompts, helpers, and the honest platform model—is in **[integrations/cursor/README.md](../../integrations/cursor/README.md)** with rationale in **[integrations/cursor/plugin-plan.md](../../integrations/cursor/plugin-plan.md)**.
 
 ## Install scope: user vs repository
 
@@ -33,7 +33,7 @@ Full templates: [mcp-usage.md](../mcp-usage.md). Pack defaults: **[integrations/
 ## Rules + skill (quick reference)
 
 - **Canonical loop text:** **[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)**  
-- **Rule file (`.cursor/rules`):** **[integrations/cursor/pluribus.mdc](../../integrations/cursor/pluribus.mdc)** → **`.cursor/rules/pluribus.mdc`**; optional stricter: **[integrations/cursor/pluribus-stricter.mdc](../../integrations/cursor/pluribus-stricter.mdc)**  
+- **Rule file (`.cursor/rules`):** **[integrations/cursor/pluribus.mdc](../../integrations/cursor/pluribus.mdc)** → **`.cursor/rules/pluribus.mdc`** (includes stricter anti-deferral; no second rule file)  
 - **Skill pack:** **[integrations/cursor/skills/pluribus/](../../integrations/cursor/skills/pluribus/)** → **`~/.cursor/skills/pluribus/`** (recommended)  
 - **AGENTS.md (optional):** **[integrations/cursor/AGENTS.template.md](../../integrations/cursor/AGENTS.template.md)**  
 - **Compact table:** **[integrations/cursor/skill.md](../../integrations/cursor/skill.md)**  

@@ -26,7 +26,7 @@ func bootAdvisoryAutoDistill(t *testing.T, dsn string, auto bool) (*httptest.Ser
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.05
 	cfg.Distillation.Enabled = true
 	cfg.Distillation.AutoFromAdvisoryEpisodes = auto

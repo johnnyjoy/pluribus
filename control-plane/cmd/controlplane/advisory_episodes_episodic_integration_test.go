@@ -33,7 +33,7 @@ func TestREST_advisory_episodes_ingestOccurredAt(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -80,7 +80,7 @@ func TestREST_advisory_episodes_similarByDateRange(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -162,7 +162,7 @@ func TestREST_advisory_episodes_similarByEntity(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -226,7 +226,7 @@ func TestREST_enforcement_ignoresAdvisoryEpisodes(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	container, err := app.Boot(cfg)
 	if err != nil {
 		t.Fatalf("boot: %v", err)
@@ -286,7 +286,7 @@ func TestREST_advisory_episodes_similarRejectsInvertedWindow(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	container, err := app.Boot(cfg)
 	if err != nil {
 		t.Fatalf("boot: %v", err)
@@ -323,7 +323,7 @@ func TestREST_advisory_episodes_similarByEntitiesArray(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -379,7 +379,7 @@ func TestREST_advisory_episodes_minimalBackwardCompat(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -435,7 +435,7 @@ func TestREST_recallCompile_excludesAdvisoryEpisodeText(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	container, err := app.Boot(cfg)
 	if err != nil {
 		t.Fatalf("boot: %v", err)
@@ -478,5 +478,72 @@ func TestREST_recallCompile_excludesAdvisoryEpisodeText(t *testing.T) {
 	}
 	if strings.Contains(string(cb), unique) {
 		t.Fatalf("recall bundle must not contain advisory episode statement")
+	}
+}
+
+// TestREST_advisory_episodes_fixtureTestExperience inserts one advisory experience with a stable
+// prefix (fixture:pluribus-test-experience) for smoke-testing: similarity must be enabled,
+// low-signal text is rejected at ingest (no probationary memory).
+func TestREST_advisory_episodes_fixtureTestExperience(t *testing.T) {
+	dsn := os.Getenv("TEST_PG_DSN")
+	if dsn == "" {
+		t.Skip("TEST_PG_DSN not set")
+	}
+	cfg, err := app.LoadConfig(integrationConfigPath(t))
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	cfg.Postgres.DSN = dsn
+	cfg.Similarity.Enabled = app.BoolPtr(true)
+	cfg.Similarity.MinResemblance = 0.01
+	container, err := app.Boot(cfg)
+	if err != nil {
+		t.Fatalf("boot: %v", err)
+	}
+	defer container.DB.Close()
+
+	rtr, err := apiserver.NewRouter(cfg, container)
+	if err != nil {
+		t.Fatalf("NewRouter: %v", err)
+	}
+	srv := httptest.NewServer(rtr)
+	defer srv.Close()
+
+	tag := "test:fixture-" + uuid.New().String()
+	summary := fmt.Sprintf("fixture:pluribus-test-experience — synthetic advisory episode for system smoke test (%s)", uuid.New().String())
+	body := map[string]any{
+		"summary": summary,
+		"source":  "manual",
+		"tags":    []string{tag, "pluribus:smoke"},
+	}
+	raw, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.Post(srv.URL+"/v1/advisory-episodes", "application/json", bytes.NewReader(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("create advisory episode: want 201 got %d body=%s", resp.StatusCode, string(b))
+	}
+
+	var epCount, memCount int
+	if err := container.DB.QueryRow(`SELECT COUNT(*) FROM advisory_experiences WHERE summary_text = $1`, summary).Scan(&epCount); err != nil {
+		t.Fatalf("count advisory_experiences: %v", err)
+	}
+	if epCount != 1 {
+		t.Fatalf("advisory_experiences: want 1 row for fixture summary, got %d", epCount)
+	}
+	if err := container.DB.QueryRow(`SELECT COUNT(*) FROM memories m JOIN memories_tags mt ON mt.memory_id = m.id WHERE mt.tag = $1`, tag).Scan(&memCount); err != nil {
+		t.Fatalf("count memories by fixture tag: %v", err)
+	}
+	if memCount != 0 {
+		t.Fatalf("fixture is advisory-only: expected 0 memories with tag %q, got %d", tag, memCount)
 	}
 }

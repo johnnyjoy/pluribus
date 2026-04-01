@@ -1,3 +1,3 @@
-Pluribus (MCP connected):
+Pluribus — when MCP tools are connected:
 recall_context → plan → act → record_experience
-Do not open complex work without step 1; do not close meaningful work without step 4.
+Do not skip Pluribus recall on substantive work; do not close meaningful work without record_experience.

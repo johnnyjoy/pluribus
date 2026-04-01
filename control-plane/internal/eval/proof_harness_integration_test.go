@@ -71,7 +71,7 @@ func TestProofHarnessREST_Postgres(t *testing.T) {
 	}
 	cfg.Postgres.DSN = dsn
 	// Proof scenarios include advisory-episodes; default config leaves similarity off.
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.05
 	// Episodic pipeline proofs exercise POST /v1/episodes/distill → candidates → materialize.
 	cfg.Distillation.Enabled = true

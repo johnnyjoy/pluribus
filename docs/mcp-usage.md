@@ -2,6 +2,8 @@
 
 Single guide for **how** to use Pluribus through MCP from **popular AI clients** (Cursor, Claude Desktop, and others). **Transport:** [mcp-service-first.md](mcp-service-first.md) (HTTP MCP canonical; stdio adapter compat-only). **Tool → route mapping:** [mcp-poc-contract.md](mcp-poc-contract.md) (**Dual-layer MCP** — Layer 1 default loop: **`recall_context`** before work, **`record_experience`** after; stable aliases **`memory_context_resolve`** / **`mcp_episode_ingest`** unchanged). **Timing / canon vs candidates:** [mcp-discipline-doctrine.md](mcp-discipline-doctrine.md).
 
+**Ingestion policy:** `record_experience` creates probationary memory **at ingest** when the summary is **plausible** (signals, event tags, or rich context); otherwise the row is rejected. **Ranking and authority**, not a strict “only high-confidence” filter at intake, determine what dominates recall—see [memory-doctrine.md](memory-doctrine.md) §F.
+
 ---
 
 ## Prerequisites

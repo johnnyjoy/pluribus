@@ -152,28 +152,55 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download all matrix artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: mcp-*
           merge-multiple: true
 
-      - name: Create combined SHA256SUMS
+      - name: Collect pluribus-mcp tarballs
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
           shopt -s globstar
           mkdir -p dist
-          # Collect tarballs regardless of whether artifact download kept `control-plane/dist/`
-          # or created artifact-named subfolders.
           tars=(**/pluribus-mcp-linux-*.tar.gz)
           if [[ "${#tars[@]}" -eq 0 ]]; then
             echo "No pluribus-mcp tar.gz files found after downloading artifacts" >&2
             exit 1
           fi
           cp -f "${tars[@]}" dist/
-          sha256sum dist/*.tar.gz > dist/SHA256SUMS.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build VS Code extension (.vsix)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd integrations/vscode/extension
+          npm ci
+          npm run compile
+          npx --yes @vscode/vsce@2.24.0 package --allow-missing-repository -o "${GITHUB_WORKSPACE}/dist/pluribus-memory-${{ github.ref_name }}.vsix"
+
+      - name: Package integration bundles (cursor, claude-code, generic-mcp, opencode)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd integrations
+          zip -r -q "${GITHUB_WORKSPACE}/dist/pluribus-integration-packs-${{ github.ref_name }}.zip" cursor claude-code generic-mcp opencode -x "*.git*" -x "*node_modules*"
+
+      - name: Create combined SHA256SUMS
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum pluribus-mcp-linux-*.tar.gz pluribus-memory-*.vsix pluribus-integration-packs-*.zip > SHA256SUMS.txt
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -186,4 +213,6 @@ jobs:
             dist/pluribus-mcp-linux-arm64.tar.gz
             dist/pluribus-mcp-linux-ppc64le.tar.gz
             dist/pluribus-mcp-linux-s390x.tar.gz
+            dist/pluribus-memory-${{ github.ref_name }}.vsix
+            dist/pluribus-integration-packs-${{ github.ref_name }}.zip
             dist/SHA256SUMS.txt

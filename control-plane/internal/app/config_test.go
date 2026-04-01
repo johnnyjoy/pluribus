@@ -132,6 +132,27 @@ func TestLoadConfig_lspSection(t *testing.T) {
 	}
 }
 
+func TestSimilarityConfig_IsEnabled(t *testing.T) {
+	var nilCfg *SimilarityConfig
+	if nilCfg.IsEnabled() {
+		t.Fatal("nil *SimilarityConfig must be disabled")
+	}
+	var s SimilarityConfig
+	if !s.IsEnabled() {
+		t.Fatal("omitted Enabled must default to true (advisory ingest)")
+	}
+	off := false
+	s.Enabled = &off
+	if s.IsEnabled() {
+		t.Fatal("explicit false must disable")
+	}
+	on := true
+	s.Enabled = &on
+	if !s.IsEnabled() {
+		t.Fatal("explicit true must enable")
+	}
+}
+
 func TestEnforcementConfig_IsEnabled(t *testing.T) {
 	var nilCfg *EnforcementConfig
 	if nilCfg.IsEnabled() {

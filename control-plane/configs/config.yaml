@@ -110,10 +110,10 @@ curation:
 #   max_binding_memories: 120
 #   include_global_binding: true
 
-# Pluribus: advisory episodes — lexical/tag resemblance (default off).
-# similarity:
-#   enabled: false
-#   max_summary_bytes: 2048
-#   max_episodes_scan: 500
-#   max_results: 5
-#   min_resemblance: 0.08
+# Advisory episodes (lexical/tag resemblance; not canonical memory). Default on when omitted; set enabled: false to turn off ingest.
+similarity:
+  enabled: true
+  max_summary_bytes: 2048
+  max_episodes_scan: 500
+  max_results: 5
+  min_resemblance: 0.08

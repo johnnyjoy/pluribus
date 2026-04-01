@@ -1,6 +1,8 @@
 # Pluribus — Cursor / Agent prompt snippets
 
-Copy into **Agent** chat (or pin in **User rules**) when you want a deliberate nudge. Keep tasks **one screen**—full text belongs in **`recall_context`** / **`record_experience`** tool args, not only here.
+**Pluribus** governed-memory loop: **`recall_context`** → plan → act → **`record_experience`** when **Pluribus** MCP tools are connected (full triggers: **[`pluribus-instructions.md`](../pluribus-instructions.md)**).
+
+Copy into **Agent** chat (or pin in **User rules**) when you want a deliberate nudge. Keep tasks **one screen**—full text belongs in **Pluribus** **`recall_context`** / **`record_experience`** tool args, not only here.
 
 ## Before meaningful work
 

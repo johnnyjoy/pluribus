@@ -113,7 +113,9 @@ CI publishes release artifacts as `tar.gz` per Linux architecture on Git tags `v
   - `linux/ppc64le`
   - `linux/s390x`
 - assets: `pluribus-mcp-linux-<suffix>.tar.gz` where `<suffix>` matches the architecture above
-- assets: `SHA256SUMS.txt` (checksums for the tarballs)
+- assets: `pluribus-memory-<tag>.vsix` — VS Code extension built from `integrations/vscode/extension/`
+- assets: `pluribus-integration-packs-<tag>.zip` — snapshot of `integrations/cursor`, `claude-code`, `generic-mcp`, `opencode`
+- assets: `SHA256SUMS.txt` (checksums for the tarballs, `.vsix`, and integration zip)
 
 After extracting a tarball, the archive root contains a single binary: `pluribus-mcp`.
 

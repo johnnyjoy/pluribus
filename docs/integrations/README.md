@@ -4,7 +4,11 @@
 
 **Non-negotiable loop:** **`recall_context` → work → `record_experience`** on every substantive task. Legacy names **`memory_context_resolve`** / **`mcp_episode_ingest`** are compatibility aliases only.
 
-Doctrine: [memory-doctrine.md](../memory-doctrine.md). Wire details: [mcp-usage.md](../mcp-usage.md).
+**After Docker is up:** configure MCP in your client ([mcp-usage.md](../mcp-usage.md)), then paste **[`pluribus-instructions.md`](../../integrations/pluribus-instructions.md)** (or copy the **`.mdc` / skill** from your platform’s folder). Without rules, tools may sit unused.
+
+**Adoption (habit, not exposure):** [usage.md](usage.md) · **tiers + verify:** [matrix.md](matrix.md) · **skills → tools:** [skills-model.md](skills-model.md).
+
+Doctrine: [memory-doctrine.md](../memory-doctrine.md). End-to-end first run: [pluribus-quickstart.md](../pluribus-quickstart.md) §4.
 
 ---
 

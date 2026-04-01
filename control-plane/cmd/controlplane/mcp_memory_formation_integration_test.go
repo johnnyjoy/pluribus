@@ -47,7 +47,7 @@ func bootMCPProof(t *testing.T, dsn string, autoDistill bool) (*httptest.Server,
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.05
 	cfg.Distillation.Enabled = true
 	cfg.Distillation.AutoFromAdvisoryEpisodes = autoDistill
@@ -123,7 +123,7 @@ func countMemories(t *testing.T, db *sql.DB) int {
 func countAdvisoryBySummary(t *testing.T, db *sql.DB, summary string) int {
 	t.Helper()
 	var n int
-	err := db.QueryRow(`SELECT COUNT(*) FROM advisory_episodes WHERE summary_text = $1 AND source = 'mcp'`, summary).Scan(&n)
+	err := db.QueryRow(`SELECT COUNT(*) FROM advisory_experiences WHERE summary_text = $1 AND source = 'mcp'`, summary).Scan(&n)
 	if err != nil {
 		t.Fatalf("count advisory: %v", err)
 	}
@@ -228,11 +228,6 @@ func TestIntegration_HTTP_MCP_episodeAutoDistillAndCuration(t *testing.T) {
 		t.Fatalf("unexpected deduplicated on first ingest")
 	}
 
-	memBefore := countMemories(t, db)
-	if memBefore != 0 {
-		t.Fatalf("expected zero canonical memories in fresh proof DB, got %d", memBefore)
-	}
-
 	pend, _ := mcpToolText(t, base, "curation_pending", map[string]any{})
 	if !strings.Contains(pend, tag) {
 		t.Fatalf("expected pending to reflect distill; snippet=%s", pend[:min(800, len(pend))])
@@ -247,8 +242,8 @@ func TestIntegration_HTTP_MCP_episodeAutoDistillAndCuration(t *testing.T) {
 	_, _ = mcpToolText(t, base, "curation_promotion_suggestions", map[string]any{})
 	_, _ = mcpToolText(t, base, "curation_strengthened", map[string]any{"min_support": 2})
 
-	if countMemories(t, db) != 0 {
-		t.Fatalf("MCP path must not create canonical memory without materialize")
+	if n := countMemories(t, db); n < 1 {
+		t.Fatalf("MCP ingest with signals must create at least one probationary memory row immediately, got %d", n)
 	}
 }
 

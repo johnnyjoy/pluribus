@@ -241,13 +241,15 @@ curation:
 #   pattern_block_score: 4.0
 #   max_evidence_per_memory: 3
 
-# Pluribus: optional subordinate advisory episodes (lexical + tag resemblance; not canonical memory). Default off.
-# similarity:
-#   enabled: false
-#   max_summary_bytes: 2048
-#   max_episodes_scan: 500
-#   max_results: 5
-#   min_resemblance: 0.08   # minimum combined lexical/tag score [0,1]
+# Advisory episodes (lexical + tag resemblance; not canonical memory). Omit `enabled` or set true so POST /v1/advisory-episodes and MCP record_experience work; set false to disable.
+similarity:
+  enabled: true
+  max_summary_bytes: 2048
+  max_episodes_scan: 500
+  max_results: 5
+  min_resemblance: 0.08
+#   # Optional: once at server startup, delete rows with memory_formation_status=rejected older than N hours (0 = off).
+#   prune_rejected_older_than_hours: 0
 #   # Episodic fields are on the HTTP bodies only (not YAML): POST /v1/advisory-episodes { occurred_at, entities[] };
 #   # POST /v1/advisory-episodes/similar { occurred_after, occurred_before, entity, entities[] } — filters/boosts, not partitions.
 

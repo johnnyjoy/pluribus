@@ -134,23 +134,26 @@ Types: `internal/evidence`.
 
 ---
 
-## Advisory episodes (similarity)
+## Advisory experiences (similarity)
 
-**Terminology:** **`POST /v1/advisory-episodes`** body field **`source`** is the **ingest channel** (how the episode entered). **`POST /v1/episodes/distill`** produces candidates with **`pluribus_distill_origin`** (**distill mode**). See [memory-doctrine.md](memory-doctrine.md) (Terminology).
+**Storage:** Postgres table **`advisory_experiences`** (renamed from `advisory_episodes`). **Terminology:** **`POST /v1/advisory-episodes`** body field **`source`** is the **ingest channel**. Ingest runs **inline qualification**: deterministic keyword / `mcp:event:*` signals → **probationary** `memories` row + **`related_memory_id`**; otherwise **`memory_formation_status: rejected`** (reject bucket). **`POST /v1/episodes/distill`** still produces candidates with **`pluribus_distill_origin`**. See [memory-doctrine.md](memory-doctrine.md) (Terminology).
 
 | Method | Path | MCP tool | Class |
 |--------|------|----------|--------|
 | `POST` | `/v1/advisory-episodes` | `record_experience`, `mcp_episode_ingest` (MCP builds `source: mcp` + low-noise summary); conditional `memory_log_if_relevant` | support |
 | `POST` | `/v1/advisory-episodes/similar` | `episode_search_similar` | support |
+| `POST` | `/v1/advisory-episodes/prune-rejected` | — | support |
 | `POST` | `/v1/episodes/distill` | `episode_distill_explicit` | support |
 
-Advisory only — not canonical recall authority per [episodic-similarity.md](episodic-similarity.md).
+Advisory rows alone are not governing recall authority per [episodic-similarity.md](episodic-similarity.md). There is **no** delayed formation path: each ingest row is **`linked`** (probationary memory created) or **`rejected`** at creation time.
 
-**Create:** `summary` (required), optional **`source`** (ingest channel; default `manual`; use **`mcp`** for MCP-originated episodes), `tags`, `occurred_at`, `entities`, `related_memory_id`, optional **`correlation_id`** (stored as tag `mcp:session:<id>` for traceability). **201** response always includes **`tags`** and **`entities`** arrays (possibly empty). When **`source` is `mcp`** and **`mcp.memory_formation` dedup** is enabled (default), a **repeat** ingest with the **same** summary and **same** correlation session within the **dedup window** returns the **existing** episode id and sets **`deduplicated": true`** (no second insert; **no** second auto-distill run). When **`distillation.enabled`** and **`distillation.auto_from_advisory_episodes`** are **true**, the server may append **pending** distilled candidates (same rules as **`POST /v1/episodes/distill`**) after the write **unless** the response was deduplicated; failures there do **not** change the **201** status (logged only). See [episodic-similarity.md](episodic-similarity.md).
+**Create:** `summary` (required), optional **`source`**, `tags`, `occurred_at`, `entities`, `related_memory_id`, optional **`correlation_id`**. **201** includes **`memory_formation_status`**, optional **`rejection_reason`**, **`probationary_memory_id`** / **`related_memory_id`** when linked. Dedup and auto-distill behavior unchanged where applicable. See [episodic-similarity.md](episodic-similarity.md).
 
-**Similar:** `query` (required), optional `tags`, `occurred_after` / `occurred_before` (inclusive on **effective** time), `entity` and/or **`entities`** (any overlap). If both time bounds are set, **`occurred_after` ≤ `occurred_before`** or **400**. **200** body: `{ "advisory_similar_cases": [ … ] }`.
+**Prune-rejected:** optional JSON `older_than_hours`, `limit` — deletes rejected rows older than cutoff (triggered hygiene; empty body defaults to 30 days).
 
-**Distill:** `episode_id` (loads `advisory_episodes`) **or** inline **`summary`** (optional `tags` / `entities`). **200** → `{ "candidates": [ … ] }` each with `candidate_id`, `kind`, `distill_support_count`, `merged`, `source_advisory_episode_ids`, traceability; candidates carry **`pluribus_distill_origin`** (**distill mode**). Pending rows **dedupe** by kind + normalized statement; repeats **merge** (see [episodic-similarity.md](episodic-similarity.md)). **403** if `distillation.enabled` is false. Does **not** write `memories`.
+**Similar:** `query` (required), optional `tags`, `occurred_after` / `occurred_before` (inclusive on **effective** time), `entity` and/or **`entities`** (any overlap). Rejected ingest rows are **excluded** from the candidate scan. If both time bounds are set, **`occurred_after` ≤ `occurred_before`** or **400**. **200** body: `{ "advisory_similar_cases": [ … ] }`.
+
+**Distill:** `episode_id` (loads **`advisory_experiences`**) **or** inline **`summary`** (optional `tags` / `entities`). **200** → `{ "candidates": [ … ] }` each with `candidate_id`, `kind`, `distill_support_count`, `merged`, `source_advisory_episode_ids`, traceability; candidates carry **`pluribus_distill_origin`** (**distill mode**). Pending rows **dedupe** by kind + normalized statement; repeats **merge** (see [episodic-similarity.md](episodic-similarity.md)). **403** if `distillation.enabled` is false. Does **not** write `memories`.
 
 ---
 
@@ -171,7 +174,7 @@ Fields on **`POST /v1/curation/digest`**: `work_summary` (required), `signals`, 
 
 ## Database baseline
 
-Embedded SQL: `control-plane/migrations/0001_memory_baseline.sql`, `0002_advisory_episodes_episodic.sql`, `0003_memories_occurred_at.sql` (applied on server boot). Canonical **`memories.occurred_at`** is optional event time; see [api-contract.md](api-contract.md). **`candidate_events`** columns: `id`, `raw_text`, `salience_score`, `promotion_status`, `proposal_json`, `created_at` — no separate migration file per table in-repo.
+Embedded SQL: `control-plane/migrations/0001_memory_baseline.sql`, `0002_advisory_episodes_episodic.sql`, `0003_memories_occurred_at.sql`, **`0006_advisory_experiences_formation.sql`** (rename + formation columns; applied on server boot). Canonical **`memories.occurred_at`** is optional event time; see [api-contract.md](api-contract.md). **`candidate_events`** columns: `id`, `raw_text`, `salience_score`, `promotion_status`, `proposal_json`, `created_at` — no separate migration file per table in-repo.
 
 ---
 

@@ -35,6 +35,7 @@ func TestHTTPAPIIndex_listsShippedV1Routes(t *testing.T) {
 		"`/v1/contradictions`",
 		"`/v1/ingest/cognition`",
 		"`/v1/advisory-episodes`",
+		"`/v1/advisory-episodes/prune-rejected`",
 		"`POST` | `/v1/mcp`",
 		"There are no `target_id` or `context_id` JSON fields",
 	}
@@ -74,6 +75,7 @@ func TestRouterGo_containsRoutesDocumentedInIndex(t *testing.T) {
 		`"/contradictions"`,
 		`"/ingest"`,
 		`"/advisory-episodes"`,
+		`"/prune-rejected"`,
 	} {
 		if !strings.Contains(routerSrc, path) {
 			t.Errorf("router.go: expected route group %s present", path)

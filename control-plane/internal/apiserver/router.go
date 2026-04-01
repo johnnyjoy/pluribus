@@ -2,6 +2,8 @@
 package apiserver
 
 import (
+	"context"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -22,6 +24,7 @@ import (
 	"control-plane/internal/similarity"
 	"control-plane/internal/synthesis"
 	"control-plane/internal/tooling"
+	"control-plane/internal/vet"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -346,7 +349,7 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		}
 	}
 	simCfg := &similarity.Config{
-		Enabled:         cfg.Similarity.Enabled,
+		Enabled:         cfg.Similarity.IsEnabled(),
 		MaxSummaryBytes: cfg.Similarity.MaxSummaryBytes,
 		MaxEpisodesScan: cfg.Similarity.MaxEpisodesScan,
 		MaxResults:      cfg.Similarity.MaxResults,
@@ -369,6 +372,24 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	distHandlers := &distillation.Handlers{Service: distSvc}
 	if cfg.Distillation.Enabled && cfg.Distillation.AutoFromAdvisoryEpisodes {
 		simHandlers.AutoDistill = distSvc
+	}
+
+	vetSvc := &vet.Service{Memory: memorySvc, Episodes: simRepo}
+
+	simHandlers.AfterAdvisoryCreate = func(ctx context.Context, rec *similarity.Record, dedup bool) {
+		vetSvc.ProcessNewAdvisoryExperience(ctx, rec, dedup)
+	}
+
+	if h := cfg.Similarity.PruneRejectedOlderThanHours; h > 0 && simRepo != nil {
+		cutoff := time.Now().Add(-time.Duration(h) * time.Hour)
+		pctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		n, err := simRepo.DeleteRejectedOlderThan(pctx, cutoff, 50_000)
+		cancel()
+		if err != nil {
+			slog.Warn("[ADVISORY_PRUNE]", "phase", "startup", "error", err.Error())
+		} else if n > 0 {
+			slog.Info("[ADVISORY_PRUNE]", "phase", "startup", "deleted_rejected_rows", n, "older_than_hours", h)
+		}
 	}
 
 	router.Route("/v1", func(r chi.Router) {
@@ -432,6 +453,7 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		r.Route("/advisory-episodes", func(r chi.Router) {
 			r.Post("/", simHandlers.Create)
 			r.Post("/similar", simHandlers.Similar)
+			r.Post("/prune-rejected", simHandlers.PruneRejected)
 		})
 		r.Post("/episodes/distill", distHandlers.Distill)
 	})

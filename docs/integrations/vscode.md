@@ -1,6 +1,12 @@
-# VS Code (MCP / Copilot-adjacent)
+# VS Code (extension + MCP / Copilot-adjacent)
 
-Visual Studio Code can use MCP through **extensions** or **workspace configuration**, depending on Microsoft’s current shipping model (GitHub Copilot agent mode, MCP extension, etc.). Pluribus does **not** ship a VSIX in this repo—integrate via **standard MCP client** configuration pointing at **`/v1/mcp`**.
+## REST extension (recall / record / pending)
+
+This repository includes a **TypeScript extension** under **[integrations/vscode/extension/](../../integrations/vscode/extension/)** — commands wired to **`POST /v1/recall/compile`**, **`POST /v1/advisory-episodes`**, **`GET /v1/curation/pending`**. Build from source (`npm install && npm run compile`); see **[integrations/vscode/README.md](../../integrations/vscode/README.md)**.
+
+## MCP
+
+Visual Studio Code can use MCP through **extensions** or **workspace configuration**, depending on Microsoft’s current shipping model (GitHub Copilot agent mode, MCP extension, etc.). Integrate via **standard MCP client** configuration pointing at **`/v1/mcp`** (in addition to or instead of the REST extension above).
 
 ## MCP URL
 

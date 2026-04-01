@@ -105,14 +105,31 @@ type DistillationConfig struct {
 }
 
 // SimilarityConfig controls subordinate advisory episodes (lexical + tag resemblance, in-process).
+// Enabled is nil = default on (POST /v1/advisory-episodes and MCP record_experience need this); use explicit false to disable.
 type SimilarityConfig struct {
-	Enabled         bool `yaml:"enabled"`
+	Enabled *bool `yaml:"enabled,omitempty"`
 	MaxSummaryBytes int  `yaml:"max_summary_bytes"`
 	MaxEpisodesScan int  `yaml:"max_episodes_scan"`
 	MaxResults      int  `yaml:"max_results"`
 	// MinResemblance is the minimum combined score [0,1] to return a case (lexical + optional tags).
 	MinResemblance float64 `yaml:"min_resemblance"`
+	// PruneRejectedOlderThanHours when > 0, once at server startup delete rejected advisory_experiences older than this many hours (0 = off).
+	PruneRejectedOlderThanHours int `yaml:"prune_rejected_older_than_hours,omitempty"`
 }
+
+// IsEnabled returns whether advisory similarity ingest and retrieval are active. Nil Enabled means true.
+func (c *SimilarityConfig) IsEnabled() bool {
+	if c == nil {
+		return false
+	}
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+// BoolPtr returns a pointer to v (YAML *bool fields in tests and overrides).
+func BoolPtr(v bool) *bool { return &v }
 
 // StartupConfig controls service startup behavior before HTTP server begins serving.
 type StartupConfig struct {

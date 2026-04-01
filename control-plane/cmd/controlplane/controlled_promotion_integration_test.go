@@ -31,7 +31,7 @@ func TestREST_controlledPromotion_autoPromote(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Distillation.Enabled = true
 	cfg.Promotion.AutoPromote = true
 	cfg.Promotion.AutoMinSupportCount = 2

@@ -1,0 +1,84 @@
+{
+  "name": "pluribus-memory",
+  "displayName": "Pluribus Memory",
+  "description": "Recall, record experiences, and inspect pending learnings against a Pluribus control plane (REST).",
+  "version": "0.1.0",
+  "publisher": "pluribus",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Pluribus",
+      "properties": {
+        "pluribus.baseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8123",
+          "description": "Pluribus API base URL (no trailing slash)."
+        },
+        "pluribus.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Optional X-API-Key when PLURIBUS_API_KEY is set on the server."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "pluribus.recallContext",
+        "title": "Pluribus: Recall Context",
+        "icon": "$(search)"
+      },
+      {
+        "command": "pluribus.recordExperience",
+        "title": "Pluribus: Record Experience",
+        "icon": "$(add)"
+      },
+      {
+        "command": "pluribus.viewLearnings",
+        "title": "Pluribus: View Learnings",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "pluribus.refreshSidebar",
+        "title": "Pluribus: Refresh sidebar",
+        "icon": "$(refresh)"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "pluribusSidebar",
+          "name": "Pluribus",
+          "when": "true"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "pluribus.refreshSidebar",
+          "when": "view == pluribusSidebar",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}

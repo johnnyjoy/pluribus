@@ -4,29 +4,31 @@
 
 **Prerequisites:** Docker Compose v2, `curl`, `jq` (optional).
 
----
-
-## 0. Preferred: published image (no local build)
-
-For a **release-style** install, use the **GHCR** image and **`docker-compose.install.yml`** — see [pluribus-container-install.md](pluribus-container-install.md) and [pluribus-image-release-policy.md](pluribus-image-release-policy.md). Set **`PLURIBUS_IMAGE`** (e.g. `ghcr.io/<owner>/pluribus:main`), then:
-
-```bash
-docker compose -f docker-compose.install.yml --env-file pluribus.install.env.example up -d
-```
-
-(Edit the env file with **your** image path first.)
+**Ultra-short path:** [get-started.md](get-started.md). **Agents:** when **§2** is healthy, go to **§4** (§3 optional). Rules: **[`integrations/pluribus-instructions.md`](../integrations/pluribus-instructions.md)** · **[`integrations/`](../integrations/)** packs.
 
 ---
 
-## 1. Start the stack (clone + build from source)
+## 1. Start the stack (clone — usual first path)
 
-From the **repository root** — **developer / evaluation** path; builds the API from `./control-plane`:
+From the **repository root** (builds the API from `./control-plane`):
 
 ```bash
 docker compose up -d
 ```
 
 Starts Postgres, Redis, and **controlplane** on **`http://127.0.0.1:8123`**. The API waits for the DB, applies embedded baseline SQL, then serves.
+
+---
+
+## Alternative: published image only (no local build)
+
+For a **registry** install (no `git clone` build), use **`docker-compose.install.yml`** — [pluribus-container-install.md](pluribus-container-install.md), [pluribus-image-release-policy.md](pluribus-image-release-policy.md). Set **`PLURIBUS_IMAGE`**, then:
+
+```bash
+docker compose -f docker-compose.install.yml --env-file pluribus.install.env.example up -d
+```
+
+(Edit the env file with **your** image path first.)
 
 ---
 
@@ -68,11 +70,9 @@ You should see structured recall output from the **shared** memory pool. **[memo
 
 ## 4. Connect via MCP (Cursor, Claude Desktop, others)
 
-Canonical MCP surface: **`POST /v1/mcp`** on the same base URL — see [mcp-service-first.md](mcp-service-first.md). This is the correct “one URL” story for **agents**; the editor still uses **gopls** for Go — [pluribus-lsp-mcp-boundary.md](pluribus-lsp-mcp-boundary.md).
+**Minimal mental model:** Pluribus speaks **HTTP** on port **8123**. Your agent app needs **one** MCP entry pointing at **`http://127.0.0.1:8123/v1/mcp`** (same machine) plus **rules or pasted instructions** so the model actually **calls** `recall_context` / `record_experience` — tools alone are not enough. Step-by-step clients: **[mcp-usage.md](mcp-usage.md#configure-pluribus-in-your-client)**. **Cursor** users: copy **[`integrations/cursor/mcp-config.json`](../integrations/cursor/mcp-config.json)** into **`~/.cursor/mcp.json`** (merge), restart Cursor, then add **[`integrations/pluribus-instructions.md`](../integrations/pluribus-instructions.md)** to **User rules** — **[`integrations/cursor/README.md`](../integrations/cursor/README.md)**.
 
-**Client configuration** (`.cursor/mcp.json`, Claude Desktop JSON, HTTP vs stdio `pluribus-mcp`): [mcp-usage.md](mcp-usage.md#configure-pluribus-in-your-client). Recall-driven tool order and troubleshooting: [mcp-usage.md](mcp-usage.md).
-
-**Do not** treat the stdio `pluribus-mcp` binary as the default — it is **compat-only**; see [mcp-migration-stdio-to-http.md](mcp-migration-stdio-to-http.md).
+Canonical MCP surface: **`POST /v1/mcp`** — [mcp-service-first.md](mcp-service-first.md). **Do not** treat the stdio `pluribus-mcp` binary as the default — it is **compat-only**; see [mcp-migration-stdio-to-http.md](mcp-migration-stdio-to-http.md).
 
 ---
 

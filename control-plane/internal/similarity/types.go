@@ -10,6 +10,12 @@ import (
 // ErrSimilarityDisabled is returned when the feature is off in config.
 var ErrSimilarityDisabled = errors.New("similarity: feature disabled")
 
+// Memory formation status on advisory_experiences: only linked (accepted → memory) or rejected (intake / reject bucket).
+const (
+	FormationLinked   = "linked"
+	FormationRejected = "rejected"
+)
+
 // ValidSources lists allowed JSON/DB values for `source` (ingest channel: how the episode entered).
 // Field name on wire remains `source` (must match DB CHECK).
 var ValidSources = map[string]struct{}{
@@ -34,6 +40,10 @@ type Record struct {
 	Entities []string `json:"entities,omitempty"`
 	// Deduplicated is true when this response reuses an existing row (MCP ingest duplicate within configured window; no second insert).
 	Deduplicated bool `json:"deduplicated,omitempty"`
+	// MemoryFormationStatus is linked | rejected (decided at ingest).
+	MemoryFormationStatus string `json:"memory_formation_status,omitempty"`
+	// RejectionReason is set when formation was rejected at ingest (low signal / short text).
+	RejectionReason string `json:"rejection_reason,omitempty"`
 }
 
 // CreateRequest is POST /v1/advisory-episodes body.

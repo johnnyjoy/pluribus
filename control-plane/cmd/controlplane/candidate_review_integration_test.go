@@ -31,7 +31,7 @@ func TestREST_candidateReview_fields(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Distillation.Enabled = true
 
 	container, err := app.Boot(cfg)
@@ -155,7 +155,7 @@ func TestREST_candidateReview_isolation_noMemoryWrite(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Distillation.Enabled = true
 
 	container, err := app.Boot(cfg)

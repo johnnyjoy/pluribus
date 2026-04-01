@@ -14,10 +14,13 @@
 > Default loop: **`recall_context` → plan → act → `record_experience`**.  
 > Skip recall or skip record and you get no durable progress—same as amnesia.
 
+**New here?** Three steps: **[`docs/get-started.md`](docs/get-started.md)**.
+
 ---
 
 ## Table of contents
 
+- [Get started (new users)](docs/get-started.md)
 - [What this is](#what-this-is)
 - [Why use it](#why-use-it)
 - [Quick start (Docker — recommended)](#quick-start-docker--recommended)
@@ -81,6 +84,8 @@ curl -sS http://127.0.0.1:8123/readyz
 
 Both should return `ok` when startup has finished.
 
+**Next — use an AI agent with Pluribus:** add MCP (**`http://127.0.0.1:8123/v1/mcp`**) in your editor and paste the loop from **[`integrations/pluribus-instructions.md`](integrations/pluribus-instructions.md)** (or your platform’s pack under **[`integrations/`](integrations/)**). Full walkthrough: **[`docs/pluribus-quickstart.md`](docs/pluribus-quickstart.md)** §4 and **[`docs/mcp-usage.md`](docs/mcp-usage.md)**. **Cursor:** **[`integrations/cursor/README.md`](integrations/cursor/README.md)**.
+
 **Prefer a published image (no local build)?** Use **`docker-compose.install.yml`** and a registry image—see [INSTALL.md](INSTALL.md) and [docs/pluribus-container-install.md](docs/pluribus-container-install.md).
 
 **Reset the dev database completely** (destructive): `docker compose down -v` then `docker compose up -d`. Pre-release builds assume a **fresh or disposable** Postgres; there is no GA-grade versioned migration story yet—see [INSTALL.md](INSTALL.md).
@@ -90,6 +95,8 @@ Both should return `ok` when startup has finished.
 ## Using Pluribus with AI agents
 
 Point every client at the **same** API base URL (default **`http://127.0.0.1:8123`**). The process is **concurrent**; Postgres is the shared store. Protocol details: [docs/mcp-service-first.md](docs/mcp-service-first.md).
+
+**Make memory habitual (not just connected):** [docs/integrations/usage.md](docs/integrations/usage.md) — behavioral loop, verification, failure modes — and [docs/usage/ensuring-agent-usage.md](docs/usage/ensuring-agent-usage.md) for full operational detail.
 
 ### Using Pluribus with AI editors and agent systems
 
@@ -112,7 +119,9 @@ Point every client at the **same** API base URL (default **`http://127.0.0.1:812
 
 Each **`integrations/<platform>/`** pack includes a pointer **`rules.md`**, editor-native templates where applicable, **[`integrations/pluribus-instructions.md`](integrations/pluribus-instructions.md)** (canonical loop text), **`skill.md`**, **`README.md`**, and usually **`mcp-config.example.json`**—directive templates, **do not commit secrets**.
 
-**Cursor (full “plugin” pack):** **[`integrations/cursor/`](integrations/cursor/)** bundles MCP JSON (**`mcp-config.json`**, no-auth + LAN examples), **`pluribus.mdc`**, optional **`pluribus-stricter.mdc`**, Agent Skill, **[`prompts.md`](integrations/cursor/prompts.md)**, **[`commands.md`](integrations/cursor/commands.md)**, **[`helper/verify-mcp.sh`](integrations/cursor/helper/verify-mcp.sh)**, and **[`plugin-plan.md`](integrations/cursor/plugin-plan.md)** (what Cursor actually supports). Prefer **user-level** **`~/.cursor/mcp.json`** and **user rules** so Pluribus applies in every repository—see **[`integrations/cursor/README.md`](integrations/cursor/README.md)**.
+**Cursor (full “plugin” pack):** **[`integrations/cursor/`](integrations/cursor/)** bundles MCP JSON (**`mcp-config.json`**, no-auth + LAN examples), **`pluribus.mdc`** (single canonical rule), Agent Skill, **[`prompts.md`](integrations/cursor/prompts.md)**, **[`commands.md`](integrations/cursor/commands.md)**, **[`helper/verify-mcp.sh`](integrations/cursor/helper/verify-mcp.sh)**, and **[`plugin-plan.md`](integrations/cursor/plugin-plan.md)** (what Cursor actually supports). Prefer **user-level** **`~/.cursor/mcp.json`** and **user rules** so Pluribus applies in every repository—see **[`integrations/cursor/README.md`](integrations/cursor/README.md)**.
+
+**VS Code (real extension):** **[`integrations/vscode/extension/`](integrations/vscode/extension/)** — **Recall Context**, **Record Experience**, **View Learnings** against the control-plane REST API; Explorer sidebar + Output channel. See **[`integrations/vscode/README.md`](integrations/vscode/README.md)** and **[`docs/integrations/vscode.md`](docs/integrations/vscode.md)**.
 
 **Optional auth:** if the server has **`PLURIBUS_API_KEY`** set, send **`X-API-Key`** on HTTP MCP and in **`headers`** below; if unset, omit them. [docs/authentication.md](docs/authentication.md).
 
@@ -260,7 +269,7 @@ Build details: [BUILD.md](BUILD.md). Image build from source: `make image` (see 
 
 ## Everyday API usage (smoke)
 
-Memory is **global**; **tags** and **`retrieval_query`** shape the situation:
+Same **create + recall** flow as [docs/pluribus-quickstart.md](docs/pluribus-quickstart.md) §3 — use that section for copy-paste and explanation. Quick duplicate:
 
 ```bash
 curl -sS -X POST http://127.0.0.1:8123/v1/memories \
@@ -272,7 +281,7 @@ curl -sS -X POST http://127.0.0.1:8123/v1/recall/compile \
   -d '{"tags":["demo","release"],"retrieval_query":"deploy safety"}' | jq .
 ```
 
-Full first-run narrative: [docs/pluribus-quickstart.md](docs/pluribus-quickstart.md). Route index: [docs/http-api-index.md](docs/http-api-index.md). RC1-oriented examples: [docs/api-contract.md](docs/api-contract.md).
+Route index: [docs/http-api-index.md](docs/http-api-index.md). RC1-oriented examples: [docs/api-contract.md](docs/api-contract.md).
 
 ---
 
@@ -280,6 +289,8 @@ Full first-run narrative: [docs/pluribus-quickstart.md](docs/pluribus-quickstart
 
 | Need | Doc |
 |------|-----|
+| **Minimal path (new users)** | [docs/get-started.md](docs/get-started.md) |
+| **Integration adoption & verification** | [docs/integrations/usage.md](docs/integrations/usage.md) |
 | **Doctrine (highest authority)** | [docs/memory-doctrine.md](docs/memory-doctrine.md) |
 | **Reviewer / CI guardrails** | [docs/anti-regression.md](docs/anti-regression.md) |
 | **Quickstart** | [docs/pluribus-quickstart.md](docs/pluribus-quickstart.md) |

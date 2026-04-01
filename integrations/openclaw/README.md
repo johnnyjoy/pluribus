@@ -4,6 +4,8 @@
 2. Pin **`policy.template.md`** + **`snippets/context-prime.txt`** in gateway system/policy.
 3. Merge **`skill.md`** if you need the step table inline.
 
+**Deep adoption (policy + MCP; no fake lifecycle APIs):** [`adoption.md`](adoption.md).
+
 **Canonical behavior:** [`pluribus-instructions.md`](../pluribus-instructions.md).
 
 **`recall_context` → plan → act → `record_experience`** every substantive run.

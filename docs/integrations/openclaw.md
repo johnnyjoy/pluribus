@@ -18,9 +18,13 @@ OpenClaw is an **MCP-capable** agent/gateway ecosystem. Treat Pluribus as a **st
 2. Load **[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)** via **[integrations/openclaw/policy.template.md](../../integrations/openclaw/policy.template.md)** + **`snippets/context-prime.txt`** into the agent’s pinned policy; merge **[integrations/openclaw/skill.md](../../integrations/openclaw/skill.md)** if you want the step table (**recall_context** → work → **record_experience**).
 3. Enforce **`recall_context` → work → `record_experience`** every substantive run. (Aliases **`memory_context_resolve`** / **`mcp_episode_ingest`**.) Pull curation/contradictions only when debugging.
 
+**Tier-1 adoption checklist:** [usage.md](usage.md) · [matrix.md](matrix.md) (same behavioral bar as Cursor—policy + MCP, verify tools are invoked).
+
 ## Example stub
 
 **[integrations/openclaw/mcp-config.example.json](../../integrations/openclaw/mcp-config.example.json)** holds **illustrative** env blocks—translate into **`openclaw mcp set`** arguments per OpenClaw’s current CLI.
+
+**Deep adoption (policy + MCP, no fake hooks):** [integrations/openclaw/adoption.md](../../integrations/openclaw/adoption.md).
 
 ## Limitations
 

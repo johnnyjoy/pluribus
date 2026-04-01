@@ -32,9 +32,13 @@ func TestCreate_Advisory201WhenAutoDistillFails(t *testing.T) {
 	tagsJSON := []byte(`["t"]`)
 	entsJSON := []byte(`[]`)
 
-	mock.ExpectQuery(`INSERT INTO advisory_episodes`).
-		WithArgs("payment failure error timeout duplicate charge", "manual", tagsJSON, nil, nil, entsJSON).
+	mock.ExpectQuery(`INSERT INTO advisory_experiences`).
+		WithArgs("payment failure error timeout duplicate charge", "manual", tagsJSON, nil, nil, entsJSON, FormationRejected).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at"}).AddRow(epID, now))
+	mock.ExpectQuery(`SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities, memory_formation_status, rejection_reason FROM advisory_experiences WHERE id = \$1`).
+		WithArgs(epID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "summary_text", "source", "tags", "related_memory_id", "created_at", "occurred_at", "entities", "memory_formation_status", "rejection_reason"}).
+			AddRow(epID, "payment failure error timeout duplicate charge", "manual", tagsJSON, nil, now, nil, entsJSON, FormationRejected, nil))
 
 	svc := &Service{
 		Repo:   &Repo{DB: db},

@@ -73,6 +73,10 @@ The intended loop is:
 
 **Experience → memory (distilled) → behavior (recall + enforcement) → learning (curation / promote) → repeat.**
 
+### Ingestion vs ranking (probationary memory)
+
+**Be generous at ingestion; be ruthless at ranking.** Probationary rows formed at **`POST /v1/advisory-episodes`** are accepted when the text is **plausibly useful** (keyword signals, `mcp:event:*`, experiment/benchmark language, or long situational context)—not only when confidence is already high. Clear noise still goes to the **reject bucket** (`advisory_experiences`). New ingest starts at **low authority (1–2)**; **recall ranking**, reinforcement, consolidation, and contradiction policy **separate** durable signal from weak material over time—intake filtering is not the primary quality gate.
+
 **Advisory episodes** may be **distilled** into **candidate** rows (`POST /v1/episodes/distill`) as *possible* structured learning; those candidates are **not** memory until curated and materialized. Recall comes **before** substantive action; enforcement gates **risky** proposals; curation captures **validated** learning, not noise.
 
 ### Controlled promotion (automation without guessing)

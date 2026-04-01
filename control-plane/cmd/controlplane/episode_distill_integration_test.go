@@ -32,7 +32,7 @@ func TestREST_episodeDistill_producesCandidates(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Distillation.Enabled = true
 
 	container, err := app.Boot(cfg)
@@ -120,7 +120,7 @@ func TestREST_episodeDistill_doesNotAffectRecallOrEnforcement(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Distillation.Enabled = true
 
 	container, err := app.Boot(cfg)
@@ -212,7 +212,7 @@ func TestREST_episodeDistill_consolidatesDuplicates(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 	cfg.Postgres.DSN = dsn
-	cfg.Similarity.Enabled = true
+	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Distillation.Enabled = true
 
 	container, err := app.Boot(cfg)
