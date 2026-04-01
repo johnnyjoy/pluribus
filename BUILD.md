@@ -67,6 +67,8 @@ make api-test
 make integration-test
 ```
 
+**Experimental — pg_textsearch (BM25 lexical layer):** `make pg-textsearch-image`, overlay `docker-compose.pg-textsearch.yml`, docs under [docs/experiments/](docs/experiments/).
+
 Artifacts written by eval targets:
 
 - `artifacts/eval-report.txt`

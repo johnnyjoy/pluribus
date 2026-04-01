@@ -1,0 +1,18 @@
+# Optional overlay: Postgres with pg_textsearch (BM25) + shared_preload_libraries.
+# Use with the default dev stack (does not replace the main compose file).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.pg-textsearch.yml up -d --build postgres
+#
+# pg_textsearch must be in shared_preload_libraries before CREATE EXTENSION (see docs/experiments/pg-textsearch-container.md).
+# First boot on a fresh volume: run scripts/experiments/pg_textsearch_smoke.sql after DB is up.
+
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: docker/pg-textsearch/Dockerfile
+    image: pluribus-postgres-pg-textsearch:local
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_textsearch

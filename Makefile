@@ -3,7 +3,7 @@
 # GitHub CI runs: (1) cd control-plane && go test ./...  (2) make regression.
 # Plain `go test ./...` does NOT compile //go:build integration tests — use `make regression`,
 # `make integration-go` (ephemeral Postgres + host Go, no Compose image build), or `make ci-local`.
-.PHONY: test regression integration-go ci-local eval stress-eval api-test integration-test test-drive image
+.PHONY: test regression integration-go ci-local eval stress-eval api-test integration-test test-drive image pg-textsearch-image
 
 COMPOSE_REGRESSION := docker compose -p recall-regression -f docker-compose.regression.yml
 ARTIFACTS_DIR ?= artifacts
@@ -31,6 +31,10 @@ regression:
 # not testing the DSN. Avoids Compose image/buildx when you only need integration-tagged tests locally.
 integration-go:
 	@./scripts/run-integration-tests.sh
+
+# Experimental: build Postgres 18 + pgvector + pg_textsearch image (see docs/experiments/pg-textsearch-container.md).
+pg-textsearch-image:
+	docker build -t pluribus-postgres-pg-textsearch:local -f docker/pg-textsearch/Dockerfile docker/pg-textsearch
 
 # Core unit and package tests for the authoritative module.
 test:

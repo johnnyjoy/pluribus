@@ -1,0 +1,22 @@
+# Optional: build experimental Postgres + pg_textsearch image (does not gate main CI).
+# Triggers: manual, or pushes to feature branches named *pg-textsearch*.
+name: pg-textsearch exploration
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "feature/pg-textsearch*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-pg-textsearch-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pg-textsearch Postgres image
+        run: |
+          docker build -t pluribus-postgres-pg-textsearch:ci \
+            -f docker/pg-textsearch/Dockerfile docker/pg-textsearch

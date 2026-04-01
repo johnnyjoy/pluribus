@@ -12,6 +12,12 @@ Everything below is **reference** — use the table when you need a specific top
 
 ---
 
+## Experiments (non-canonical)
+
+| Path | Purpose |
+|------|---------|
+| [experiments/README.md](experiments/README.md) | Index of exploration docs (e.g. pg_textsearch BM25) |
+
 ## Public release surface (start here)
 
 | Doc | Purpose |

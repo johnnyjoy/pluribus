@@ -17,6 +17,7 @@ import (
 	"control-plane/internal/evidence"
 	"control-plane/internal/httpx"
 	"control-plane/internal/ingest"
+	"control-plane/internal/lexical"
 	"control-plane/internal/mcp"
 	"control-plane/internal/memory"
 	"control-plane/internal/recall"
@@ -456,6 +457,12 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			r.Post("/prune-rejected", simHandlers.PruneRejected)
 		})
 		r.Post("/episodes/distill", distHandlers.Distill)
+		if cfg.Lexical != nil && cfg.Lexical.ExperimentalHTTP {
+			lexH := lexical.NewHandlers(container.DB, cfg.Lexical)
+			r.Route("/experimental/lexical", func(r chi.Router) {
+				r.Post("/search", lexH.Search)
+			})
+		}
 	})
 
 	return httpx.WrapWithPluribusAuth(mcp.WrapHandler(router, cfg), container.APIKey), nil
