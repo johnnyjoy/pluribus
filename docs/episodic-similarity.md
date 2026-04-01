@@ -6,10 +6,13 @@ This layer is **subordinate** to canonical recall. It surfaces **advisory episod
 
 ## What this is not
 
-- **Not** canonical memory — episodes do not replace durable rows in `memories` or recall bundles as authority.
-- **Not** a blocking gate — advisory only; **pre-change enforcement** does **not** read `advisory_episodes`.
+- **Not** a substitute for **canonical** promotion — **binding** authority still comes from curated materialization when you need durable canon; **probationary** rows created **at ingest** are **advisory applicability** and lower authority.
+- **Not** a blocking gate — advisory ingest is not enforcement; **pre-change enforcement** does **not** read `advisory_experiences` as binding input.
 - **Not** container partitioning — `occurred_after` / `occurred_before` / `entity` / `entities` are **filters** on the global advisory store, not project/workspace/task scopes.
-- **Not** in **`POST /v1/recall/compile`** output — recall bundles are built from **`memories`** only; advisory text never appears in the compiled bundle from that path.
+
+**Ingest-time formation:** **`POST /v1/advisory-episodes`** classifies each row immediately: **accepted** summaries can create a **probationary** `memories` row and set **`memory_formation_status: linked`** (see **`related_memory_id`**); **rejected** rows stay in **`advisory_experiences`** with **`memory_formation_status: rejected`**. **Reject-bucket** rows are **not** candidates for **`POST /v1/advisory-episodes/similar`** (that endpoint ranks **non-rejected** advisory rows for episodic “similar cases,” including linked episodes retained as evidence).
+
+**Recall:** **`POST /v1/recall/compile`** returns **`memories`** only. If ingest formed **probationary** memory, that **statement** can appear in recall **because it is memory**, not because raw advisory text is merged into the bundle as a second substrate.
 
 ## Hierarchy (do not invert)
 
@@ -19,7 +22,7 @@ This layer is **subordinate** to canonical recall. It surfaces **advisory episod
 
 ## Storage
 
-- Table: **`advisory_episodes`** — `summary_text`, **`source`** (ingest channel), `tags`, optional `related_memory_id`, `created_at`.
+- Table: **`advisory_experiences`** — `summary_text`, **`source`** (ingest channel), `tags`, optional `related_memory_id`, **`memory_formation_status`**, **`rejection_reason`**, `created_at`.
 - **Episodic fields (advisory only):**
   - **`occurred_at`** — when the episode *occurred* (optional). If omitted, effective time for filtering and tie-breaks is **`COALESCE(occurred_at, created_at)`**.
   - **`entities`** — JSON array of normalized strings (e.g. people, systems, topics) for **overlap** with request filters—not a graph and not a partition ID.
@@ -38,7 +41,7 @@ This layer is **subordinate** to canonical recall. It surfaces **advisory episod
 | `entities` | no | String list; normalized (trim, lower-case, dedupe, max length/count). |
 | `related_memory_id` | no | Optional UUID link to a canonical row (not promotion). |
 
-**Response (201):** `id`, `summary_text`, `source`, **`tags`** (always an array, possibly empty), **`entities`** (always an array, possibly empty), `created_at`, `occurred_at` when set, optional `related_memory_id`, `advisory: true`, `non_canonical: true`.
+**Response (201):** `id`, `summary_text`, `source`, **`tags`** (always an array, possibly empty), **`entities`** (always an array, possibly empty), `created_at`, `occurred_at` when set, **`memory_formation_status`** (`linked` \| `rejected`), optional **`rejection_reason`**, optional **`related_memory_id`** / **`probationary_memory_id`** when linked, `advisory: true`, `non_canonical: true`.
 
 ### `POST /v1/advisory-episodes/similar` (200)
 
@@ -96,7 +99,7 @@ Shipped **`config.example.yaml`** / **`config.yaml`** set **`similarity.enabled:
 
 ### MCP as producer (not shortcut)
 
-Agents using **`POST /v1/mcp`** can call tool **`mcp_episode_ingest`** to append **structured advisory episodes** with **`source: mcp`**. The MCP layer applies **conservative, deterministic** validation (minimum summary length, required learning-signal keywords unless disabled in **`mcp.memory_formation`**) so the path stays **signal, not chat logs**. That is still **`POST /v1/advisory-episodes`** on the wire — **no** direct write to **`memories`**, **no** bypass of distill → candidate → review → materialize. See [mcp-usage.md](mcp-usage.md) and [curation-loop.md](curation-loop.md).
+Agents using **`POST /v1/mcp`** can call tool **`mcp_episode_ingest`** / **`record_experience`** to append **structured advisory episodes** with **`source: mcp`**. The MCP layer applies **conservative, deterministic** validation (minimum summary length, required learning-signal keywords unless disabled in **`mcp.memory_formation`**) so the path stays **signal, not chat logs**. That is still **`POST /v1/advisory-episodes`** on the wire — **with the same inline qualification** as HTTP: qualifying text can create **probationary** **`memories`** immediately; weak text stays in the **reject bucket**. Distill → candidate → materialize remains the path for **additional** structured promotion when enabled. See [mcp-usage.md](mcp-usage.md) and [curation-loop.md](curation-loop.md).
 
 **Dedup / throttle (MCP):** For **`source: mcp`**, the server can **reuse** a recent row with the same **`summary_text`** and **matching** `mcp:session:<correlation_id>` (or both empty) within **`mcp.memory_formation.dedup_window_seconds`** (default **120**). The **201** response includes **`deduplicated: true`** and **does not** run auto-distill again. Disable with **`dedup_enabled: false`**. Automated proof: [evaluation.md](evaluation.md), [evidence/episodic-proof.md](../evidence/episodic-proof.md).
 

@@ -1,31 +1,33 @@
 {
   "id": "proof-episodic-advisory-001",
   "suite": "episodic",
-  "description": "Advisory episodes: ingest with time and entities; similar respects window; outside window empty; enforcement ignores advisory; recall compile does not surface episode text.",
+  "description": "Signal-rich ingest: probationary memory at once (linked + related_memory_id). Recall proves the statement via memories. POST /v1/advisory-episodes/similar ranks non-reject rows and may return linked episodes (related_memory_id, resemblance_score); it is not the primary proof surface for accepted text—that is recall. Reject-bucket semantics are covered in proof-ingest-rejected-experience-001. Time window + isolated-tag enforcement unchanged.",
   "steps": [
     {
-      "id": "seed_advisory_episode",
+      "id": "seed_signal_rich_episode",
       "method": "POST",
       "path": "/v1/advisory-episodes",
       "body": {
-        "summary": "PROOF EPISODIC ALICE STAGING DEPLOY {{RUN_ID}}",
+        "summary": "PROOF EPISODIC ALICE STAGING {{RUN_ID}} deploy rollback error incident learning alice staging",
         "source": "manual",
         "tags": ["proof:episodic:{{RUN_ID}}"],
-        "occurred_at": "2020-06-15T14:00:00Z",
+        "occurred_at": "2020-06-30T23:58:00Z",
         "entities": ["alice", "staging"]
       },
       "expect_status": 201,
       "asserts": [
         {"kind": "body_contains", "value": "occurred_at"},
-        {"kind": "body_contains", "value": "\"entities\""}
+        {"kind": "body_contains", "value": "\"entities\""},
+        {"kind": "body_contains", "value": "\"memory_formation_status\":\"linked\""},
+        {"kind": "body_contains", "value": "related_memory_id"}
       ]
     },
     {
-      "id": "similar_in_window",
+      "id": "similar_in_window_linked_episode_metadata",
       "method": "POST",
       "path": "/v1/advisory-episodes/similar",
       "body": {
-        "query": "alice staging deploy proof episodic",
+        "query": "alice staging deploy proof episodic rollback",
         "tags": ["proof:episodic:{{RUN_ID}}"],
         "occurred_after": "2020-06-01T00:00:00Z",
         "occurred_before": "2020-06-30T23:59:59Z",
@@ -33,8 +35,9 @@
       },
       "expect_status": 200,
       "asserts": [
-        {"kind": "body_contains", "value": "PROOF EPISODIC ALICE"},
-        {"kind": "body_contains", "value": "advisory_similar_cases"}
+        {"kind": "body_contains", "value": "advisory_similar_cases"},
+        {"kind": "body_contains", "value": "related_memory_id"},
+        {"kind": "body_contains", "value": "resemblance_score"}
       ]
     },
     {
@@ -42,7 +45,7 @@
       "method": "POST",
       "path": "/v1/advisory-episodes/similar",
       "body": {
-        "query": "alice staging deploy proof episodic",
+        "query": "alice staging deploy proof episodic rollback",
         "tags": ["proof:episodic:{{RUN_ID}}"],
         "occurred_after": "2024-01-01T00:00:00Z",
         "occurred_before": "2024-12-31T23:59:59Z",
@@ -54,12 +57,12 @@
       ]
     },
     {
-      "id": "enforcement_ignores_advisory",
+      "id": "enforcement_ignores_isolated_tag",
       "method": "POST",
       "path": "/v1/enforcement/evaluate",
       "body": {
         "proposal_text": "PROOF_EPISODIC_ENF_CHECK {{RUN_ID}} proposes work that only exists in advisory narrative.",
-        "tags": ["proof:episodic:{{RUN_ID}}"]
+        "tags": ["proof:episodic:enf:{{RUN_ID}}"]
       },
       "expect_status": 200,
       "asserts": [
@@ -67,18 +70,18 @@
       ]
     },
     {
-      "id": "recall_compile_no_episode_text",
+      "id": "recall_compile_surfaces_probationary_memory",
       "method": "POST",
       "path": "/v1/recall/compile",
       "body": {
-        "retrieval_query": "alice staging deploy proof episodic",
+        "retrieval_query": "alice staging deploy proof episodic rollback",
         "tags": ["proof:episodic:{{RUN_ID}}"],
         "max_per_kind": 8,
         "max_total": 40
       },
       "expect_status": 200,
       "asserts": [
-        {"kind": "body_not_contains", "value": "PROOF EPISODIC ALICE STAGING DEPLOY"}
+        {"kind": "body_contains", "value": "PROOF EPISODIC ALICE STAGING"}
       ]
     }
   ]

@@ -102,8 +102,9 @@ func TestREST_advisory_episodes_similarByDateRange(t *testing.T) {
 		summary string
 		occ     time.Time
 	}{
-		{"year 2020 team lunch notes", in2020},
-		{"year 2024 standup notes", in2024},
+		// Signal keywords required so inline formation links the row; reject-bucket rows are excluded from /similar.
+		{"year 2020 team lunch notes deployment rollback error incident", in2020},
+		{"year 2024 standup notes timeout error when dialing upstream", in2024},
 	} {
 		body := fmt.Sprintf(`{"summary":%q,"source":"manual","tags":[%q],"occurred_at":%q}`,
 			tc.summary, tag, tc.occ.Format(time.RFC3339Nano))
@@ -240,8 +241,8 @@ func TestREST_enforcement_ignoresAdvisoryEpisodes(t *testing.T) {
 	srv := httptest.NewServer(rtr)
 	defer srv.Close()
 
-	// Advisory episode stating a constraint — not in memories table.
-	epBody := `{"summary":"NEVER use deprecated API X under any circumstances","source":"manual","tags":["rest:episodic-enf"],"entities":["api-x"]}`
+	// Low-signal ingest: rejected at formation time so no probationary memory row; enforcement still evaluates binding memory only.
+	epBody := fmt.Sprintf(`{"summary":%q,"source":"manual","tags":["rest:episodic-enf"],"entities":["api-x"]}`, strings.Repeat("z", 28))
 	resp, err := http.Post(srv.URL+"/v1/advisory-episodes", "application/json", strings.NewReader(epBody))
 	if err != nil {
 		t.Fatal(err)
@@ -395,7 +396,7 @@ func TestREST_advisory_episodes_minimalBackwardCompat(t *testing.T) {
 	defer srv.Close()
 
 	tag := "rest:episodic-min-" + uuid.New().String()[:8]
-	body := fmt.Sprintf(`{"summary":"MINIMAL EPISODE WORDS UNIQUE XYZ","source":"manual","tags":[%q]}`, tag)
+	body := fmt.Sprintf(`{"summary":"MINIMAL EPISODE WORDS UNIQUE XYZ error timeout incident","source":"manual","tags":[%q]}`, tag)
 	resp, err := http.Post(srv.URL+"/v1/advisory-episodes", "application/json", strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
@@ -424,8 +425,8 @@ func TestREST_advisory_episodes_minimalBackwardCompat(t *testing.T) {
 	}
 }
 
-// TestREST_recallCompile_excludesAdvisoryEpisodeText ensures canonical recall does not embed advisory_episodes rows.
-func TestREST_recallCompile_excludesAdvisoryEpisodeText(t *testing.T) {
+// TestREST_recallCompile_excludesRejectedAdvisoryText ensures recall does not surface text that only exists as a reject-bucket advisory row (no memory).
+func TestREST_recallCompile_excludesRejectedAdvisoryText(t *testing.T) {
 	dsn := os.Getenv("TEST_PG_DSN")
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
@@ -450,7 +451,7 @@ func TestREST_recallCompile_excludesAdvisoryEpisodeText(t *testing.T) {
 	defer srv.Close()
 
 	tag := "rest:episodic-recall-" + uuid.New().String()[:8]
-	unique := "ADVISORY ONLY NOT IN CANON " + uuid.New().String()
+	unique := strings.Repeat("z", 28) + " " + uuid.New().String()
 	epBody := fmt.Sprintf(`{"summary":%q,"source":"manual","tags":[%q]}`, unique, tag)
 	resp, err := http.Post(srv.URL+"/v1/advisory-episodes", "application/json", strings.NewReader(epBody))
 	if err != nil {
@@ -462,7 +463,7 @@ func TestREST_recallCompile_excludesAdvisoryEpisodeText(t *testing.T) {
 		t.Fatalf("create: %d %s", resp.StatusCode, string(b))
 	}
 
-	// Retrieval query must not echo the advisory-only phrase (bundle may echo retrieval_query).
+	// Reject-bucket text must not appear as memory; retrieval uses same tag only.
 	compileBody := fmt.Sprintf(`{"retrieval_query":"generic compile probe","tags":[%q],"max_per_kind":8,"max_total":40}`, tag)
 	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/v1/recall/compile", strings.NewReader(compileBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -477,7 +478,7 @@ func TestREST_recallCompile_excludesAdvisoryEpisodeText(t *testing.T) {
 		t.Fatalf("compile: %d %s", cre.StatusCode, string(cb))
 	}
 	if strings.Contains(string(cb), unique) {
-		t.Fatalf("recall bundle must not contain advisory episode statement")
+		t.Fatalf("recall bundle must not contain reject-bucket advisory-only statement")
 	}
 }
 
@@ -510,7 +511,8 @@ func TestREST_advisory_episodes_fixtureTestExperience(t *testing.T) {
 	defer srv.Close()
 
 	tag := "test:fixture-" + uuid.New().String()
-	summary := fmt.Sprintf("fixture:pluribus-test-experience — synthetic advisory episode for system smoke test (%s)", uuid.New().String())
+	// Low-signal body: rejected at ingest (no probationary memory); advisory row retained for inspection.
+	summary := fmt.Sprintf("fixture:pluribus-test-experience %s %s", strings.Repeat("z", 40), uuid.New().String())
 	body := map[string]any{
 		"summary": summary,
 		"source":  "manual",

@@ -1,0 +1,36 @@
+{
+  "id": "proof-ingest-rejected-experience-001",
+  "suite": "episodic",
+  "description": "Low-signal ingest is rejected for inline memory formation; row remains in advisory_experiences; episodic similarity excludes reject-bucket rows (tests reject-bucket semantics, not accepted-memory retrieval).",
+  "steps": [
+    {
+      "id": "ingest_rejected_no_memory",
+      "method": "POST",
+      "path": "/v1/advisory-episodes",
+      "body": {
+        "summary": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz {{RUN_ID}}",
+        "source": "manual",
+        "tags": ["proof:ingest:reject:{{RUN_ID}}"]
+      },
+      "expect_status": 201,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"memory_formation_status\":\"rejected\""},
+        {"kind": "body_contains", "value": "rejection_reason"}
+      ]
+    },
+    {
+      "id": "similar_excludes_reject_bucket",
+      "method": "POST",
+      "path": "/v1/advisory-episodes/similar",
+      "body": {
+        "query": "zzzzzzzz proof ingest reject bucket",
+        "tags": ["proof:ingest:reject:{{RUN_ID}}"],
+        "max_results": 5
+      },
+      "expect_status": 200,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"advisory_similar_cases\":[]"}
+      ]
+    }
+  ]
+}

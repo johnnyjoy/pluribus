@@ -1,6 +1,6 @@
 # Episodic REST proof — evidence and inventory
 
-Automated **REST-only** proof for the advisory episodic lane: ingest → similar (time/entity filters) → distill (**explicit** and/or **automatic** post-ingest when enabled in config — same candidate pipeline) → curation (pending, review, materialize, optional auto-promote) → recall / enforcement. Canonical **`memories`** remain the authority for recall and enforcement; advisory rows and pending candidates do not bind until materialized. **Vocabulary:** ingest channel (**`source`**) vs distill mode (**`pluribus_distill_origin`**) — [memory-doctrine.md](../docs/memory-doctrine.md) (Terminology).
+Automated **REST-only** proof for the advisory episodic lane: ingest (with **immediate** inline memory formation when signals qualify) → similar ( **non-reject-bucket** advisory rows only ) → distill (**explicit** and/or **automatic** post-ingest when enabled in config — same candidate pipeline) → curation (pending, review, materialize, optional auto-promote) → recall / enforcement. **Canonical** **`memories`** remain the authority for binding enforcement; **pending candidates** do not bind until materialized. **Probationary** rows created **at ingest** are **memory** (advisory applicability) and **may** surface in recall before distill/materialize. **Reject-bucket** rows (`memory_formation_status: rejected`) stay in **`advisory_experiences`** for inspection and are **excluded** from **`/v1/advisory-episodes/similar`**. **Vocabulary:** ingest channel (**`source`**) vs distill mode (**`pluribus_distill_origin`**) — [memory-doctrine.md](../docs/memory-doctrine.md) (Terminology section).
 
 ## How to run
 
@@ -39,7 +39,7 @@ Full `make regression` runs `./...` including these tests against ephemeral Post
 |--------|------------|------|
 | JSON scenarios | `TestProofHarnessREST_Postgres` | All embedded `internal/eval/scenarios/proof-*.json` (HTTP-only), **two-pass** pass/fail signature match |
 | Go sprint | `TestEpisodicProofSprintREST_Postgres` | Stateful adversarial subtests (same router, shared DB, unique tags per case) |
-| **HTTP MCP integration** | `TestIntegration_HTTP_MCP_*` / `TestIntegration_stdio_pluribusMcp_smoke` in **`cmd/controlplane/mcp_memory_formation_integration_test.go`** | **JSON-RPC** on **`POST /v1/mcp`** (same router as production): `mcp_episode_ingest` → advisory + auto-distill; curation tools; **no** canonical memory without materialize; **dedup** + optional **stdio** `pluribus-mcp` subprocess smoke. Requires **`go test -tags=integration`** and **`TEST_PG_DSN`**. |
+| **HTTP MCP integration** | `TestIntegration_HTTP_MCP_*` / `TestIntegration_stdio_pluribusMcp_smoke` in **`cmd/controlplane/mcp_memory_formation_integration_test.go`** | **JSON-RPC** on **`POST /v1/mcp`** (same router as production): `mcp_episode_ingest` → advisory + auto-distill; curation tools; **dedup** + optional **stdio** `pluribus-mcp` subprocess smoke. Requires **`go test -tags=integration`** and **`TEST_PG_DSN`**. |
 
 Logging: episodic JSON scenarios and sprint lines use **`[EPISODIC PROOF]`**; other proof JSON uses **`[PROOF]`**.
 
@@ -47,7 +47,9 @@ Logging: episodic JSON scenarios and sprint lines use **`[EPISODIC PROOF]`**; ot
 
 | ID | Proves |
 |----|--------|
-| `proof-episodic-advisory-001` | Ingest + time/entities; similar in/out of window; enforcement ignores advisory; recall does not surface episode text |
+| `proof-episodic-advisory-001` | Signal-rich ingest → **`linked`** + **`related_memory_id`**; **`/similar`** asserts ranked metadata (`related_memory_id`, `resemblance_score`), not episode copy; in/out of time window; enforcement on an **isolated** tag; recall surfaces **probationary** statement |
+| `proof-ingest-accepted-memory-001` | Accepted ingest path: **`memory_formation_status: linked`** and memory link fields in **201** response |
+| `proof-ingest-rejected-experience-001` | Rejected ingest path: **`rejected`** + **`rejection_reason`**; **`/similar`** empty for reject-bucket semantics |
 | `proof-episodic-time-window-bad-001` | Inverted `occurred_after` / `occurred_before` → **400** |
 | `proof-episodic-time-boundary-equal-001` | Equal lower/upper time bound (single instant) still matches |
 | `proof-episodic-distill-weak-001` | Weak/vague distill → no useful candidates |
@@ -62,12 +64,12 @@ Logging: episodic JSON scenarios and sprint lines use **`[EPISODIC PROOF]`**; ot
 |---------|--------|
 | `conflicting_evidence_two_distinct_candidates` | Competing episodes → distinct pending rows (no silent merge into one “truth”) |
 | `time_skew_occurred_at_not_ingest_time` | Filtering uses `occurred_at`, not ingestion clock |
-| `advisory_boundary_recall_ignores_episode_until_canon` | Recall ignores advisory text until materialize |
+| `advisory_distill_materialize_then_recall` | Distill → materialize → recall surfaces durable statement (ingest may already have probationary memory) |
 | `enforcement_stable_on_repeat` | Same enforcement input → same decision |
 | `soak_distill_merge_idempotent_support_monotonic` | Repeated merges: support count non-decreasing |
 | `inverted_time_window_similar_returns_400` | REST validation for bad time window |
 | `weak_inline_distill_yields_no_candidates` | Short/vague inline distill → no candidates |
-| `auto_distill_on_ingest_pending_without_explicit_distill` | With **`auto_from_advisory_episodes`**, ingest alone creates pending with **`pluribus_distill_origin":"auto"`**; recall still ignores until materialize |
+| `auto_distill_on_ingest_pending_without_explicit_distill` | With **`auto_from_advisory_episodes`**, ingest creates pending with **`pluribus_distill_origin":"auto"`**; probationary recall may already surface ingest text |
 | `enforcement_ignores_pending_distilled_candidate` | Distilled but not materialized rows do not bind enforcement |
 | `recall_compile_identical_requests_match` | Identical compile requests → identical bodies |
 | `review_supporting_episodes_cap_three_with_four_merges` | **≤3** `supporting_episodes` in review UI; explanation still cites **4** merged supports |
@@ -85,6 +87,7 @@ Logging: episodic JSON scenarios and sprint lines use **`[EPISODIC PROOF]`**; ot
 - **Every** natural-language enforcement pattern — engine is intentionally bounded; scenarios use wording that hits shipped matchers after canon exists.
 - **MCP / LSP** transport (REST is the contract under test here).
 - **Fresh DB per scenario** — one reset per test process; isolation is via unique tags / `{{RUN_ID}}` in JSON runs.
+- **`/v1/vet/recent-memory`** as the normal formation path — backfill / maintenance only (not part of this suite’s ingest story).
 
 ## Failure triage
 
@@ -97,4 +100,5 @@ Logging: episodic JSON scenarios and sprint lines use **`[EPISODIC PROOF]`**; ot
 - Router: `control-plane/internal/apiserver/router.go`
 - JSON loader: `internal/eval/proof_types.go`, runner: `proof_rest_runner.go`
 - Sprint: `internal/eval/episodic_proof_sprint_integration_test.go`
+- Inline formation: `internal/vet/service.go`, `internal/similarity/repo.go` (`ListCandidates` excludes **`rejected`**)
 - Review cap: `internal/curation/review_build.go` (`maxSupportingEpisodeSummaries`)

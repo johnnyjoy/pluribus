@@ -1,0 +1,22 @@
+{
+  "id": "proof-ingest-accepted-memory-001",
+  "suite": "episodic",
+  "description": "Signal-rich POST /v1/advisory-episodes qualifies at ingest; response is linked with related_memory_id / probationary_memory_id (no delayed vet on the normal path).",
+  "steps": [
+    {
+      "id": "ingest_accepted_inline_memory",
+      "method": "POST",
+      "path": "/v1/advisory-episodes",
+      "body": {
+        "summary": "PROOF ACCEPT INLINE {{RUN_ID}} deployment failure timeout rollback error incident learning fix",
+        "source": "manual",
+        "tags": ["proof:ingest:accept:{{RUN_ID}}"]
+      },
+      "expect_status": 201,
+      "asserts": [
+        {"kind": "body_contains", "value": "\"memory_formation_status\":\"linked\""},
+        {"kind": "body_contains", "value": "related_memory_id"}
+      ]
+    }
+  ]
+}

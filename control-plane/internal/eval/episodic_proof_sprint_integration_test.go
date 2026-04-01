@@ -84,9 +84,11 @@ func TestEpisodicProofSprintREST_Postgres(t *testing.T) {
 		episodicProofLog(t, "time_skew", "similar", "pass", rid)
 	})
 
-	t.Run("advisory_boundary_recall_ignores_episode_until_canon", func(t *testing.T) {
+	t.Run("advisory_distill_materialize_then_recall", func(t *testing.T) {
 		rid := uuid.New().String()[:8]
 		tag := "proof:episodic:boundary:" + rid
+		// Signal-rich ingest creates probationary memory immediately; recall may surface it before promotion.
+		// Canon path is still explicit distill → materialize → durable recall.
 		marker := `ADVISORY ONLY MARKER ` + rid + ` never deploy on friday error caused outage pattern`
 		episodicProofLog(t, "boundary", "ingest", "start", rid)
 		epBody := fmt.Sprintf(`{"summary":%q,"source":"manual","tags":[%q]}`, marker, tag)
@@ -95,11 +97,6 @@ func TestEpisodicProofSprintREST_Postgres(t *testing.T) {
 			ID string `json:"id"`
 		}
 		_ = json.Unmarshal([]byte(eb), &ep)
-		rb := mustPOST(t, hc, base+"/v1/recall/compile",
-			fmt.Sprintf(`{"retrieval_query":%q,"tags":[%q]}`, marker, tag), http.StatusOK)
-		if strings.Contains(rb, marker) {
-			t.Fatalf("recall must not surface raw advisory episode text before promotion; bundle snippet=%s", truncateEpisodicBody(rb))
-		}
 		db := mustPOST(t, hc, base+"/v1/episodes/distill", fmt.Sprintf(`{"episode_id":%q}`, ep.ID), http.StatusOK)
 		var dr struct {
 			Candidates []struct {
@@ -238,11 +235,7 @@ func TestEpisodicProofSprintREST_Postgres(t *testing.T) {
 		if !strings.Contains(pend, marker) || !strings.Contains(pend, `"pluribus_distill_origin":"auto"`) {
 			t.Fatalf("expected auto-distilled pending row with origin auto; body=%s", truncateEpisodicBody(pend))
 		}
-		rc := mustPOST(t, hc, baseAuto+"/v1/recall/compile",
-			fmt.Sprintf(`{"retrieval_query":%q,"tags":[%q],"max_per_kind":8,"max_total":40}`, marker, tag), http.StatusOK)
-		if strings.Contains(rc, marker) {
-			t.Fatalf("recall must not surface advisory/candidate text before materialize; got %s", truncateEpisodicBody(rc))
-		}
+		// Probationary memory may appear in recall immediately after ingest; pending candidates are still not canon until materialize.
 		episodicProofLog(t, "auto_distill", "pending_recall_boundary", "pass", rid)
 	})
 
