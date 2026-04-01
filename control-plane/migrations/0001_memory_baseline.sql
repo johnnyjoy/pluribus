@@ -173,16 +173,25 @@ CREATE TABLE IF NOT EXISTS canonical_fact_contradictions (
 
 CREATE INDEX IF NOT EXISTS idx_canonical_fact_contradictions_subject ON canonical_fact_contradictions(subject_norm);
 
-CREATE TABLE IF NOT EXISTS advisory_episodes (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  summary_text      TEXT NOT NULL,
-  source            TEXT NOT NULL CHECK (source IN ('manual', 'digest', 'ingestion_summary')),
-  tags              JSONB NOT NULL DEFAULT '[]'::jsonb,
-  related_memory_id UUID REFERENCES memories(id) ON DELETE SET NULL,
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_advisory_episodes_created ON advisory_episodes(created_at DESC);
+-- Advisory ingest table. After later migrations rename to advisory_experiences, replays must NOT
+-- recreate advisory_episodes (would duplicate indexes / break idempotent bootstrap); see migrate.Apply.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name IN ('advisory_episodes', 'advisory_experiences')
+  ) THEN
+    CREATE TABLE advisory_episodes (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      summary_text      TEXT NOT NULL,
+      source            TEXT NOT NULL CHECK (source IN ('manual', 'digest', 'ingestion_summary')),
+      tags              JSONB NOT NULL DEFAULT '[]'::jsonb,
+      related_memory_id UUID REFERENCES memories(id) ON DELETE SET NULL,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX idx_advisory_episodes_created ON advisory_episodes(created_at DESC);
+  END IF;
+END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_memories_dedup_key
 ON memories (kind, dedup_key, statement_key)

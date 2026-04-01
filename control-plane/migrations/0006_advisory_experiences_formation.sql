@@ -17,7 +17,9 @@ END $$;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-             WHERE c.relkind = 'i' AND c.relname = 'idx_advisory_episodes_created' AND n.nspname = 'public') THEN
+             WHERE c.relkind = 'i' AND c.relname = 'idx_advisory_episodes_created' AND n.nspname = 'public')
+     AND NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE c.relkind = 'i' AND c.relname = 'idx_advisory_experiences_created' AND n.nspname = 'public') THEN
     ALTER INDEX idx_advisory_episodes_created RENAME TO idx_advisory_experiences_created;
   END IF;
 END $$;
@@ -25,7 +27,9 @@ END $$;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-             WHERE c.relkind = 'i' AND c.relname = 'idx_advisory_episodes_effective_time' AND n.nspname = 'public') THEN
+             WHERE c.relkind = 'i' AND c.relname = 'idx_advisory_episodes_effective_time' AND n.nspname = 'public')
+     AND NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE c.relkind = 'i' AND c.relname = 'idx_advisory_experiences_effective_time' AND n.nspname = 'public') THEN
     ALTER INDEX idx_advisory_episodes_effective_time RENAME TO idx_advisory_experiences_effective_time;
   END IF;
 END $$;
