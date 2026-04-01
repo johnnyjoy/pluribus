@@ -5,13 +5,18 @@
 - `docker/pg-textsearch/Dockerfile` — pg18 + pgvector + pg_textsearch `.deb`
 - `docker-compose.pg-textsearch.yml` — overlay: `shared_preload_libraries`, custom image
 - `scripts/experiments/pg_textsearch_smoke.sql` — extension + BM25 smoke
+- `scripts/pg-textsearch-eval.sh` — ephemeral Postgres + `go run … eval`
 - `docs/experiments/*.md` — design, container, ETL, hybrid, filtering, benchmarks, rollback
+- `docs/experiments/pg-textsearch-eval-latest.md` — **generated** by `make pg-textsearch-eval`
 - `docs/experiments/sql/lexical_projection_example.sql` — example projection DDL
-- `control-plane/internal/lexical/` — `Search`, `Handlers` for experimental HTTP
+- `control-plane/migrations/0008_lexical_memory_projection.sql` — projection table (no BM25 in migration)
+- `control-plane/internal/experiments/pgtextsearch/` — seed, ETL, index, query suite, eval report
+- `control-plane/cmd/pg-textsearch-eval` — CLI: `seed|backfill|reindex|verify|eval|migrate`
+- `control-plane/internal/lexical/` — `Search` (quoted query literals for lib/pq), HTTP handlers
 - `control-plane/internal/app/config.go` — `LexicalConfig`
 - `control-plane/internal/apiserver/router.go` — optional `/v1/experimental/lexical/search`
 - `control-plane/configs/config.example.yaml` — commented `lexical:` block
-- `Makefile` — `pg-textsearch-image`
+- `Makefile` — `pg-textsearch-image`, `pg-textsearch-eval`, `lexical-backfill`, `lexical-reindex`, `lexical-verify`
 - `.github/workflows/pg-textsearch-exploration.yml` — optional image build
 
 ## Container strategy
@@ -20,7 +25,7 @@
 
 ## ETL / reindex strategy
 
-**Documented** (projection table + backfill + rebuild). **Makefile targets** `lexical-backfill` / `reindex` / `verify` — **not implemented**; use manual SQL or future scripts.
+**Automated:** `control-plane/cmd/pg-textsearch-eval` + **`make lexical-backfill`**, **`make lexical-reindex`**, **`make lexical-verify`**, **`make pg-textsearch-eval`** (full pipeline + artifacts). See [pg-textsearch-etl.md](pg-textsearch-etl.md).
 
 ## Indexing shape
 
@@ -38,7 +43,6 @@
 
 ## Next steps
 
-1. Populate projection via ETL script.
-2. Add `make lexical-backfill` / verify scripts.
-3. Offline benchmark harness.
-4. Prototype hybrid candidate merge + RRF.
+1. Tune `doc_text` and query suite from real recall traffic.
+2. Wire hybrid candidate merge + RRF (documented in [pg-textsearch-hybrid-recall.md](pg-textsearch-hybrid-recall.md)).
+3. Optional: enrich corpus via offline scripts (not required for `make pg-textsearch-eval`).

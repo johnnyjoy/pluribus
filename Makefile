@@ -3,7 +3,7 @@
 # GitHub CI runs: (1) cd control-plane && go test ./...  (2) make regression.
 # Plain `go test ./...` does NOT compile //go:build integration tests — use `make regression`,
 # `make integration-go` (ephemeral Postgres + host Go, no Compose image build), or `make ci-local`.
-.PHONY: test regression integration-go ci-local eval stress-eval api-test integration-test test-drive image pg-textsearch-image
+.PHONY: test regression integration-go ci-local eval stress-eval api-test integration-test test-drive image pg-textsearch-image lexical-backfill lexical-reindex lexical-verify pg-textsearch-eval
 
 COMPOSE_REGRESSION := docker compose -p recall-regression -f docker-compose.regression.yml
 ARTIFACTS_DIR ?= artifacts
@@ -35,6 +35,20 @@ integration-go:
 # Experimental: build Postgres 18 + pgvector + pg_textsearch image (see docs/experiments/pg-textsearch-container.md).
 pg-textsearch-image:
 	docker build -t pluribus-postgres-pg-textsearch:local -f docker/pg-textsearch/Dockerfile docker/pg-textsearch
+
+# Lexical projection ETL (requires PG_TEXTSEARCH_EVAL_DSN or DATABASE_URL to Postgres with pg_textsearch loaded).
+lexical-backfill:
+	cd control-plane && go run ./cmd/pg-textsearch-eval -dsn="$${PG_TEXTSEARCH_EVAL_DSN:-$${DATABASE_URL:-postgres://controlplane:controlplane@127.0.0.1:5432/controlplane?sslmode=disable}}" backfill
+
+lexical-reindex:
+	cd control-plane && go run ./cmd/pg-textsearch-eval -dsn="$${PG_TEXTSEARCH_EVAL_DSN:-$${DATABASE_URL:-postgres://controlplane:controlplane@127.0.0.1:5432/controlplane?sslmode=disable}}" reindex
+
+lexical-verify:
+	cd control-plane && go run ./cmd/pg-textsearch-eval -dsn="$${PG_TEXTSEARCH_EVAL_DSN:-$${DATABASE_URL:-postgres://controlplane:controlplane@127.0.0.1:5432/controlplane?sslmode=disable}}" verify
+
+# Full automated eval: ephemeral Docker Postgres + seed + reindex + query suite + artifacts (see docs/experiments/pg-textsearch-etl.md).
+pg-textsearch-eval:
+	@./scripts/pg-textsearch-eval.sh
 
 # Core unit and package tests for the authoritative module.
 test:

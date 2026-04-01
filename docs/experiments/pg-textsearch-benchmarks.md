@@ -24,5 +24,5 @@ Answer whether BM25 improves **candidate quality** for classes of queries before
 
 ## Current state
 
-- **No** automated benchmark in CI yet; smoke SQL proves correctness only.
-- Add harness when projection table is populated in dev.
+- **`make pg-textsearch-eval`** runs a **branch-local query suite** (exact / failure / pattern / ugly / mixed), records per-query latency, compares top statements to naive `ILIKE` baselines, and writes **`docs/experiments/pg-textsearch-eval-latest.md`** plus **`artifacts/pg-textsearch/eval.json`**. This is an evaluation harness, not publication-grade IR metrics.
+- CI does not gate on this path yet; optional workflow builds the pg_textsearch image only.

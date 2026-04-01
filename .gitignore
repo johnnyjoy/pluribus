@@ -42,3 +42,6 @@ control-plane/toolapi
 *.test
 *.out
 coverage.out
+
+# pg_textsearch eval machine-readable output (summary markdown may be committed)
+artifacts/pg-textsearch/*.json

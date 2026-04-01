@@ -50,13 +50,15 @@ func Search(ctx context.Context, db *sql.DB, projectionTable, query string, limi
 		limit = 500
 	}
 	t := pq.QuoteIdentifier(projectionTable)
-	// Two uses of the BM25 operator: ORDER BY + SELECT score (neg_bm25 convention per pg_textsearch docs).
+	// pg_textsearch <@> with lib/pq prepared parameters can return empty result sets; use a single
+	// quoted literal for both score and ORDER BY (validated projection table; query escaped as SQL string).
+	qLit := pq.QuoteLiteral(query)
 	q := fmt.Sprintf(`
-		SELECT memory_id::text, (doc_text <@> $1) AS neg_score
+		SELECT memory_id::text, (doc_text <@> %s) AS neg_score
 		FROM %s
-		ORDER BY doc_text <@> $1
-		LIMIT $2`, t)
-	rows, err := db.QueryContext(ctx, q, query, limit)
+		ORDER BY doc_text <@> %s
+		LIMIT %d`, qLit, t, qLit, limit)
+	rows, err := db.QueryContext(ctx, q)
 	if err != nil {
 		return nil, err
 	}

@@ -28,15 +28,20 @@
 - `EXPLAIN` on `ORDER BY doc_text <@> 'sample' LIMIT 10` — confirm index use when data is large enough.
 - Spot-check: known `memory_id` appears for a query.
 
-## Makefile targets (planned)
+## Automation (primary path)
 
-| Target | Purpose |
-|--------|---------|
-| `make lexical-backfill` | Not yet implemented — add script calling `psql` or small Go binary |
-| `make lexical-reindex` | Truncate projection + backfill + index |
-| `make lexical-verify` | Counts + sample query |
+| Command | Purpose |
+|---------|---------|
+| `make pg-textsearch-eval` | **One-shot:** ephemeral Docker Postgres (pg_textsearch image) → migrate → seed → reindex → verify → query suite → writes `docs/experiments/pg-textsearch-eval-latest.md` + `artifacts/pg-textsearch/eval.json` |
+| `make lexical-backfill` | Upsert projection from active `memories` (DSN: `PG_TEXTSEARCH_EVAL_DSN` or `DATABASE_URL`) |
+| `make lexical-reindex` | Drop BM25 index → truncate projection → backfill → recreate index |
+| `make lexical-verify` | Fail if projection row count ≠ active memories |
 
-**Current:** run SQL manually or use `scripts/experiments/` as templates.
+Implementation: `control-plane/cmd/pg-textsearch-eval` (`seed`, `backfill`, `reindex`, `verify`, `eval`, `migrate`).
+
+**Prerequisite:** Postgres must load `pg_textsearch` in `shared_preload_libraries` (see [pg-textsearch-container.md](pg-textsearch-container.md)).
+
+Manual SQL in `scripts/experiments/` remains optional for debugging only.
 
 ## Failure recovery
 

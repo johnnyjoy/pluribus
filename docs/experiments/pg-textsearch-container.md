@@ -52,6 +52,10 @@ Run stack:
 docker compose -f docker-compose.yml -f docker-compose.pg-textsearch.yml up -d --build postgres
 ```
 
+## Application queries (Go / lib/pq)
+
+`control-plane/internal/lexical.Search` embeds the query string with `pq.QuoteLiteral` for BM25 `<@>` operands. Prepared `QueryContext(..., $1, $2)` against the custom operator can return **empty** result sets with `lib/pq`; do not revert to naive `$1` parameters without re-validating against your driver.
+
 ## Limitations
 
 - **Regression runner** (`docker-compose.regression.yml`) still uses stock `pgvector:pg18` until this experiment is promoted — integration tests do not require pg_textsearch.
