@@ -1,5 +1,7 @@
 # Claude Code (CLI)
 
+**First-party plugin:** **[integrations/claude-code-plugin/README.md](../../integrations/claude-code-plugin/README.md)** bundles MCP defaults (`.mcp.json`), **hooks** (session primer, optional prompt recall preview, optional failure hint), **skills**, and a **memory-first investigator** agent. Install with `claude --plugin-dir ./integrations/claude-code-plugin` from a checkout.
+
 Claude Code supports **MCP servers** from the project or user configuration. Pluribus should be registered like any other MCP server pointing at the **same** control-plane URL you use for HTTP tests.
 
 ## MCP

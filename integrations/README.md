@@ -21,7 +21,6 @@ integrations/
   continue/          rules/pluribus.md  → .continue/rules/pluribus.md
   zed/               agent-context.template.md
   vscode/            extension/ (TypeScript VS Code extension), github-copilot-instructions.template.md
-  vscode-extension/  pointer README → builds from vscode/extension in CI
   generic-mcp/       (+ examples.json, skills/pluribus/SKILL.md)
   */snippets/context-prime.txt
 ```

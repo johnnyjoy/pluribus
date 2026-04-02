@@ -1,0 +1,16 @@
+{
+  "name": "pluribus-dev",
+  "owner": {
+    "name": "Pluribus",
+    "url": "https://github.com/johnnyjoy/pluribus"
+  },
+  "plugins": [
+    {
+      "name": "pluribus",
+      "description": "First-party Pluribus memory loop for Claude Code (MCP, hooks, skills, agent).",
+      "source": "./integrations/claude-code-plugin",
+      "version": "1.1.0",
+      "strict": true
+    }
+  ]
+}

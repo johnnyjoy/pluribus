@@ -65,12 +65,12 @@ npm run compile
 
 ```bash
 cd integrations/vscode/extension
-# If you edit media/icon.svg, regenerate the packaged PNG (vsce requires PNG for the icon):
-convert -background none -resize 128x128 media/icon.svg media/icon.png
+# Icon: built from official **Pluribus_logo.png** at repo root (`npm run icons` / prepublish).
+npm run icons
 npx --yes @vscode/vsce package --no-dependencies
 ```
 
-Artifact: **`pluribus-ai-<version>.vsix`** in this folder (extension package name **`pluribus-ai`**).
+Requires **ImageMagick** `convert` and **`Pluribus_logo.png`** at the repository root. Artifact: **`pluribus-ai-<version>.vsix`** (package **`pluribus-ai`**).
 
 Install: **Extensions** → **⋯** → **Install from VSIX…**.
 

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Build media/icon.png (128×128) from the official Pluribus mark at repository root.
+set -euo pipefail
+EXT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO="$(cd "$EXT/../../.." && pwd)"
+SRC="${PLURIBUS_LOGO:-$REPO/Pluribus_logo.png}"
+DST="$EXT/media/icon.png"
+if [[ ! -f "$SRC" ]]; then
+  echo "generate-icon: source not found: $SRC" >&2
+  echo "Set PLURIBUS_LOGO or add Pluribus_logo.png at the repository root." >&2
+  exit 1
+fi
+convert "$SRC" -resize '128x128^' -gravity center -extent 128x128 -background none "$DST"
+echo "generate-icon: wrote $DST"

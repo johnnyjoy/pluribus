@@ -2,8 +2,9 @@
   "name": "pluribus-ai",
   "displayName": "Pluribus AI",
   "description": "Connect your editor to Pluribus: REST orchestration, health, recall/record hooks — server owns memory semantics.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "publisher": "pluribus",
+  "license": "SEE LICENSE IN LICENSE.md",
   "icon": "media/icon.png",
   "repository": {
     "type": "git",
@@ -169,7 +170,8 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "icons": "bash scripts/generate-icon",
+    "vscode:prepublish": "npm run icons && npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./"
   },

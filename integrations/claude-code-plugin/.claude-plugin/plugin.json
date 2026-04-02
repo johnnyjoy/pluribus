@@ -1,0 +1,14 @@
+{
+  "name": "pluribus",
+  "description": "First-party Pluribus memory loop for Claude Code: MCP, hooks (session + prompt recall, optional failure hint), skills, and a recall-first investigator agent. Server owns memory; plugin orchestrates.",
+  "version": "1.1.0",
+  "author": {
+    "name": "Pluribus"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnnyjoy/pluribus.git"
+  },
+  "homepage": "https://github.com/johnnyjoy/pluribus/tree/main/integrations/claude-code-plugin",
+  "license": "SEE LICENSE IN LICENSE.md"
+}
