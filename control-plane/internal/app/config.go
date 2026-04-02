@@ -37,6 +37,16 @@ type Config struct {
 	Enforcement EnforcementConfig `yaml:"enforcement,omitempty"`
 	// MCP: optional JSON-RPC over HTTP at POST /v1/mcp. Omitted or disabled=false → endpoint on (default).
 	MCP *MCPConfig `yaml:"mcp,omitempty"`
+	// Lexical: optional pg_textsearch BM25 path (experimental). Canonical memory unchanged; see docs/experiments/pg-textsearch.md.
+	Lexical *LexicalConfig `yaml:"lexical,omitempty"`
+}
+
+// LexicalConfig gates experimental BM25 retrieval against a projection table (not canonical memories).
+type LexicalConfig struct {
+	// ExperimentalHTTP when true registers POST /v1/experimental/lexical/search (default false).
+	ExperimentalHTTP bool `yaml:"experimental_http"`
+	// ProjectionTable is the BM25-indexed table (e.g. lexical_memory_projection). Lowercase identifier only.
+	ProjectionTable string `yaml:"projection_table"`
 }
 
 // MCPConfig toggles MCP JSON-RPC over HTTP (POST /v1/mcp). See docs/mcp-service-first.md.
