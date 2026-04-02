@@ -1,8 +1,8 @@
 {
   "name": "pluribus-memory",
   "displayName": "Pluribus Memory",
-  "description": "Recall, record experiences, and inspect pending learnings against a Pluribus control plane (REST).",
-  "version": "0.1.0",
+  "description": "Event-driven orchestrator: recall/record against Pluribus REST, health, metrics (control plane owns memory semantics).",
+  "version": "0.2.0",
   "publisher": "pluribus",
   "engines": {
     "vscode": "^1.85.0"
@@ -27,18 +27,86 @@
           "type": "string",
           "default": "",
           "description": "Optional X-API-Key when PLURIBUS_API_KEY is set on the server."
+        },
+        "pluribus.defaultTags": {
+          "type": "string",
+          "default": "vscode",
+          "description": "Comma-separated tags for recall/record requests (situation tags, not workspace silos)."
+        },
+        "pluribus.orchestrator.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic recall/record on hooked events."
+        },
+        "pluribus.orchestrator.recallOnTaskStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "POST /v1/recall/compile when a VS Code task starts."
+        },
+        "pluribus.orchestrator.recallOnDebugStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "POST /v1/recall/compile when a debug session starts."
+        },
+        "pluribus.orchestrator.recallOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, debounced recall after file save (can be noisy)."
+        },
+        "pluribus.orchestrator.saveDebounceMs": {
+          "type": "number",
+          "default": 2500,
+          "description": "Debounce for recallOnSave (ms)."
+        },
+        "pluribus.orchestrator.maxRecallTotal": {
+          "type": "number",
+          "default": 24,
+          "description": "max_total for compile requests from the orchestrator."
+        },
+        "pluribus.orchestrator.recordOnTaskProcessFailure": {
+          "type": "boolean",
+          "default": true,
+          "description": "POST /v1/advisory-episodes when a task process exits non-zero (requires onDidEndTaskProcess)."
+        },
+        "pluribus.orchestrator.recordOnDebugEnd": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, record when any debug session ends (noisy; off by default)."
+        },
+        "pluribus.healthCheckIntervalMinutes": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0,
+          "description": "Periodic GET /healthz; 0 disables interval checks."
+        },
+        "pluribus.nudges.whenDisconnected": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show one soft warning per session when auto-recall fails with network error (HTTP status 0)."
+        },
+        "pluribus.nudges.afterConsecutiveTaskFailures": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "description": "If >0, information message when this many consecutive task process failures occur (0=off)."
+        },
+        "pluribus.metrics.logIntervalMinutes": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "description": "Append metrics line to Output on this interval; 0=off."
         }
       }
     },
     "commands": [
       {
         "command": "pluribus.recallContext",
-        "title": "Pluribus: Recall Context",
+        "title": "Pluribus: Recall Context (manual)",
         "icon": "$(search)"
       },
       {
         "command": "pluribus.recordExperience",
-        "title": "Pluribus: Record Experience",
+        "title": "Pluribus: Record Experience (manual)",
         "icon": "$(add)"
       },
       {
@@ -50,6 +118,21 @@
         "command": "pluribus.refreshSidebar",
         "title": "Pluribus: Refresh sidebar",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "pluribus.checkHealth",
+        "title": "Pluribus: Check health",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "pluribus.showMetrics",
+        "title": "Pluribus: Show metrics",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "pluribus.showOutput",
+        "title": "Pluribus: Show output",
+        "icon": "$(output)"
       }
     ],
     "views": {

@@ -1,32 +1,18 @@
 import * as vscode from "vscode";
+import {
+  getBaseUrl,
+  jsonHeaders,
+  postRecallCompile,
+  postAdvisoryEpisode,
+  plainHeaders,
+} from "./api";
+import { Metrics } from "./metrics";
+import { registerOrchestrator } from "./orchestrator";
 
 const output = vscode.window.createOutputChannel("Pluribus");
 
 function cfg(): vscode.WorkspaceConfiguration {
   return vscode.workspace.getConfiguration("pluribus");
-}
-
-async function jsonHeaders(): Promise<Record<string, string>> {
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  const key = cfg().get<string>("apiKey") ?? "";
-  if (key.trim().length > 0) {
-    h["X-API-Key"] = key.trim();
-  }
-  return h;
-}
-
-function getHeaders(): Record<string, string> {
-  const h: Record<string, string> = {};
-  const key = cfg().get<string>("apiKey") ?? "";
-  if (key.trim().length > 0) {
-    h["X-API-Key"] = key.trim();
-  }
-  return h;
-}
-
-function baseUrl(): string {
-  const u = cfg().get<string>("baseUrl") ?? "http://127.0.0.1:8123";
-  return u.replace(/\/$/, "");
 }
 
 class PluribusTree implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -36,8 +22,20 @@ class PluribusTree implements vscode.TreeDataProvider<vscode.TreeItem> {
   lastRecall = "";
   lastRecord = "";
   lastPending = "";
+  lastAutoRecall = "";
+  lastAutoRecord = "";
+  healthLine = "Health: (starting)";
+  metricsLine = "";
+  connectionOk: boolean | undefined = undefined;
+
+  private metrics: Metrics;
+
+  constructor(metrics: Metrics) {
+    this.metrics = metrics;
+  }
 
   refresh(): void {
+    this.metricsLine = this.metrics.summaryLine();
     this._onDidChange.fire();
   }
 
@@ -56,6 +54,28 @@ class PluribusTree implements vscode.TreeDataProvider<vscode.TreeItem> {
     this.refresh();
   }
 
+  setAutoRecall(s: string): void {
+    this.lastAutoRecall = s;
+    this.refresh();
+  }
+
+  setAutoRecord(s: string): void {
+    this.lastAutoRecord = s;
+    this.refresh();
+  }
+
+  setHealth(ok: boolean | undefined, detail: string): void {
+    this.connectionOk = ok;
+    if (ok === undefined) {
+      this.healthLine = "Health: unknown";
+    } else if (ok) {
+      this.healthLine = `Health: OK (${detail})`;
+    } else {
+      this.healthLine = `Health: down (${detail})`;
+    }
+    this.refresh();
+  }
+
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
@@ -65,22 +85,77 @@ class PluribusTree implements vscode.TreeDataProvider<vscode.TreeItem> {
       s.length <= n ? s : s.slice(0, n) + "…";
     const mk = (label: string, body: string, tip: string) => {
       const it = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
-      it.description = body ? trunc(body.replace(/\s+/g, " "), 80) : "(empty)";
+      it.description = body ? trunc(body.replace(/\s+/g, " "), 72) : "(empty)";
       it.tooltip = tip || body;
       return it;
     };
     return [
-      mk("Last recall", this.lastRecall, this.lastRecall),
-      mk("Last record", this.lastRecord, this.lastRecord),
+      mk("Connection", this.healthLine, this.healthLine),
+      mk("Session metrics", this.metricsLine, this.metricsLine),
+      mk("Last auto recall", this.lastAutoRecall, this.lastAutoRecall),
+      mk("Last auto record", this.lastAutoRecord, this.lastAutoRecord),
+      mk("Last manual recall", this.lastRecall, this.lastRecall),
+      mk("Last manual record", this.lastRecord, this.lastRecord),
       mk("Pending candidates", this.lastPending, this.lastPending),
     ];
   }
 }
 
 let tree: PluribusTree;
+let metrics: Metrics;
+let statusBar: vscode.StatusBarItem;
 
 export function activate(context: vscode.ExtensionContext): void {
-  tree = new PluribusTree();
+  metrics = new Metrics();
+  tree = new PluribusTree(metrics);
+
+  statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  statusBar.command = "pluribus.showOutput";
+  context.subscriptions.push(statusBar);
+
+  const updateStatusBar = (): void => {
+    if (tree.connectionOk === false) {
+      statusBar.text = "$(error) Pluribus";
+      statusBar.tooltip = "Disconnected — click for output";
+      statusBar.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+    } else if (tree.connectionOk === true) {
+      statusBar.text = "$(pass) Pluribus";
+      statusBar.tooltip = `OK — ${metrics.summaryLine()}`;
+      statusBar.backgroundColor = undefined;
+    } else {
+      statusBar.text = "$(question) Pluribus";
+      statusBar.tooltip = "Checking…";
+      statusBar.backgroundColor = undefined;
+    }
+    statusBar.show();
+  };
+
+  const markRecallOk = (): void => {
+    /* reserved for future nudges based on recall recency */
+  };
+
+  const orch = registerOrchestrator(context, {
+    output,
+    metrics,
+    setLastAutoRecall: (t) => {
+      tree.setAutoRecall(t);
+    },
+    setLastAutoRecord: (t) => {
+      tree.setAutoRecord(t);
+    },
+    setHealthOk: (ok, detail) => tree.setHealth(ok, detail),
+    refreshTree: () => tree.refresh(),
+    updateStatusBar,
+    markRecallOk,
+  });
+
+  const logIntervalMin = cfg().get<number>("metrics.logIntervalMinutes") ?? 0;
+  if (logIntervalMin > 0) {
+    const logId = setInterval(() => {
+      metrics.log(output);
+    }, logIntervalMin * 60 * 1000);
+    context.subscriptions.push({ dispose: () => clearInterval(logId) });
+  }
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("pluribusSidebar", tree),
@@ -88,13 +163,43 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("pluribus.recordExperience", recordExperience),
     vscode.commands.registerCommand("pluribus.viewLearnings", viewLearnings),
     vscode.commands.registerCommand("pluribus.refreshSidebar", () => tree.refresh()),
+    vscode.commands.registerCommand("pluribus.checkHealth", async () => {
+      await orch.checkHealth();
+      vscode.window.showInformationMessage(
+        tree.connectionOk ? "Pluribus: health OK" : "Pluribus: health check failed — see Output"
+      );
+    }),
+    vscode.commands.registerCommand("pluribus.showMetrics", () => {
+      metrics.log(output);
+      output.show(true);
+      vscode.window.showInformationMessage(metrics.summaryLine());
+    }),
+    vscode.commands.registerCommand("pluribus.showOutput", () => {
+      output.show(true);
+    }),
     output
   );
+
+  updateStatusBar();
+  metrics.log(output);
+}
+
+async function defaultTags(): Promise<string[]> {
+  const raw = cfg().get<string>("defaultTags");
+  if (raw && raw.trim().length > 0) {
+    return raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return ["vscode"];
 }
 
 async function recallContext(): Promise<void> {
+  const ws = vscode.workspace.name ?? "workspace";
   const q = await vscode.window.showInputBox({
     prompt: "Retrieval query (situation text)",
+    value: `${ws}: `,
     placeHolder: "What are you trying to do?",
   });
   if (q === undefined) {
@@ -102,7 +207,7 @@ async function recallContext(): Promise<void> {
   }
   const tagStr = await vscode.window.showInputBox({
     prompt: "Tags (comma-separated, optional)",
-    value: "vscode",
+    value: (await defaultTags()).join(", "),
   });
   if (tagStr === undefined) {
     return;
@@ -111,30 +216,31 @@ async function recallContext(): Promise<void> {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const body = JSON.stringify({
-    retrieval_query: q,
-    tags: tags.length ? tags : ["vscode"],
-    max_total: 32,
-  });
+  const base = getBaseUrl(cfg());
   try {
-    const res = await fetch(`${baseUrl()}/v1/recall/compile`, {
-      method: "POST",
-      headers: await jsonHeaders(),
-      body,
-    });
-    const text = await res.text();
-    output.appendLine(`[recall] HTTP ${res.status}`);
-    output.appendLine(text);
+    const res = await postRecallCompile(
+      base,
+      await jsonHeaders(cfg()),
+      q,
+      tags.length ? tags : ["vscode"],
+      32
+    );
+    metrics.manualRecall += 1;
+    output.appendLine(`[recall manual] HTTP ${res.status}`);
+    output.appendLine(res.body);
     output.show(true);
-    tree.setRecall(text);
+    tree.setRecall(res.body);
     if (!res.ok) {
+      metrics.failedRecall += 1;
       vscode.window.showWarningMessage(`Pluribus recall: HTTP ${res.status}`);
     }
+    tree.refresh();
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     vscode.window.showErrorMessage(`Pluribus recall failed: ${msg}`);
     output.appendLine(`[recall] error ${msg}`);
     output.show(true);
+    metrics.failedRecall += 1;
   }
 }
 
@@ -146,40 +252,42 @@ async function recordExperience(): Promise<void> {
   if (summary === undefined || summary.trim() === "") {
     return;
   }
-  const body = JSON.stringify({
-    summary: summary.trim(),
-    source: "manual",
-    tags: ["vscode", "extension"],
-  });
+  const base = getBaseUrl(cfg());
   try {
-    const res = await fetch(`${baseUrl()}/v1/advisory-episodes`, {
-      method: "POST",
-      headers: await jsonHeaders(),
-      body,
-    });
-    const text = await res.text();
-    output.appendLine(`[record] HTTP ${res.status}`);
-    output.appendLine(text);
+    const res = await postAdvisoryEpisode(
+      base,
+      await jsonHeaders(cfg()),
+      summary.trim(),
+      "vscode-manual",
+      [...(await defaultTags()), "extension"]
+    );
+    metrics.manualRecord += 1;
+    output.appendLine(`[record manual] HTTP ${res.status}`);
+    output.appendLine(res.body);
     output.show(true);
-    tree.setRecord(text);
+    tree.setRecord(res.body);
     if (!res.ok) {
+      metrics.failedRecord += 1;
       vscode.window.showWarningMessage(
         `Pluribus record: HTTP ${res.status} (similarity disabled on server?)`
       );
     } else {
       vscode.window.showInformationMessage("Pluribus: advisory episode recorded.");
     }
+    tree.refresh();
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     vscode.window.showErrorMessage(`Pluribus record failed: ${msg}`);
+    metrics.failedRecord += 1;
   }
 }
 
 async function viewLearnings(): Promise<void> {
   try {
-    const res = await fetch(`${baseUrl()}/v1/curation/pending`, {
+    const base = getBaseUrl(cfg());
+    const res = await fetch(`${base}/v1/curation/pending`, {
       method: "GET",
-      headers: getHeaders(),
+      headers: plainHeaders(cfg()),
     });
     const text = await res.text();
     output.appendLine(`[pending] HTTP ${res.status}`);
@@ -189,6 +297,7 @@ async function viewLearnings(): Promise<void> {
     if (!res.ok) {
       vscode.window.showWarningMessage(`Pluribus pending: HTTP ${res.status}`);
     }
+    tree.refresh();
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     vscode.window.showErrorMessage(`Pluribus pending failed: ${msg}`);

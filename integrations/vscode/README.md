@@ -1,28 +1,51 @@
-# VS Code
+# VS Code extension — Pluribus orchestrator
 
 Two integration paths:
 
-1. **REST extension (in-repo)** — **`extension/`** — commands and an Explorer sidebar against the control-plane **HTTP API** (no MCP runtime inside the extension).
-2. **MCP + Copilot-style instructions** — add Pluribus MCP per extension docs; **`mcp-config.example.json`** for shape; copy **`github-copilot-instructions.template.md`** → **`.github/copilot-instructions.md`**, then merge **`snippets/context-prime.txt`** ([Custom instructions](https://code.visualstudio.com/docs/copilot/customization/custom-instructions)); add **`skill.md`** if you want the step table.
+1. **This extension (REST)** — event-driven orchestration + manual commands against the control plane **HTTP API**. **Does not embed MCP**; memory semantics stay on the server.
+2. **MCP + Copilot-style instructions** — optional; see **`mcp-config.example.json`** and **`github-copilot-instructions.template.md`**.
 
-**Canonical behavior:** [`pluribus-instructions.md`](../pluribus-instructions.md).
+## What the extension does (v0.2+)
 
-**`recall_context` → plan → act → `record_experience`** for substantive agent work (MCP path). The extension uses REST equivalents: **`POST /v1/recall/compile`**, **`POST /v1/advisory-episodes`**, **`GET /v1/curation/pending`**.
+| Area | Behavior |
+|------|-----------|
+| **Health** | `GET /healthz` on activate, on config change, and on a configurable interval |
+| **Auto recall** | `POST /v1/recall/compile` on **task start** and **debug start** (optional: debounced **save**) |
+| **Auto record** | `POST /v1/advisory-episodes` with `source: vscode-orchestrator` on **task process non-zero exit**; optional **debug end** (off by default — noisy) |
+| **Manual** | Recall / record commands remain; tags default from settings |
+| **Visibility** | Explorer sidebar (connection, metrics line, last auto/manual snippets), **Output → Pluribus**, **status bar** |
+| **Metrics** | Local counters (auto/manual recall & record, failures, nudges); **`Pluribus: Show metrics`** logs a line |
 
-## Extension (`extension/`)
+**Not** implemented client-side: ranking, authority, promotion, or doctrine — only transport and triggers.
 
-**Commands:** `Pluribus: Recall Context`, `Pluribus: Record Experience`, `Pluribus: View Learnings` (pending curation queue).
+## Settings (`pluribus.*`)
 
-**UI:** Explorer → **Pluribus** view — shows last recall/record/pending snippets; full JSON in **Output → Pluribus**.
+| Key | Default | Notes |
+|-----|---------|--------|
+| `baseUrl` | `http://127.0.0.1:8123` | API root |
+| `apiKey` | *(empty)* | `X-API-Key` if server requires it |
+| `defaultTags` | `vscode` | Comma-separated tags for requests |
+| `orchestrator.enabled` | `true` | Master switch for hooks |
+| `orchestrator.recallOnTaskStart` | `true` | |
+| `orchestrator.recallOnDebugStart` | `true` | |
+| `orchestrator.recallOnSave` | `false` | Can be chatty |
+| `orchestrator.saveDebounceMs` | `2500` | |
+| `orchestrator.maxRecallTotal` | `24` | `max_total` for compile |
+| `orchestrator.recordOnTaskProcessFailure` | `true` | Needs shell/process tasks |
+| `orchestrator.recordOnDebugEnd` | `false` | Every debug stop — usually too loud |
+| `healthCheckIntervalMinutes` | `5` | `0` = no periodic check |
+| `nudges.whenDisconnected` | `true` | One soft warning per session on network-style recall failure |
+| `nudges.afterConsecutiveTaskFailures` | `0` | `>0` → info message at N consecutive task failures |
+| `metrics.logIntervalMinutes` | `0` | `>0` → periodic metrics line in Output |
 
-**Settings:**
+## Commands
 
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `pluribus.baseUrl` | `http://127.0.0.1:8123` | API base (no trailing slash) |
-| `pluribus.apiKey` | *(empty)* | `X-API-Key` when the server uses `PLURIBUS_API_KEY` |
+- **Pluribus: Check health**
+- **Pluribus: Show metrics**
+- **Pluribus: Show output**
+- **Pluribus: Recall Context (manual)** / **Record Experience (manual)** / **View Learnings** / **Refresh sidebar**
 
-**Build / run from source:**
+## Build / local install
 
 ```bash
 cd integrations/vscode/extension
@@ -30,8 +53,38 @@ npm install
 npm run compile
 ```
 
-In VS Code: **Run and Debug** → “Extension Development Host”, or **`F5`** with a launch config that loads this folder.
+**Run (Extension Development Host):** open `integrations/vscode/extension` in VS Code → **Run and Debug** → launch extension (or **F5** if `.vscode/launch.json` is present).
 
-**Package (optional):** `npm install -g @vscode/vsce` then `vsce package` from `extension/` (produces a `.vsix`).
+**Pack `.vsix` (no marketplace):**
 
-**Verify:** With `docker compose up`, run **Recall Context** — Output should show HTTP 200 and a recall bundle JSON. **Record Experience** should return 201 when similarity/advisory episodes are enabled. **View Learnings** calls **`GET /v1/curation/pending`**.
+```bash
+cd integrations/vscode/extension
+npx --yes @vscode/vsce package --no-dependencies
+```
+
+Install: **Extensions** → **⋯** → **Install from VSIX…**.
+
+## Cursor compatibility
+
+The same VS Code extension **often** loads in **Cursor** (Cursor is VS Code–compatible). **Not verified in CI** in this repo: treat **VS Code** as the reference; after installing the `.vsix` in Cursor, confirm **tasks/debug** events fire and **Output → Pluribus** shows auto recall/record. Differences in task/debug internals are possible — use metrics + logs to validate.
+
+## Event hooks (implementation)
+
+| Source | Event | Auto recall | Auto record |
+|--------|--------|-------------|-------------|
+| Task | `tasks.onDidStartTask` | Yes (query = task name + workspace) | — |
+| Task process | `tasks.onDidEndTaskProcess` | — | Yes if `exitCode` defined and ≠ 0 |
+| Debug | `debug.onDidStartDebugSession` | Yes | — |
+| Debug | `debug.onDidTerminateDebugSession` | — | Optional (`recordOnDebugEnd`) |
+| Save | `onDidSaveTextDocument` | Optional (`recallOnSave`) | — |
+| Config | `onDidChangeConfiguration` | — | Re-runs health |
+
+Tasks **without** a process (e.g. some `CustomExecution` tasks) do not get `onDidEndTaskProcess` — no auto record on those failures.
+
+## REST mapping
+
+- Recall: `POST /v1/recall/compile` (same semantics as MCP `recall_context` on the server).
+- Record: `POST /v1/advisory-episodes` (`source` = `vscode-orchestrator` or `vscode-manual`).
+- Pending: `GET /v1/curation/pending` (manual command).
+
+**Canonical agent loop** (for Copilot/MCP elsewhere): [`../pluribus-instructions.md`](../pluribus-instructions.md).

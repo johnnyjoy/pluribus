@@ -1,24 +1,31 @@
-# VS Code (extension + MCP / Copilot-adjacent)
+# VS Code (extension + optional MCP)
 
-## REST extension (recall / record / pending)
+## REST extension (orchestrator)
 
-This repository includes a **TypeScript extension** under **[integrations/vscode/extension/](../../integrations/vscode/extension/)** — commands wired to **`POST /v1/recall/compile`**, **`POST /v1/advisory-episodes`**, **`GET /v1/curation/pending`**. Build from source (`npm install && npm run compile`); see **[integrations/vscode/README.md](../../integrations/vscode/README.md)**.
+The in-repo extension under **[integrations/vscode/extension/](../../integrations/vscode/extension/)** (v0.2+) is an **event-driven orchestrator**:
 
-## MCP
+- **Health:** periodic `GET /healthz`, status bar + sidebar.
+- **Auto recall:** `POST /v1/recall/compile` on **task start** and **debug start** (optional debounced **save**).
+- **Auto record:** `POST /v1/advisory-episodes` on **task process non-zero exit** (`source: vscode-orchestrator`); optional **debug end** (default **off**).
+- **Metrics:** local counters + Output logging — **no** network telemetry.
+- **Policy:** **no** client-side memory ranking or promotion; all semantics remain on the control plane.
 
-Visual Studio Code can use MCP through **extensions** or **workspace configuration**, depending on Microsoft’s current shipping model (GitHub Copilot agent mode, MCP extension, etc.). Integrate via **standard MCP client** configuration pointing at **`/v1/mcp`** (in addition to or instead of the REST extension above).
+Details, settings, and `.vsix` packaging: **[integrations/vscode/README.md](../../integrations/vscode/README.md)**.
 
-## MCP URL
+## MCP (optional)
 
-- **Endpoint:** `http://127.0.0.1:8123/v1/mcp` (or your deployed host)
-- **Header:** `X-API-Key` when `PLURIBUS_API_KEY` is set on the server
-
-**Example stub:** **[integrations/vscode/mcp-config.example.json](../../integrations/vscode/mcp-config.example.json)** — merge into whatever MCP config your VS Code setup expects (often a JSON file under `.vscode/` or user settings—**vendor-specific**).
+VS Code’s MCP story is vendor-specific. Use **[integrations/vscode/mcp-config.example.json](../../integrations/vscode/mcp-config.example.json)** and your Copilot/MCP extension’s docs. Endpoint: `http://127.0.0.1:8123/v1/mcp` (or deployed host).
 
 ## Rules + skill
 
-**Canonical:** **[integrations/pluribus-instructions.md](../../integrations/pluribus-instructions.md)**. Copy **[integrations/vscode/github-copilot-instructions.template.md](../../integrations/vscode/github-copilot-instructions.template.md)** to **`.github/copilot-instructions.md`** ([VS Code custom instructions](https://code.visualstudio.com/docs/copilot/customization/custom-instructions)); merge **`snippets/context-prime.txt`**. Use **[integrations/vscode/skill.md](../../integrations/vscode/skill.md)** for the step table. Pack: **[integrations/vscode/README.md](../../integrations/vscode/README.md)**.
+Copy **[integrations/vscode/github-copilot-instructions.template.md](../../integrations/vscode/github-copilot-instructions.template.md)** → **`.github/copilot-instructions.md`**; merge **`snippets/context-prime.txt`**. Skill table: **[integrations/vscode/skill.md](../../integrations/vscode/skill.md)**.
+
+## Cursor
+
+The same `.vsix` may install in **Cursor**; behavior should be verified manually (tasks/debug events). **VS Code** is the tested reference for this repository.
 
 ## Limitations
 
-- VS Code MCP story is **moving quickly**—confirm the config file name and schema for your Copilot / MCP extension version.
+- Auto record on task failure requires **`onDidEndTaskProcess`** (tasks with a real process).
+- **Save**-triggered recall is **off** by default (noise).
+- **Hard enforcement** is intentionally out of scope — soft nudges and defaults only.
