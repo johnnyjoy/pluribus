@@ -70,6 +70,8 @@ convert -background none -resize 128x128 media/icon.svg media/icon.png
 npx --yes @vscode/vsce package --no-dependencies
 ```
 
+Artifact: **`pluribus-ai-<version>.vsix`** in this folder (extension package name **`pluribus-ai`**).
+
 Install: **Extensions** → **⋯** → **Install from VSIX…**.
 
 ## Cursor compatibility

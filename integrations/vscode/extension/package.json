@@ -1,8 +1,8 @@
 {
-  "name": "pluribus-memory",
+  "name": "pluribus-ai",
   "displayName": "Pluribus AI",
   "description": "Connect your editor to Pluribus: REST orchestration, health, recall/record hooks — server owns memory semantics.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "pluribus",
   "icon": "media/icon.png",
   "repository": {

@@ -186,7 +186,7 @@ jobs:
           cd integrations/vscode/extension
           npm ci
           npm run compile
-          npx --yes @vscode/vsce@2.24.0 package --allow-missing-repository -o "${GITHUB_WORKSPACE}/dist/pluribus-memory-${{ github.ref_name }}.vsix"
+          npx --yes @vscode/vsce@2.24.0 package --allow-missing-repository -o "${GITHUB_WORKSPACE}/dist/pluribus-ai-${{ github.ref_name }}.vsix"
 
       - name: Package integration bundles (cursor, claude-code, generic-mcp, opencode)
         shell: bash
@@ -200,7 +200,7 @@ jobs:
         run: |
           set -euo pipefail
           cd dist
-          sha256sum pluribus-mcp-linux-*.tar.gz pluribus-memory-*.vsix pluribus-integration-packs-*.zip > SHA256SUMS.txt
+          sha256sum pluribus-mcp-linux-*.tar.gz pluribus-ai-*.vsix pluribus-integration-packs-*.zip > SHA256SUMS.txt
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -213,6 +213,6 @@ jobs:
             dist/pluribus-mcp-linux-arm64.tar.gz
             dist/pluribus-mcp-linux-ppc64le.tar.gz
             dist/pluribus-mcp-linux-s390x.tar.gz
-            dist/pluribus-memory-${{ github.ref_name }}.vsix
+            dist/pluribus-ai-${{ github.ref_name }}.vsix
             dist/pluribus-integration-packs-${{ github.ref_name }}.zip
             dist/SHA256SUMS.txt

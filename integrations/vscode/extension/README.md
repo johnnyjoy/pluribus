@@ -2,6 +2,8 @@
 
 **Editor-side helper for [Pluribus](https://github.com/johnnyjoy/pluribus)** — the governed memory control plane for AI agents.
 
+**Extension ID:** `pluribus.pluribus-ai`. If you previously installed **`pluribus.pluribus-memory`**, uninstall the old extension before installing this one — the identifier changed.
+
 This extension connects **VS Code** and **Cursor** to your running Pluribus API over **REST**. It does **not** replace Pluribus or implement memory policy: ranking, authority, and ingest rules stay on the **server**.
 
 ## What you get
