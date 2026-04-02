@@ -4,7 +4,7 @@
 
 **Running Pluribus:** use **Docker Compose** from the repo (see root **`README.md`**) for a local API, or point **`pluribus.baseUrl`** at another host via **user/local** settings. **Do not commit** site-specific IPs or LAN addresses into the repository.
 
-The in-repo **Pluribus AI** extension under **[integrations/vscode/extension/](../../integrations/vscode/extension/)** (v0.2+) is an **event-driven orchestrator**:
+The in-repo **Pluribus AI** extension (**identifier** `pluribus.pluribus-ai`; packaged as **`pluribus-ai-<version>.vsix`**) under **[integrations/vscode/extension/](../../integrations/vscode/extension/)** is an **event-driven orchestrator**:
 
 - **Health:** periodic `GET /healthz`, status bar + sidebar.
 - **Auto recall:** `POST /v1/recall/compile` on **task start** and **debug start** (optional debounced **save**).
