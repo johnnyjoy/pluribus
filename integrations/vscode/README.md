@@ -38,6 +38,12 @@ Two integration paths:
 | `nudges.afterConsecutiveTaskFailures` | `0` | `>0` → info message at N consecutive task failures |
 | `metrics.logIntervalMinutes` | `0` | `>0` → periodic metrics line in Output |
 
+## Testing against Pluribus
+
+- **Local:** start the stack with the repo’s **Docker Compose** (see root **`README.md`**) so the API is reachable at the default **`http://127.0.0.1:8123`**.
+- **Another host:** set **`pluribus.baseUrl`** (and your editor’s MCP URL, if used) to that server’s base URL — e.g. **User** settings in VS Code / Cursor, or an untracked local settings file.
+- **Do not commit** machine-specific or LAN IPs/hostnames into git; keep environment-specific URLs out of the repository so defaults stay portable.
+
 ## Commands
 
 - **Pluribus: Check health**

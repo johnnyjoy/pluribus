@@ -2,6 +2,8 @@
 
 ## REST extension (orchestrator)
 
+**Running Pluribus:** use **Docker Compose** from the repo (see root **`README.md`**) for a local API, or point **`pluribus.baseUrl`** at another host via **user/local** settings. **Do not commit** site-specific IPs or LAN addresses into the repository.
+
 The in-repo extension under **[integrations/vscode/extension/](../../integrations/vscode/extension/)** (v0.2+) is an **event-driven orchestrator**:
 
 - **Health:** periodic `GET /healthz`, status bar + sidebar.
