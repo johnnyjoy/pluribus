@@ -26,7 +26,7 @@ func main() {
 	replaceSeed := flag.Bool("replace-seed", true, "delete prior eval-tagged memories before seed (recommended for eval)")
 	skipMigrate := flag.Bool("skip-migrate", false, "skip embedded SQL migrations (if schema already applied)")
 	artifactDir := flag.String("artifact-dir", "", "write eval.json here (default: <repo>/artifacts/pg-textsearch when running from repo)")
-	mdPath := flag.String("markdown", "", "write human summary markdown (default: <repo>/docs/experiments/pg-textsearch-eval-latest.md)")
+	mdPath := flag.String("markdown", "", "write human summary markdown (default: <repo>/artifacts/pg-textsearch/eval-summary.md)")
 	queryLimit := flag.Int("query-limit", 8, "top-k per query in suite")
 	flag.Parse()
 
@@ -64,7 +64,7 @@ func main() {
 	}
 	mp := *mdPath
 	if mp == "" {
-		mp = filepath.Join(repoRoot, "docs", "experiments", "pg-textsearch-eval-latest.md")
+		mp = filepath.Join(repoRoot, "artifacts", "pg-textsearch", "eval-summary.md")
 	}
 
 	switch sub {

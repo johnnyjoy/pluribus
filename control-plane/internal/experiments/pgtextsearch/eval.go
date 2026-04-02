@@ -21,7 +21,7 @@ type EvalOptions struct {
 	ReplaceSeed      bool
 	SkipMigrate      bool
 	ArtifactDir      string // e.g. artifacts/pg-textsearch
-	MarkdownPath     string // e.g. docs/experiments/pg-textsearch-eval-latest.md
+	MarkdownPath     string // e.g. artifacts/pg-textsearch/eval-summary.md
 	QueryLimit       int
 }
 
@@ -188,8 +188,9 @@ func renderMarkdown(r *EvalReport) string {
 		}
 		b += fmt.Sprintf("| %s | %s | %.2f | %v | %s |\n", q.Category, q.Query, q.LatencyMS, q.Plausible, top)
 	}
-	b += "\n## Machine-readable\n\n"
-	b += "`artifacts/pg-textsearch/eval.json`\n"
+	b += "\n## Artifacts\n\n"
+	b += "- `artifacts/pg-textsearch/eval.json`\n"
+	b += "- `artifacts/pg-textsearch/eval-summary.md` (this file)\n"
 	return b
 }
 

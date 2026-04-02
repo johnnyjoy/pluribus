@@ -1,12 +1,15 @@
-# Optional: build experimental Postgres + pg_textsearch image (does not gate main CI).
-# Triggers: manual, or pushes to feature branches named *pg-textsearch*.
-name: pg-textsearch exploration
+# Optional: build Postgres + pg_textsearch image (does not gate main CI).
+name: pg-textsearch image
 
 on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - "feature/pg-textsearch*"
+    paths:
+      - "docker/pg-textsearch/**"
+      - ".github/workflows/pg-textsearch.yml"
 
 permissions:
   contents: read

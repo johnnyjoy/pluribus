@@ -67,4 +67,4 @@ cd "$ROOT/control-plane"
 go run ./cmd/pg-textsearch-eval -dsn="$DSN" eval
 
 log "done — artifacts: $ROOT/artifacts/pg-textsearch/eval.json"
-log "summary: $ROOT/docs/experiments/pg-textsearch-eval-latest.md"
+log "summary: $ROOT/artifacts/pg-textsearch/eval-summary.md"

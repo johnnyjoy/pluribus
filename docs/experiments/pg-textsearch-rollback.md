@@ -27,4 +27,4 @@ DROP EXTENSION IF EXISTS pg_textsearch;
 
 ## CI
 
-- Default workflow does **not** require pg_textsearch image; optional workflow builds it for the branch only.
+- Default **test** workflow does **not** require pg_textsearch. Optional **`.github/workflows/pg-textsearch.yml`** builds the image on pushes that touch `docker/pg-textsearch/` (on `main` or `feature/pg-textsearch*`) or manual dispatch.

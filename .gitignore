@@ -43,5 +43,6 @@ control-plane/toolapi
 *.out
 coverage.out
 
-# pg_textsearch eval machine-readable output (summary markdown may be committed)
+# pg_textsearch eval output (regenerate with make pg-textsearch-eval)
 artifacts/pg-textsearch/*.json
+artifacts/pg-textsearch/eval-summary.md

@@ -1,16 +1,16 @@
 # Experiments
 
-Exploration branches and optional subsystems that **do not** redefine Pluribus canonical memory.
+Optional subsystems and tooling that **do not** change Pluribus canonical memory as source of truth.
 
-| Document | Topic |
-|----------|--------|
-| [pg-textsearch-evaluation.md](pg-textsearch-evaluation.md) | Why BM25 / pg_textsearch; source of truth; success criteria |
-| [pg-textsearch-container.md](pg-textsearch-container.md) | Docker image, `shared_preload_libraries`, rebuild |
-| [pg-textsearch-data-model.md](pg-textsearch-data-model.md) | Projection table vs `memories` |
-| [pg-textsearch-etl.md](pg-textsearch-etl.md) | Backfill, reindex, verify |
-| [pg-textsearch-hybrid-recall.md](pg-textsearch-hybrid-recall.md) | BM25 + semantic + authority (plan) |
-| [pg-textsearch-filtering.md](pg-textsearch-filtering.md) | Pre/post filter tradeoffs for Pluribus |
-| [pg-textsearch-benchmarks.md](pg-textsearch-benchmarks.md) | Eval harness notes |
-| [pg-textsearch-rollback.md](pg-textsearch-rollback.md) | Disable extension path, revert compose |
+## pg_textsearch (BM25 lexical layer)
 
-Related scripts: `scripts/experiments/pg_textsearch_smoke.sql`, `docker-compose.pg-textsearch.yml`, `docker/pg-textsearch/Dockerfile`.
+| Document | Purpose |
+|----------|---------|
+| [pg-textsearch.md](pg-textsearch.md) | **Start here** — architecture, canonical vs projection, integrated vs eval tooling |
+| [pg-textsearch-eval.md](pg-textsearch-eval.md) | `make` targets, CLI, ETL, eval artifacts, harness notes |
+| [pg-textsearch-container.md](pg-textsearch-container.md) | Docker image, `shared_preload_libraries`, smoke SQL |
+| [pg-textsearch-rollback.md](pg-textsearch-rollback.md) | Disable API path, revert compose, drop projection |
+
+**Code / scripts:** `docker/pg-textsearch/Dockerfile`, `docker-compose.pg-textsearch.yml`, `scripts/experiments/pg_textsearch_smoke.sql`, `scripts/pg-textsearch-eval.sh`, `control-plane/cmd/pg-textsearch-eval`, `control-plane/internal/lexical`, `control-plane/internal/experiments/pgtextsearch`.
+
+**Generated (local, not committed):** `artifacts/pg-textsearch/eval.json`, `artifacts/pg-textsearch/eval-summary.md` after `make pg-textsearch-eval`.

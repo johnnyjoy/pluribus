@@ -58,7 +58,7 @@ docker compose -f docker-compose.yml -f docker-compose.pg-textsearch.yml up -d -
 
 ## Limitations
 
-- **Regression runner** (`docker-compose.regression.yml`) still uses stock `pgvector:pg18` until this experiment is promoted — integration tests do not require pg_textsearch.
+- **Regression runner** (`docker-compose.regression.yml`) uses stock `pgvector:pg18` — integration tests do not require pg_textsearch.
 - **First-time init**: existing **data volumes** created without pg_textsearch may need a fresh volume or manual `ALTER SYSTEM` if you switch images mid-stream; prefer a **new volume** for clean experiments.
 
 ## Smoke SQL

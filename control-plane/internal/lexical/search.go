@@ -1,5 +1,5 @@
 // Package lexical implements optional BM25 retrieval via pg_textsearch (experimental).
-// Canonical memory rows in `memories` remain the source of truth; see docs/experiments/pg-textsearch-evaluation.md.
+// Canonical memory rows in `memories` remain the source of truth; see docs/experiments/pg-textsearch.md.
 package lexical
 
 import (

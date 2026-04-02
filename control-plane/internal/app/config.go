@@ -37,7 +37,7 @@ type Config struct {
 	Enforcement EnforcementConfig `yaml:"enforcement,omitempty"`
 	// MCP: optional JSON-RPC over HTTP at POST /v1/mcp. Omitted or disabled=false → endpoint on (default).
 	MCP *MCPConfig `yaml:"mcp,omitempty"`
-	// Lexical: optional pg_textsearch BM25 path (experimental). Canonical memory unchanged; see docs/experiments/pg-textsearch-evaluation.md.
+	// Lexical: optional pg_textsearch BM25 path (experimental). Canonical memory unchanged; see docs/experiments/pg-textsearch.md.
 	Lexical *LexicalConfig `yaml:"lexical,omitempty"`
 }
 

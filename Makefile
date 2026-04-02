@@ -46,7 +46,7 @@ lexical-reindex:
 lexical-verify:
 	cd control-plane && go run ./cmd/pg-textsearch-eval -dsn="$${PG_TEXTSEARCH_EVAL_DSN:-$${DATABASE_URL:-postgres://controlplane:controlplane@127.0.0.1:5432/controlplane?sslmode=disable}}" verify
 
-# Full automated eval: ephemeral Docker Postgres + seed + reindex + query suite + artifacts (see docs/experiments/pg-textsearch-etl.md).
+# Full automated eval: ephemeral Docker Postgres + seed + reindex + query suite + artifacts (see docs/experiments/pg-textsearch-eval.md).
 pg-textsearch-eval:
 	@./scripts/pg-textsearch-eval.sh
 

@@ -260,7 +260,7 @@ similarity:
 #   # When enabled is true, optionally run the same distill path automatically after each POST /v1/advisory-episodes (candidate-only; never canonical). Default false.
 #   auto_from_advisory_episodes: false
 
-# Experimental: pg_textsearch BM25 on a projection table (canonical `memories` unchanged). See docs/experiments/pg-textsearch-evaluation.md.
+# Experimental: pg_textsearch BM25 on a projection table (canonical `memories` unchanged). See docs/experiments/pg-textsearch.md.
 # Requires Postgres + extension + projection DDL; Docker: docker-compose.pg-textsearch.yml overlay.
 # lexical:
 #   experimental_http: false
