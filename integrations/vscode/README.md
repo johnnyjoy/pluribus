@@ -1,4 +1,4 @@
-# VS Code extension — Pluribus orchestrator
+# VS Code extension — Pluribus AI
 
 Two integration paths:
 
@@ -65,6 +65,8 @@ npm run compile
 
 ```bash
 cd integrations/vscode/extension
+# If you edit media/icon.svg, regenerate the packaged PNG (vsce requires PNG for the icon):
+convert -background none -resize 128x128 media/icon.svg media/icon.png
 npx --yes @vscode/vsce package --no-dependencies
 ```
 

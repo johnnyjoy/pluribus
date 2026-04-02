@@ -1,14 +1,28 @@
 {
   "name": "pluribus-memory",
-  "displayName": "Pluribus Memory",
-  "description": "Event-driven orchestrator: recall/record against Pluribus REST, health, metrics (control plane owns memory semantics).",
-  "version": "0.2.0",
+  "displayName": "Pluribus AI",
+  "description": "Connect your editor to Pluribus: REST orchestration, health, recall/record hooks — server owns memory semantics.",
+  "version": "0.2.1",
   "publisher": "pluribus",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnnyjoy/pluribus.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
+    "Machine Learning",
     "Other"
+  ],
+  "keywords": [
+    "pluribus",
+    "ai",
+    "memory",
+    "recall",
+    "context",
+    "mcp"
   ],
   "activationEvents": [
     "onStartupFinished"
