@@ -125,6 +125,6 @@ Very short statements (below a minimum character count, default **20** after tri
 - **Canonical episodic proof (REST-only, rerun frequently):**
   - **JSON:** `internal/eval/scenarios/proof-episodic-*.json` — wired into the global **`proof-*.json`** harness (two-pass determinism in **`TestProofHarnessREST_Postgres`**).
   - **Go sprint:** `internal/eval/episodic_proof_sprint_integration_test.go` — **`TestEpisodicProofSprintREST_Postgres`** — adversarial stateful cases (conflict, time skew, boundaries, enforcement stability, promotion pressure, entity noise, supersession-friendly memory behavior, soak loops).
-  - **Run:** **`make proof-episodic`** or **`./scripts/proof-episodic.sh`** (requires **`TEST_PG_DSN`**). Inventory, limits, and triage: [evidence/episodic-proof.md](../evidence/episodic-proof.md).
+  - **Run:** **`make proof-episodic`** or **`./scripts/proof-episodic`** (requires **`TEST_PG_DSN`**). Inventory, limits, and triage: [evidence/episodic-proof.md](../evidence/episodic-proof.md).
 - **`make proof-rest`** runs every embedded **`proof-*.json`** (including episodic JSON) but does **not** run the Go sprint test alone; use **`make proof-episodic`** for the full episodic gate.
 - **Logging:** episodic JSON + sprint lines use **`[EPISODIC PROOF]`**; other proof JSON uses **`[PROOF]`**.

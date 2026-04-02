@@ -20,7 +20,7 @@ cd control-plane && TEST_PG_DSN="$TEST_PG_DSN" make proof-episodic
 Wrapper (same as `make proof-episodic`):
 
 ```bash
-./scripts/proof-episodic.sh
+./scripts/proof-episodic
 ```
 
 **Docker (matches CI regression image):**

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Seed control-plane with benefit-eval memories. Requires curl, jq.
-# Usage: CONTROL_PLANE_URL=http://127.0.0.1:8123 ./scripts/pluribus-benefit-eval-seed.sh
+# Usage: CONTROL_PLANE_URL=http://127.0.0.1:8123 ./scripts/pluribus-benefit-eval-seed
 # Prints: project_id=<uuid> (last line stdout for scripts; details on stderr)
 set -euo pipefail
 

@@ -11,7 +11,7 @@ This document matches **GitHub Actions** in [`.github/workflows/ci.yml`](../.git
 | **Registry** | **GitHub Container Registry (GHCR)** — `ghcr.io` |
 | **Image** | **`ghcr.io/<github-owner-lowercase>/pluribus`** |
 
-The image contains **only the control-plane API** binary (`controlplane` + `entrypoint.sh` + committed **`config.yaml`** installed as **`/config/config.yaml`**). **PostgreSQL** and **Redis** are **not** baked in; use Compose (see [pluribus-container-install.md](pluribus-container-install.md)). Override settings with **`CONFIG`** and a mounted file; for host development copy **`config.example.yaml`** → **`configs/config.local.yaml`** (see [control-plane/README.md](../control-plane/README.md)).
+The image contains **only the control-plane API** binary (`controlplane` + `entrypoint` + committed **`config.yaml`** installed as **`/config/config.yaml`**). **PostgreSQL** and **Redis** are **not** baked in; use Compose (see [pluribus-container-install.md](pluribus-container-install.md)). Override settings with **`CONFIG`** and a mounted file; for host development copy **`config.example.yaml`** → **`configs/config.local.yaml`** (see [control-plane/README.md](../control-plane/README.md)).
 
 ---
 

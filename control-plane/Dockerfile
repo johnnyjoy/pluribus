@@ -18,9 +18,9 @@ FROM alpine:3.19
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /
 COPY --from=build /out/controlplane /usr/local/bin/controlplane
-COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY scripts/entrypoint /usr/local/bin/entrypoint
+RUN chmod +x /usr/local/bin/entrypoint
 COPY configs/config.yaml /config/config.yaml
 ENV CONFIG=/config/config.yaml
 EXPOSE 8123
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint"]

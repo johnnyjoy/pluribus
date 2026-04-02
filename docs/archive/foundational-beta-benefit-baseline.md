@@ -24,9 +24,9 @@ It is **not** a full research platform. It is a **repeatable procedure** you can
 2. **Benefit-oriented A vs C eval (human-in-the-loop + MCP)**  
    Follow **[pluribus-benefit-eval.md](pluribus-benefit-eval.md)**:
    - `/pluribus-benefit-eval-baseline` (A)
-   - Seed: `scripts/pluribus-benefit-eval-seed.sh`
+   - Seed: `scripts/pluribus-benefit-eval-seed`
    - `/pluribus-benefit-eval` (C)
-   - Check: `scripts/pluribus-benefit-eval-check.sh`  
+   - Check: `scripts/pluribus-benefit-eval-check`  
    Record results in **`memory-bank/plans/pluribus-benefit-eval-results-latest.md`** (or the template there).
 
 3. **Optional in-session sanity (not CI)**  

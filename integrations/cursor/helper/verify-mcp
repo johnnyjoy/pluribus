@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Verify Pluribus HTTP MCP responds (JSON-RPC initialize). Does not use Cursor.
-# Usage: PLURIBUS_URL=http://127.0.0.1:8123 ./verify-mcp.sh
-#        PLURIBUS_API_KEY=... ./verify-mcp.sh  (if server requires key)
+# Usage: PLURIBUS_URL=http://127.0.0.1:8123 ./verify-mcp
+#        PLURIBUS_API_KEY=... ./verify-mcp  (if server requires key)
 
 set -euo pipefail
 BASE="${PLURIBUS_URL:-http://127.0.0.1:8123}"

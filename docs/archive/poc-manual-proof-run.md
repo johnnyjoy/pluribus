@@ -180,7 +180,7 @@ Use your MCP client against stdio, or follow **[mcp-poc-contract.md](mcp-poc-con
 With the stack already up and the DB initialized:
 
 ```bash
-./scripts/poc-e2e.sh
+./scripts/poc-e2e
 ```
 
 **PASS:** Script exits 0 and prints project id at the end.
@@ -188,7 +188,7 @@ With the stack already up and the DB initialized:
 Default `BASE` is `http://127.0.0.1:8123`. Override:
 
 ```bash
-BASE=http://your-host:8123 ./scripts/poc-e2e.sh
+BASE=http://your-host:8123 ./scripts/poc-e2e
 ```
 
 ---
@@ -208,4 +208,4 @@ BASE=http://your-host:8123 ./scripts/poc-e2e.sh
 
 If steps **1–8** pass, you have **manual proof** of: **deploy → API → recall → run-multi path → create memory → recall reflects memory**. That is the POC bar this repo was built for.
 
-Optional next hardening (not required to call the POC “real”): run the same checklist on a **non-laptop** server, add CI for `compose up` + `poc-e2e.sh` (DB schema applies on control-plane boot), publish a Docker image for `pluribus-mcp`.
+Optional next hardening (not required to call the POC “real”): run the same checklist on a **non-laptop** server, add CI for `compose up` + `poc-e2e` (DB schema applies on control-plane boot), publish a Docker image for `pluribus-mcp`.

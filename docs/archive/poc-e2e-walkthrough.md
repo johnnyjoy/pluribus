@@ -97,7 +97,7 @@ See [mcp-poc-contract.md](mcp-poc-contract.md).
 ## Scripted variant
 
 ```bash
-./scripts/poc-e2e.sh
+./scripts/poc-e2e
 ```
 
 (requires `curl`, `jq`; uses same steps when `BASE` unset defaults to `http://127.0.0.1:8123`)

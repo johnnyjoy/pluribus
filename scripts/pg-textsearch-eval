@@ -2,7 +2,7 @@
 # One-shot pg_textsearch evaluation: ephemeral Postgres (pg18 + pg_textsearch) + migrate + seed + reindex + query suite + artifacts.
 #
 # From repo root:
-#   ./scripts/pg-textsearch-eval.sh
+#   ./scripts/pg-textsearch-eval
 #
 # Requires: Docker, Go 1.22+, built image pluribus-postgres-pg-textsearch:local (built automatically).
 # Optional: PG_TEXTSEARCH_EVAL_PORT=15432 to pin host port; otherwise an ephemeral port is chosen.

@@ -15,7 +15,7 @@
 
 - **A — A first-party “Pluribus” VSIX in this repo:** **No.** We do not ship a Cursor extension binary here.
 - **B — MCP + rules + skills + prompts + docs as the practical “plugin”:** **Yes.** This is the **integration pack** under `integrations/cursor/`. Users merge JSON, copy rules/skills, and paste prompts—it is honest and matches how Cursor is meant to be extended today.
-- **C — Sidecar helpers:** **Optional.** Small scripts (e.g. `helper/verify-mcp.sh`) only where they reduce friction (verify HTTP MCP), not a parallel architecture.
+- **C — Sidecar helpers:** **Optional.** Small scripts (e.g. `helper/verify-mcp`) only where they reduce friction (verify HTTP MCP), not a parallel architecture.
 
 ## How this complements the Pluribus Cursor rule
 

@@ -32,7 +32,7 @@ A **config and behavior pack** that makes Pluribus **native-feeling** in Cursor:
 | [`skills/pluribus/`](skills/pluribus/) | Agent Skill folder |
 | [`snippets/context-prime.txt`](snippets/context-prime.txt) | Short prime for rules |
 | [`AGENTS.template.md`](AGENTS.template.md) | Optional root **`AGENTS.md`** |
-| [`helper/verify-mcp.sh`](helper/verify-mcp.sh) | Curl JSON-RPC `initialize` against `/v1/mcp` |
+| [`helper/verify-mcp`](helper/verify-mcp) | Curl JSON-RPC `initialize` against `/v1/mcp` |
 
 ## How the rule and this pack work together
 
@@ -41,7 +41,7 @@ A **config and behavior pack** that makes Pluribus **native-feeling** in Cursor:
 
 ## Verify Pluribus is actually used
 
-1. **MCP alive:** run `./helper/verify-mcp.sh` from this directory (or set `PLURIBUS_URL` / `PLURIBUS_API_KEY`).  
+1. **MCP alive:** run `./helper/verify-mcp` from this directory (or set `PLURIBUS_URL` / `PLURIBUS_API_KEY`).  
 2. **Cursor sees tools:** Agent → confirm **`pluribus`** / **`recall_context`** appears in tool list after restart.  
 3. **Behavior:** on a non-trivial task, Agent should call **`recall_context`** before large edits and **`record_experience`** after a meaningful outcome.  
 4. **Server-side:** optional—check episodic / candidate activity via your usual API or DB tools (not Cursor-specific).

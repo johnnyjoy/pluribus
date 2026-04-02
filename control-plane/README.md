@@ -9,7 +9,7 @@ Go-based **authoritative memory layer** for agents: durable typed memory, **situ
 On a clean machine (or CI):
 
 **Option A — Docker (postgres + redis + control-plane API)**  
-From the **repository root**: `docker compose up -d` starts Postgres, Redis, and **controlplane** on **8123** (uses `configs/config.yaml`; first run builds the image). Container startup uses `scripts/entrypoint.sh`; on boot, **control-plane** waits for DB, runs embedded baseline SQL (`migrations/*.sql`), and checks that core tables (e.g. `memories`) exist. **No host `psql`** required. Intended for a **fresh** Postgres database only.
+From the **repository root**: `docker compose up -d` starts Postgres, Redis, and **controlplane** on **8123** (uses `configs/config.yaml`; first run builds the image). Container startup uses `scripts/entrypoint`; on boot, **control-plane** waits for DB, runs embedded baseline SQL (`migrations/*.sql`), and checks that core tables (e.g. `memories`) exist. **No host `psql`** required. Intended for a **fresh** Postgres database only.
 
 Verify:
 
@@ -61,7 +61,7 @@ The **REST API** is the **canonical system boundary** for proving core behavior.
 TEST_PG_DSN='postgres://USER:PASS@HOST:PORT/DB?sslmode=disable' make proof-rest
 ```
 
-The harness **errors early** if `public.memories` already exists. Local reset: [../scripts/proof-fresh-db.sh](../scripts/proof-fresh-db.sh).
+The harness **errors early** if `public.memories` already exists. Local reset: [../scripts/proof-fresh-db](../scripts/proof-fresh-db).
 
 Receipts and limitations: [../evidence/memory-proof.md](../evidence/memory-proof.md). Operator narrative: [../docs/evaluation.md](../docs/evaluation.md).
 
@@ -260,5 +260,5 @@ Then: `curl http://localhost:8123/healthz`
 
 ## Scripts
 
-- **scripts/migrate.sh** — Obsolete stub (exits with a message): schema apply happens in **server boot** only.
-- **scripts/dev-up.sh** — Prints first-run steps (create DB, make build, start servers, health checks).
+- **scripts/migrate** — Obsolete stub (exits with a message): schema apply happens in **server boot** only.
+- **scripts/dev-up** — Prints first-run steps (create DB, make build, start servers, health checks).

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Reset a local Postgres database for proof runs (requires dropdb/createdb on PATH).
-# Usage: ./scripts/proof-fresh-db.sh [dbname]
-# Example: ./scripts/proof-fresh-db.sh pluribus_proof
+# Usage: ./scripts/proof-fresh-db [dbname]
+# Example: ./scripts/proof-fresh-db pluribus_proof
 set -euo pipefail
 DBNAME="${1:-pluribus_proof}"
 dropdb --if-exists "$DBNAME" 2>/dev/null || true

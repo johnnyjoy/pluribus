@@ -21,8 +21,8 @@ This repo’s **honest benefit proof sprint** for Cursor + **pluribus-mcp** + co
 
 | Script | Role |
 |--------|------|
-| [pluribus-benefit-eval-seed.sh](../scripts/pluribus-benefit-eval-seed.sh) | HTTP bootstrap + seeds from [fixtures/benefit-eval-seeds.json](../scripts/fixtures/benefit-eval-seeds.json) (wire shapes per [http-api-index.md](http-api-index.md) / `CreateRequest`) |
-| [pluribus-benefit-eval-check.sh](../scripts/pluribus-benefit-eval-check.sh) | Mechanical `GET /v1/recall/` check (e.g. PostgreSQL in bundle) |
+| [pluribus-benefit-eval-seed](../scripts/pluribus-benefit-eval-seed) | HTTP bootstrap + seeds from [fixtures/benefit-eval-seeds.json](../scripts/fixtures/benefit-eval-seeds.json) (wire shapes per [http-api-index.md](http-api-index.md) / `CreateRequest`) |
+| [pluribus-benefit-eval-check](../scripts/pluribus-benefit-eval-check) | Mechanical `GET /v1/recall/` check (e.g. PostgreSQL in bundle) |
 
 **POC verification** (single-path smoke) remains **[cursor-verify-recall.md](cursor-verify-recall.md)** / **`/ask-cursor-verify-recall`**.
 

@@ -118,7 +118,7 @@ Scale 1–10: 1 weak suggestion, 3 candidate-level weak, 5 promoted local lesson
 # 11. Full repo layout
 
 ```text
-control-plane/  README.md  Makefile  go.mod  /cmd  controlplane  /configs  config.example.yaml  /migrations  0001_projects.sql .. 0011_recall_bundles.sql  /internal  /app  config.go  boot.go  /httpx  response.go  middleware.go  router.go  /obs  logger.go  /projects  types.go  repo.go  service.go  handlers.go  /targets  types.go  repo.go  service.go  handlers.go  /tasks  types.go  repo.go  service.go  handlers.go  /memory  types.go  repo.go  search.go  service.go  handlers.go  /curation  types.go  salience.go  repo.go  service.go  handlers.go  /recall  types.go  preflight.go  repo.go  compiler.go  service.go  handlers.go  /drift  types.go  checker.go  repo.go  service.go  handlers.go  /evidence  types.go  storage.go  repo.go  service.go  handlers.go  /tooling  (gopls client, helpers)  /reasoning  types.go  client.go  /pkg/api  enums.go  common.go  /scripts  dev-up.sh  migrate.sh  /var/evidence
+control-plane/  README.md  Makefile  go.mod  /cmd  controlplane  /configs  config.example.yaml  /migrations  0001_projects.sql .. 0011_recall_bundles.sql  /internal  /app  config.go  boot.go  /httpx  response.go  middleware.go  router.go  /obs  logger.go  /projects  types.go  repo.go  service.go  handlers.go  /targets  types.go  repo.go  service.go  handlers.go  /tasks  types.go  repo.go  service.go  handlers.go  /memory  types.go  repo.go  search.go  service.go  handlers.go  /curation  types.go  salience.go  repo.go  service.go  handlers.go  /recall  types.go  preflight.go  repo.go  compiler.go  service.go  handlers.go  /drift  types.go  checker.go  repo.go  service.go  handlers.go  /evidence  types.go  storage.go  repo.go  service.go  handlers.go  /tooling  (gopls client, helpers)  /reasoning  types.go  client.go  /pkg/api  enums.go  common.go  /scripts  dev-up  migrate  /var/evidence
 ```
 
 ---
@@ -161,7 +161,7 @@ control-plane/  README.md  Makefile  go.mod  /cmd  controlplane  /configs  confi
 
 # 35. Scripts
 
-**scripts/dev-up.sh:** Reminder to start postgres then run controlplane. **scripts/migrate.sh:** Obsolete stub; schema runs in **server `Boot`** only.
+**scripts/dev-up:** Reminder to start postgres then run controlplane. **scripts/migrate:** Obsolete stub; schema runs in **server `Boot`** only.
 
 ---
 

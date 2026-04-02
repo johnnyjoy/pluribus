@@ -162,7 +162,7 @@ Advisory rows alone are not governing recall authority per [episodic-similarity.
 | Entry | Purpose |
 |-------|--------|
 | `make eval` / `make stress-eval` | Go tests in `internal/eval` — see [evaluation.md](evaluation.md) |
-| `make proof-rest` / `make proof-episodic` | Postgres + integration: **`proof-rest`** = all **`proof-*.json`** with two-pass determinism; **`proof-episodic`** = same JSON suite **plus** **`TestEpisodicProofSprintREST_Postgres`** (extended adversarial episodic chain). Wrapper: **`scripts/proof-episodic.sh`**. See [evaluation.md](evaluation.md), [evidence/episodic-proof.md](../evidence/episodic-proof.md). |
+| `make proof-rest` / `make proof-episodic` | Postgres + integration: **`proof-rest`** = all **`proof-*.json`** with two-pass determinism; **`proof-episodic`** = same JSON suite **plus** **`TestEpisodicProofSprintREST_Postgres`** (extended adversarial episodic chain). Wrapper: **`scripts/proof-episodic`**. See [evaluation.md](evaluation.md), [evidence/episodic-proof.md](../evidence/episodic-proof.md). |
 
 ---
 

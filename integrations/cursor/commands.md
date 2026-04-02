@@ -18,7 +18,7 @@ Cursor does **not** run Pluribus by itself—you drive **MCP tools** from **Agen
 
 ## Optional shell check (outside Cursor)
 
-From the repo: `integrations/cursor/helper/verify-mcp.sh` — confirms HTTP MCP responds (does not prove Agent will call tools).
+From the repo: `integrations/cursor/helper/verify-mcp` — confirms HTTP MCP responds (does not prove Agent will call tools).
 
 ## Slash commands
 

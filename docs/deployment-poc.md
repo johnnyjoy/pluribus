@@ -69,13 +69,13 @@ curl -sS http://127.0.0.1:8123/readyz    # readiness (DB + core schema)
 
 **Compose stack:** **`postgres`**, **`redis`**, **`controlplane`** — schema work happens **inside the control-plane process** during `Boot`, not in a separate migrate job.
 
-Historical archive (obsolete `schema_migrations` / host `migrate.sh` narratives): [archive/migration-unversioned-baseline.md](archive/migration-unversioned-baseline.md).
+Historical archive (obsolete `schema_migrations` / host `migrate` narratives): [archive/migration-unversioned-baseline.md](archive/migration-unversioned-baseline.md).
 
 ---
 
 ## 4. Configuration (Docker)
 
-The **controlplane** image bakes [`control-plane/configs/config.yaml`](../control-plane/configs/config.yaml) and starts through [`control-plane/scripts/entrypoint.sh`](../control-plane/scripts/entrypoint.sh):
+The **controlplane** image bakes [`control-plane/configs/config.yaml`](../control-plane/configs/config.yaml) and starts through [`control-plane/scripts/entrypoint`](../control-plane/scripts/entrypoint):
 
 - **Postgres DSN:** `postgres://controlplane:controlplane@postgres:5432/controlplane?sslmode=disable` (service name **`postgres`** from inside the compose network).
 - **Redis:** `redis:6379`.

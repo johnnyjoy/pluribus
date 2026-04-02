@@ -4,5 +4,5 @@
 #
 # Kept so old docs/CI that invoke this path get a clear message instead of a broken flag.
 set -euo pipefail
-echo "migrate.sh: reconcile-only mode was removed. Start ./cmd/controlplane (or docker compose); Boot applies embedded SQL." >&2
+echo "migrate: reconcile-only mode was removed. Start ./cmd/controlplane (or docker compose); Boot applies embedded SQL." >&2
 exit 1

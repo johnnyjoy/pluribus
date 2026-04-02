@@ -2,7 +2,7 @@
 # Ephemeral Postgres (Docker) + host Go: runs //go:build integration tests with a generated TEST_PG_DSN.
 # You are not testing the DSN — this is disposable infrastructure (same idea as CI's compose stack).
 #
-# Usage (repo root): ./scripts/run-integration-tests.sh [extra go test args]
+# Usage (repo root): ./scripts/run-integration-tests [extra go test args]
 # Requires: Docker, Go 1.22+
 #
 # Optional: INTEGRATION_PG_PORT=15432 to pin a host port; default is a random free port on 127.0.0.1.
@@ -46,7 +46,7 @@ for _ in $(seq 1 45); do
   sleep 1
 done
 if ! docker exec "$CID" pg_isready -U controlplane -d controlplane >/dev/null 2>&1; then
-  echo "run-integration-tests.sh: Postgres did not become ready in time" >&2
+  echo "run-integration-tests: Postgres did not become ready in time" >&2
   exit 1
 fi
 

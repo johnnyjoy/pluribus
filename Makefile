@@ -30,7 +30,7 @@ regression:
 # Host Go + ephemeral Postgres (Docker on localhost). Sets TEST_PG_DSN / TEST_PG_RESET_SCHEMA — you are
 # not testing the DSN. Avoids Compose image/buildx when you only need integration-tagged tests locally.
 integration-go:
-	@./scripts/run-integration-tests.sh
+	@./scripts/run-integration-tests
 
 # Experimental: build Postgres 18 + pgvector + pg_textsearch image (see docs/experiments/pg-textsearch-container.md).
 pg-textsearch-image:
@@ -48,7 +48,7 @@ lexical-verify:
 
 # Full automated eval: ephemeral Docker Postgres + seed + reindex + query suite + artifacts (see docs/experiments/pg-textsearch-eval.md).
 pg-textsearch-eval:
-	@./scripts/pg-textsearch-eval.sh
+	@./scripts/pg-textsearch-eval
 
 # Core unit and package tests for the authoritative module.
 test:

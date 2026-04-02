@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Mechanical check: recall bundle includes PostgreSQL constraint text. Requires curl, jq.
-# Usage: PROJECT_ID=uuid ./scripts/pluribus-benefit-eval-check.sh
-#    or: ./scripts/pluribus-benefit-eval-check.sh <project_uuid>
+# Usage: PROJECT_ID=uuid ./scripts/pluribus-benefit-eval-check
+#    or: ./scripts/pluribus-benefit-eval-check <project_uuid>
 set -euo pipefail
 
 BASE="${CONTROL_PLANE_URL:-http://127.0.0.1:8123}"

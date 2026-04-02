@@ -19,7 +19,7 @@ Episodic advisory behavior is covered by multiple **`proof-episodic-*.json`** sc
 
 ### Clean database (enforced)
 
-Before boot, the integration test checks that **`public.memories` does not exist**. If it does, you get an immediate error: proof requires a **fresh** database so baseline migrate and scenarios stay deterministic. Use a new DB name or `dropdb`/`createdb`; see [scripts/proof-fresh-db.sh](../scripts/proof-fresh-db.sh).
+Before boot, the integration test checks that **`public.memories` does not exist**. If it does, you get an immediate error: proof requires a **fresh** database so baseline migrate and scenarios stay deterministic. Use a new DB name or `dropdb`/`createdb`; see [scripts/proof-fresh-db](../scripts/proof-fresh-db).
 
 There is **no** versioned upgrade path in the product yet (pre-release); boot only **replays** baseline SQL for greenfield DBs.
 
@@ -78,7 +78,7 @@ make test-drive
 | `make test-drive` | Fast confidence path (`test` + `eval`) |
 | `cd control-plane && make proof-rest` | **Canonical memory-substrate proof** — REST-only `proof-*.json` + two-pass determinism |
 | `make proof-episodic` | **Episodic lane stress proof** — all `proof-*.json` (two-pass determinism) + `TestEpisodicProofSprintREST_Postgres` adversarial subtests (see [evidence/episodic-proof.md](../evidence/episodic-proof.md)) |
-| `scripts/proof-episodic.sh` | Same as `make proof-episodic` after checking `TEST_PG_DSN` is set |
+| `scripts/proof-episodic` | Same as `make proof-episodic` after checking `TEST_PG_DSN` is set |
 
 ---
 
