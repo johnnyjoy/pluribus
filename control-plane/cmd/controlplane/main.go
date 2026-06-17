@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,12 +13,16 @@ import (
 
 	"control-plane/internal/app"
 	"control-plane/internal/apiserver"
+	"control-plane/internal/buildinfo"
 )
 
-// Set at link time: go build -ldflags="-X main.version=1.2.3"; Docker passes --build-arg VERSION.
-var version = "dev"
-
 func main() {
+	showVersion := flag.Bool("version", false, "print version and exit")
+	flag.Parse()
+	if *showVersion {
+		fmt.Println(buildinfo.String())
+		return
+	}
 	configPath := os.Getenv("CONFIG")
 	if configPath == "" {
 		configPath = "configs/config.example.yaml"
@@ -48,7 +53,7 @@ func main() {
 			log.Printf("server: %v", err)
 		}
 	}()
-	log.Printf("controlplane %s listening on %s", version, cfg.Server.Bind)
+	log.Printf("controlplane %s listening on %s", buildinfo.String(), cfg.Server.Bind)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	<-ctx.Done()

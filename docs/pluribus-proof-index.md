@@ -66,7 +66,7 @@ This page **surfaces receipts** for what the system has actually demonstrated in
 | Topic | Doc |
 |-------|-----|
 | Foundational beta baseline | [archive/foundational-beta-benefit-baseline.md](archive/foundational-beta-benefit-baseline.md) (**archived**) |
-| Pluribus benefit eval (commands) | [pluribus-benefit-eval.md](pluribus-benefit-eval.md) |
+| Pluribus benefit eval (commands) | **Local-only** — [public-documentation-policy.md](public-documentation-policy.md) |
 
 ---
 

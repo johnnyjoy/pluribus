@@ -4,6 +4,7 @@ package mcp
 // =============================================================================
 // Preferred names (agents should pattern-match these first in tools/list):
 //   recall_context      — before substantive work; same handler as memory_context_resolve
+//   wakeup_context      — session start; POST /v1/recall/wakeup (L0/L1 projection; same substrate as compile)
 //   record_experience   — after meaningful work; same handler as mcp_episode_ingest
 //
 // Stable compatibility (do not remove; existing clients and scripts rely on them):

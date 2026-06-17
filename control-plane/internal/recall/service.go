@@ -105,6 +105,8 @@ type Service struct {
 	TriggerRecall *TriggerRecallConfig
 	// BehaviorValidation optional gates for run-multi overlap validation (nil = defaults).
 	BehaviorValidation *BehaviorValidationConfig
+	// ReinforceOnRecall when true restores legacy recall-compile authority bumps (Phase 7 default: false).
+	ReinforceOnRecall bool
 }
 
 // Compile builds a RecallBundle and optionally persists it. Uses cache when configured (cache is not authoritative).
@@ -122,7 +124,7 @@ func (s *Service) Compile(ctx context.Context, req CompileRequest) (*RecallBundl
 	s.enrichCompileSymbols(ctx, &req)
 	key := cache.RecallBundleKey(req.Tags, maxPerKind, req.MaxTotal, req.MaxTokens,
 		req.RetrievalQuery, req.ProposalText,
-		req.Symbols, req.RepoRoot, req.LSPFocusPath, req.LSPFocusLine, req.LSPFocusColumn, strings.TrimSpace(req.CorrelationID), s.evidenceBundleCacheKey())
+		req.Symbols, req.RepoRoot, req.LSPFocusPath, req.LSPFocusLine, req.LSPFocusColumn, strings.TrimSpace(req.CorrelationID), s.evidenceBundleCacheKey(), req.SkipExperienceHydration)
 	if s.Cache != nil && s.CacheTTL > 0 {
 		if b, err := s.Cache.Get(ctx, key); err == nil && len(b) > 0 {
 			var bundle RecallBundle
@@ -138,13 +140,15 @@ func (s *Service) Compile(ctx context.Context, req CompileRequest) (*RecallBundl
 	if err != nil {
 		return nil, err
 	}
-	s.reinforceRecallUsage(ctx, bundleMemoryIDs(bundle), memory.ReinforceMeta{
-		Reason:         "reuse_recall",
-		ContextKey:     "",
-		AgentKey:       memory.AgentUsageKey(req.AgentID),
-		Impact:         "low",
-		SignalStrength: len(bundleMemoryIDs(bundle)),
-	})
+	if s.ReinforceOnRecall {
+		s.reinforceRecallUsage(ctx, bundleMemoryIDs(bundle), memory.ReinforceMeta{
+			Reason:         "reuse_recall",
+			ContextKey:     "",
+			AgentKey:       memory.AgentUsageKey(req.AgentID),
+			Impact:         "low",
+			SignalStrength: len(bundleMemoryIDs(bundle)),
+		})
+	}
 	if err := s.hydrateEvidence(ctx, bundle); err != nil {
 		return nil, err
 	}

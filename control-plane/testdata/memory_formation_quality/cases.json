@@ -1,0 +1,424 @@
+{
+  "cases": [
+    {
+      "id": "vague_statement_rejected",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "Made progress on stuff.",
+        "authority": 3,
+        "status": "active"
+      },
+      "expected_decision": "reject_garbage",
+      "expected_defects": ["vague_statement"],
+      "safe_for_active": false
+    },
+    {
+      "id": "generic_work_summary_rejected",
+      "input": {
+        "path": "record_experience",
+        "kind": "pattern",
+        "statement": "Worked on project today.",
+        "authority": 2
+      },
+      "expected_decision": "reject_garbage",
+      "expected_defects": ["vague_statement"],
+      "safe_for_active": false
+    },
+    {
+      "id": "constraint_without_scope_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "constraint",
+        "statement": "Always skip integration tests for deploy speed.",
+        "schema_type": "constraint",
+        "authority": 9,
+        "applicability": "governing",
+        "status": "active"
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["overgeneralized_statement", "constraint_without_scope"],
+      "safe_for_active": false
+    },
+    {
+      "id": "always_rule_without_exception_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "constraint",
+        "statement": "Never use REST without MCP parity checks in Pluribus.",
+        "schema_type": "constraint",
+        "authority": 8,
+        "applicability": "governing",
+        "status": "active",
+        "retrieval_cues": ["MCP", "REST", "parity"]
+      },
+      "expected_decision": "needs_curation",
+      "safe_for_active": false
+    },
+    {
+      "id": "never_rule_without_authority_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "constraint",
+        "statement": "Never deploy without health checks.",
+        "schema_type": "constraint",
+        "scope": "phase11d-deploy",
+        "authority": 9,
+        "applicability": "governing",
+        "status": "active",
+        "retrieval_cues": ["deploy", "health", "checks"]
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["missing_provenance", "missing_authority_basis"],
+      "safe_for_active": false
+    },
+    {
+      "id": "agent_inferred_preference_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "PREFERENCE user probably wants tabs for frontend formatting.",
+        "schema_type": "preference",
+        "scope": "project:frontend",
+        "source_type": "agent_inferred",
+        "authority": 7,
+        "status": "active",
+        "retrieval_cues": ["frontend", "tabs", "formatting"]
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["agent_inferred_preference_cannot_be_high_authority"],
+      "safe_for_active": false
+    },
+    {
+      "id": "preference_with_scope_accepted",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "PREFERENCE frontend typescript uses tabs for indentation in this repo.",
+        "schema_type": "preference",
+        "scope": "project:pluribus-frontend",
+        "source_type": "user_stated",
+        "authority": 4,
+        "status": "active",
+        "retrieval_cues": ["frontend", "typescript", "tabs"],
+        "use_instruction": "Apply only when formatting frontend TypeScript in this project."
+      },
+      "expected_decision": "accept_active",
+      "safe_for_active": true,
+      "min_quality_score": 0.5
+    },
+    {
+      "id": "decision_without_reason_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "decision",
+        "statement": "Use staged rollout for production deploy.",
+        "schema_type": "decision",
+        "scope": "project:pluribus",
+        "authority": 5,
+        "status": "active",
+        "retrieval_cues": ["staged", "rollout", "deploy"]
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["decision_without_reason"],
+      "safe_for_active": false
+    },
+    {
+      "id": "decision_with_reason_accepted",
+      "input": {
+        "path": "direct_create",
+        "kind": "decision",
+        "statement": "Decision: use staged rollout because single-region push caused outage.",
+        "schema_type": "decision",
+        "scope": "project:pluribus",
+        "reason": "single-region outage",
+        "authority": 5,
+        "status": "active",
+        "retrieval_cues": ["staged", "rollout", "deploy", "outage"],
+        "source_type": "user_stated",
+        "authority_basis": "postmortem 2024-03"
+      },
+      "expected_decision": "accept_active",
+      "safe_for_active": true
+    },
+    {
+      "id": "failure_without_cause_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "failure",
+        "statement": "Deploy issue noted without root cause.",
+        "schema_type": "failure_warning",
+        "scope": "phase11d-deploy",
+        "authority": 5,
+        "status": "active",
+        "retrieval_cues": ["deploy", "failed"]
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["failure_without_cause"],
+      "safe_for_active": false
+    },
+    {
+      "id": "failure_with_conditions_accepted",
+      "input": {
+        "path": "direct_create",
+        "kind": "failure",
+        "statement": "FAILURE deploy broke because postgres migration ran without transaction.",
+        "schema_type": "failure_warning",
+        "scope": "phase11d-deploy",
+        "authority": 6,
+        "status": "active",
+        "retrieval_cues": ["deploy", "postgres", "migration", "transaction"],
+        "use_instruction": "Require transactional migrations before deploy.",
+        "misuse_warning": "Do not treat as permission to skip migrations."
+      },
+      "expected_decision": "accept_active",
+      "safe_for_active": true
+    },
+    {
+      "id": "warning_without_trigger_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "WARNING do not load test production.",
+        "schema_type": "failure_warning",
+        "authority": 6,
+        "status": "active",
+        "retrieval_cues": ["load", "test", "production"]
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["failure_without_cause"],
+      "safe_for_active": false
+    },
+    {
+      "id": "procedure_without_steps_rejected_or_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "PROCEDURE incident response for outages.",
+        "schema_type": "procedure",
+        "scope": "phase11d-ops",
+        "authority": 5,
+        "status": "active",
+        "retrieval_cues": ["incident", "response"]
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["procedure_without_steps"],
+      "safe_for_active": false
+    },
+    {
+      "id": "procedure_with_steps_accepted",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "PROCEDURE incident response: first triage, then isolate, then notify, then postmortem.",
+        "schema_type": "procedure",
+        "scope": "phase11d-ops",
+        "authority": 6,
+        "status": "active",
+        "retrieval_cues": ["incident", "triage", "isolate", "notify"],
+        "use_instruction": "Follow step order during production incidents."
+      },
+      "expected_decision": "accept_active",
+      "safe_for_active": true
+    },
+    {
+      "id": "historical_event_without_time_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "Historical deploy event used legacy bash pipeline.",
+        "schema_type": "historical_event",
+        "scope": "phase11d-deploy",
+        "lifecycle_role": "historical_context",
+        "authority": 4,
+        "status": "pending",
+        "retrieval_cues": ["deploy", "historical", "bash"]
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["missing_temporal_basis"],
+      "safe_for_active": false
+    },
+    {
+      "id": "historical_event_as_current_guidance_rejected_or_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "In 2024 deploy used legacy bash pipeline for release.",
+        "schema_type": "historical_event",
+        "scope": "phase11d-deploy",
+        "occurred_at": "2024-06-01T00:00:00Z",
+        "authority": 5,
+        "status": "active",
+        "retrieval_cues": ["2024", "deploy", "bash", "historical"]
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["historical_as_current_risk", "missing_lifecycle_role"],
+      "safe_for_active": false
+    },
+    {
+      "id": "refuted_guidance_as_active_rejected",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "Skip health checks on deploy was refuted after outage.",
+        "schema_type": "refuted_guidance",
+        "scope": "phase11d-deploy",
+        "authority": 3,
+        "status": "active",
+        "retrieval_cues": ["health", "checks", "refuted"]
+      },
+      "expected_decision": "reject_dangerous",
+      "expected_defects": ["refuted_guidance_as_active"],
+      "safe_for_active": false
+    },
+    {
+      "id": "superseded_guidance_as_active_rejected_or_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "constraint",
+        "statement": "CONSTRAINT superseded single-region deploy push rule.",
+        "schema_type": "superseded_guidance",
+        "scope": "phase11d-deploy",
+        "authority": 6,
+        "status": "active",
+        "retrieval_cues": ["superseded", "single-region", "deploy"]
+      },
+      "expected_decision": "reject_dangerous",
+      "expected_defects": ["superseded_guidance_as_active"],
+      "safe_for_active": false
+    },
+    {
+      "id": "high_authority_without_provenance_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "constraint",
+        "statement": "CONSTRAINT all Pluribus deploys must run integration tests first.",
+        "schema_type": "constraint",
+        "scope": "project:pluribus",
+        "authority": 9,
+        "applicability": "governing",
+        "status": "active",
+        "retrieval_cues": ["deploy", "integration", "tests", "Pluribus"]
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["missing_provenance", "missing_authority_basis"],
+      "safe_for_active": false
+    },
+    {
+      "id": "governing_without_provenance_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "constraint",
+        "statement": "CONSTRAINT MCP and REST must remain parity-tested for memory interfaces.",
+        "schema_type": "current_guidance",
+        "scope": "project:pluribus",
+        "authority": 8,
+        "applicability": "governing",
+        "status": "active",
+        "retrieval_cues": ["MCP", "REST", "parity", "memory"]
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["missing_provenance", "missing_use_instruction"],
+      "safe_for_active": false
+    },
+    {
+      "id": "under_cued_memory_pending",
+      "input": {
+        "path": "direct_create",
+        "kind": "constraint",
+        "statement": "CONSTRAINT deploy release candidate must verify signatures before production.",
+        "schema_type": "constraint",
+        "scope": "phase11d-deploy",
+        "authority": 8,
+        "applicability": "governing",
+        "status": "active"
+      },
+      "expected_decision": "needs_curation",
+      "expected_defects": ["missing_retrieval_cues"],
+      "safe_for_active": false
+    },
+    {
+      "id": "cue_rich_memory_accepted",
+      "input": {
+        "path": "direct_create",
+        "kind": "constraint",
+        "statement": "CONSTRAINT deploy release candidate must verify artifact signatures before production promotion.",
+        "schema_type": "constraint",
+        "scope": "phase11d-deploy",
+        "authority": 7,
+        "applicability": "governing",
+        "status": "pending",
+        "retrieval_cues": ["deploy", "release", "signature", "verify", "production"],
+        "source_type": "benchmark_proven",
+        "authority_basis": "phase11c cognitive benchmark",
+        "use_instruction": "Apply when promoting release candidates to production.",
+        "provenance_fields": 3
+      },
+      "expected_decision": "accept_active",
+      "safe_for_active": false
+    },
+    {
+      "id": "misleading_cues_flagged",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "Pattern for general project work items.",
+        "schema_type": "fact",
+        "scope": "project:pluribus",
+        "authority": 4,
+        "status": "active",
+        "retrieval_cues": ["project", "stuff", "misc", "general"]
+      },
+      "expected_decision": "reject_garbage",
+      "expected_defects": ["misleading_cues"],
+      "safe_for_active": false
+    },
+    {
+      "id": "temporary_workaround_not_globalized",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "Temporary workaround: disable cache for hotfix deploy only.",
+        "schema_type": "fact",
+        "scope": "project:pluribus-hotfix-2024",
+        "authority": 4,
+        "status": "active",
+        "retrieval_cues": ["hotfix", "cache", "workaround", "temporary"],
+        "misuse_warning": "Do not treat as permanent deploy doctrine."
+      },
+      "expected_decision": "accept_active",
+      "safe_for_active": true
+    },
+    {
+      "id": "mcp_rest_formation_parity_low_quality",
+      "interface": "both",
+      "input": {
+        "path": "direct_create",
+        "kind": "pattern",
+        "statement": "Important memory about stuff.",
+        "authority": 3,
+        "status": "active"
+      },
+      "expected_decision": "reject_garbage",
+      "safe_for_active": false
+    },
+    {
+      "id": "mcp_rest_formation_parity_high_quality",
+      "interface": "both",
+      "input": {
+        "path": "direct_create",
+        "kind": "decision",
+        "statement": "Decision: use container pipeline because legacy bash deploy failed in 2024 incident.",
+        "schema_type": "decision",
+        "scope": "project:pluribus",
+        "reason": "legacy bash failure",
+        "authority": 5,
+        "status": "active",
+        "retrieval_cues": ["container", "pipeline", "deploy", "bash"],
+        "source_type": "user_stated"
+      },
+      "expected_decision": "accept_active",
+      "safe_for_active": true
+    }
+  ]
+}

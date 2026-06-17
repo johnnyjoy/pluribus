@@ -23,10 +23,7 @@ func TestREST_advisory_ingest_immediate_memory(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
@@ -87,10 +84,7 @@ func TestREST_advisory_ingest_rejected_no_memory(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
@@ -123,19 +117,11 @@ func TestREST_advisory_ingest_rejected_no_memory(t *testing.T) {
 	}
 	b, _ := io.ReadAll(resp.Body)
 	_ = resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("want 201 got %d body=%s", resp.StatusCode, string(b))
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("want 400 junk reject got %d body=%s", resp.StatusCode, string(b))
 	}
-	var out map[string]any
-	if err := json.Unmarshal(b, &out); err != nil {
-		t.Fatal(err)
-	}
-	if out["memory_formation_status"] != "rejected" {
-		t.Fatalf("want rejected, got %#v full=%#v", out["memory_formation_status"], out)
-	}
-	rr, _ := out["rejection_reason"].(string)
-	if rr == "" {
-		t.Fatalf("expected rejection_reason: %#v", out)
+	if !strings.Contains(string(b), "summary rejected") {
+		t.Fatalf("expected summary rejected in body: %s", string(b))
 	}
 
 	var memAfter int

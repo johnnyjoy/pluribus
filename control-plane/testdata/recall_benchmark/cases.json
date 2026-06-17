@@ -1,0 +1,460 @@
+{
+  "cases": [
+    {
+      "id": "pluribus_mcp_hardening",
+      "description": "MCP primary interface and phase-1 proof should rank above generic interface noise",
+      "query": "How should agents use Pluribus MCP as the primary interface for recall and record?",
+      "tags": ["mcp", "interface", "agent-loop"],
+      "repo_root_hint": "/projects/pluribus",
+      "expected_domain": "pluribus",
+      "expected_labels": [
+        "pluribus_mcp_primary_interface_constraint",
+        "pluribus_phase1_mcp_proof_pattern"
+      ],
+      "acceptable_labels": ["pluribus_agent_loop_contract_context"],
+      "forbidden_labels": [
+        "dornan_pro_enterprise_marketing_pattern",
+        "generic_interface_integration_noise",
+        "onguard_integration_interface_pattern"
+      ],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 0,
+      "hostile": "lexical_trap"
+    },
+    {
+      "id": "pluribus_agent_loop_compliance",
+      "description": "Agent loop contract and enforcement gates for compliance workflows",
+      "query": "What is the Pluribus agent loop compliance contract before and after work?",
+      "tags": ["agent-loop", "compliance"],
+      "expected_domain": "pluribus",
+      "expected_labels": [
+        "pluribus_agent_loop_contract_context",
+        "pluribus_enforcement_gate_constraint"
+      ],
+      "acceptable_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "forbidden_labels": [
+        "generic_agent_workflow_trap",
+        "generic_compliance_checklist_noise",
+        "dornan_pro_enterprise_marketing_pattern"
+      ],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 0
+    },
+    {
+      "id": "pluribus_recall_benchmark",
+      "description": "Recall benchmark fixture location and metrics",
+      "query": "Where are recall benchmark test fixtures and what metrics do cases gate?",
+      "tags": ["benchmark", "recall", "testdata"],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_recall_benchmark_work_pattern"],
+      "forbidden_labels": ["generic_data_pipeline_noise"],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 1
+    },
+    {
+      "id": "pluribus_enforcement_prechange",
+      "description": "Pre-change enforcement and governing constraints",
+      "query": "How does Pluribus enforcement gate pre-change edits with governing constraints?",
+      "tags": ["enforcement", "gate", "pre-change"],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_enforcement_gate_constraint"],
+      "acceptable_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "forbidden_labels": [
+        "generic_compliance_checklist_noise",
+        "onguard_stanford_housing_constraint"
+      ],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 0
+    },
+    {
+      "id": "pluribus_curation_promotion",
+      "description": "Curation and promotion of stable learnings",
+      "query": "When does Pluribus promote experiences into durable patterns through curation?",
+      "tags": ["curation", "promotion", "learning"],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_curation_promotion_pattern"],
+      "forbidden_labels": ["dornan_pro_client_engagement_failure"],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.5,
+      "maximum_forbidden_hits": 1
+    },
+    {
+      "id": "pluribus_semantic_recall",
+      "description": "Semantic hybrid recall path versus lexical fallback",
+      "query": "How does Pluribus semantic recall hybrid embedding path work with lexical fallback?",
+      "tags": ["semantic", "recall", "embedder"],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_semantic_recall_state"],
+      "forbidden_labels": ["generic_data_pipeline_noise"],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 1
+    },
+    {
+      "id": "pluribus_migration_ops",
+      "description": "Memory migration from legacy archive to Postgres with superseded status",
+      "query": "How do Pluribus memory migrations handle archive content and superseded constraints?",
+      "tags": ["migration", "postgres", "archive"],
+      "expected_domain": "pluribus",
+      "expected_labels": [
+        "pluribus_memory_migration_pattern",
+        "pluribus_deprecated_sqlite_constraint"
+      ],
+      "forbidden_labels": ["homelab_docker_compose_ops_pattern"],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 1
+    },
+    {
+      "id": "pluribus_tag_rich_recall",
+      "description": "Tag-rich pluribus query should stay in-domain",
+      "query": "MCP recall compile with mcp and compliance tags for interface hardening",
+      "tags": ["mcp", "compliance", "interface", "recall"],
+      "repo_root_hint": "/projects/pluribus",
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "acceptable_labels": [
+        "pluribus_phase1_mcp_proof_pattern",
+        "pluribus_agent_loop_contract_context"
+      ],
+      "forbidden_labels": [
+        "dornan_pro_enterprise_marketing_pattern",
+        "onguard_integration_interface_pattern"
+      ],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.5,
+      "maximum_forbidden_hits": 0
+    },
+    {
+      "id": "pluribus_empty_tags_failure",
+      "description": "Empty tags on pluribus MCP queries should surface failure memory not cross-domain traps",
+      "query": "Pluribus MCP interface recall with empty tags caused bad matches",
+      "tags": [],
+      "expected_domain": "pluribus",
+      "expected_labels": [
+        "pluribus_mcp_empty_tags_failure",
+        "pluribus_mcp_primary_interface_constraint"
+      ],
+      "forbidden_labels": [
+        "generic_interface_integration_noise",
+        "onguard_integration_interface_pattern",
+        "dornan_pro_enterprise_marketing_pattern"
+      ],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 0,
+      "hostile": "empty_tags"
+    },
+    {
+      "id": "pluribus_constraint_preservation",
+      "description": "Governing MCP constraint must beat generic compliance noise",
+      "query": "Preserve governing Pluribus MCP constraint over generic compliance checklist advice",
+      "tags": ["mcp", "constraint", "compliance"],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "forbidden_labels": [
+        "generic_compliance_checklist_noise",
+        "generic_agent_workflow_trap"
+      ],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.5,
+      "maximum_forbidden_hits": 0,
+      "hostile": "constraint_preservation"
+    },
+    {
+      "id": "pluribus_failure_recall",
+      "description": "Recall prior failure about empty MCP tags",
+      "query": "What failed when MCP tags were empty on Pluribus recall requests?",
+      "tags": ["mcp", "tags", "failure"],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_mcp_empty_tags_failure"],
+      "forbidden_labels": ["comfyui_model_management_failure"],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 1,
+      "hostile": "failure_recall"
+    },
+    {
+      "id": "pluribus_stale_superseded",
+      "description": "Migration query should not treat superseded SQLite as active governing truth",
+      "query": "Is SQLite still the Pluribus memory store for new deployments?",
+      "tags": ["sqlite", "migration"],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_deprecated_sqlite_constraint"],
+      "acceptable_labels": ["pluribus_memory_migration_pattern"],
+      "forbidden_labels": [],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 2,
+      "hostile": "stale_superseded"
+    },
+    {
+      "id": "pluribus_lexical_overlap_trap",
+      "description": "MCP interface query must not return OnGuard integration interface pattern",
+      "query": "Pluribus MCP integration interface for agent recall binding",
+      "tags": ["mcp", "interface", "integration"],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "forbidden_labels": [
+        "onguard_integration_interface_pattern",
+        "generic_interface_integration_noise",
+        "generic_system_binding_state"
+      ],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 0,
+      "hostile": "lexical_overlap"
+    },
+    {
+      "id": "pluribus_high_auth_wrong_domain",
+      "description": "High-authority dornan_pro marketing must not win pluribus MCP queries",
+      "query": "Primary MCP interface authority for Pluribus agent memory",
+      "tags": ["mcp", "interface"],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "forbidden_labels": ["dornan_pro_enterprise_marketing_pattern"],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 0,
+      "hostile": "high_authority_wrong_domain"
+    },
+    {
+      "id": "pluribus_low_auth_vs_high_auth_irrelevant",
+      "description": "Relevant low-ish authority benchmark pattern beats irrelevant high-auth marketing",
+      "query": "recall benchmark work pattern metrics Recall@K Precision@K forbidden hits",
+      "tags": ["benchmark", "recall"],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_recall_benchmark_work_pattern"],
+      "forbidden_labels": ["dornan_pro_enterprise_marketing_pattern"],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 0,
+      "hostile": "authority_ranking"
+    },
+    {
+      "id": "pluribus_noise_corpus",
+      "description": "Vague interface integration query should prefer pluribus MCP over generic noise",
+      "query": "agent interface integration binding recall",
+      "tags": [],
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "acceptable_labels": ["pluribus_agent_loop_contract_context"],
+      "forbidden_labels": [
+        "generic_interface_integration_noise",
+        "generic_system_binding_state",
+        "generic_agent_workflow_trap"
+      ],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 1,
+      "hostile": "noise_corpus"
+    },
+    {
+      "id": "pluribus_cross_project_preference",
+      "description": "Repo root hint should bias pluribus over onguard integration interface",
+      "query": "integration interface for recall and credential binding",
+      "tags": ["integration", "interface"],
+      "repo_root_hint": "/projects/pluribus",
+      "expected_domain": "pluribus",
+      "expected_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "forbidden_labels": [
+        "onguard_integration_interface_pattern",
+        "dornan_pro_enterprise_marketing_pattern"
+      ],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 0,
+      "hostile": "cross_project"
+    },
+    {
+      "id": "dornan_pro_marketing",
+      "description": "Enterprise marketing positioning for Dornan Pro",
+      "query": "Dornan Pro enterprise marketing and fractional CTO positioning",
+      "tags": ["marketing", "enterprise"],
+      "expected_domain": "dornan_pro",
+      "expected_labels": [
+        "dornan_pro_enterprise_marketing_pattern",
+        "dornan_pro_executive_advisory_state"
+      ],
+      "acceptable_labels": ["dornan_pro_consulting_positioning_decision"],
+      "forbidden_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 1
+    },
+    {
+      "id": "onguard_badge_integration",
+      "description": "Stanford housing badge and mobile credential integration",
+      "query": "OnGuard Stanford housing badge integration with mobile credential tap",
+      "tags": ["housing", "badge", "stanford"],
+      "expected_domain": "onguard",
+      "expected_labels": [
+        "onguard_housing_badge_integration_fact",
+        "onguard_mobile_credential_decision"
+      ],
+      "forbidden_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 1
+    },
+    {
+      "id": "onguard_databolt_harvester",
+      "description": "Databolt access-log harvester for tailgating detection",
+      "query": "OnGuard Databolt harvester access logs tailgating anomaly",
+      "tags": ["databolt", "harvester"],
+      "expected_domain": "onguard",
+      "expected_labels": ["onguard_databolt_harvester_pattern"],
+      "forbidden_labels": ["generic_data_pipeline_noise"],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 1
+    },
+    {
+      "id": "nginx_reverse_proxy",
+      "description": "Nginx reverse proxy and local routing setup",
+      "query": "Nginx reverse proxy upstream health checks and local routing to MCP sidecar",
+      "tags": ["nginx", "reverse-proxy", "routing"],
+      "expected_domain": "nginx_apache",
+      "expected_labels": [
+        "nginx_reverse_proxy_pattern",
+        "nginx_local_routing_state"
+      ],
+      "forbidden_labels": ["pluribus_mcp_primary_interface_constraint"],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 1
+    },
+    {
+      "id": "nginx_apache_auth",
+      "description": "Apache auth behind Nginx TLS termination",
+      "query": "Apache basic auth with Nginx TLS proxy_pass without stripping auth headers",
+      "tags": ["apache", "auth", "nginx"],
+      "expected_domain": "nginx_apache",
+      "expected_labels": ["nginx_apache_auth_constraint"],
+      "acceptable_labels": ["nginx_ssl_termination_pattern"],
+      "forbidden_labels": [],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 2
+    },
+    {
+      "id": "homelab_proxmox_ceph",
+      "description": "Proxmox Ceph storage constraint for homelab HA",
+      "query": "Proxmox three-node Ceph pool replica constraint for stateful VMs",
+      "tags": ["proxmox", "ceph"],
+      "expected_domain": "homelab",
+      "expected_labels": ["homelab_proxmox_ceph_constraint"],
+      "forbidden_labels": ["homelab_gpu_ollama_state"],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 2
+    },
+    {
+      "id": "homelab_gpu_ollama",
+      "description": "GPU Ollama LXC setup for local LLM experiments",
+      "query": "homelab GPU Ollama LXC qwen2.5-coder context",
+      "tags": ["gpu", "ollama"],
+      "expected_domain": "homelab",
+      "expected_labels": ["homelab_gpu_ollama_state"],
+      "forbidden_labels": ["comfyui_animation_workflow_state"],
+      "k": 10,
+      "minimum_recall_at_k": 1.0,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 2
+    },
+    {
+      "id": "comfyui_ltx_lora",
+      "description": "ComfyUI LTX video and LoRA consistency constraints",
+      "query": "ComfyUI LTX video workflow and LoRA consistency with matching checkpoint",
+      "tags": ["ltx", "lora", "comfyui"],
+      "expected_domain": "comfyui",
+      "expected_labels": [
+        "comfyui_ltx_video_pattern",
+        "comfyui_lora_consistency_constraint"
+      ],
+      "forbidden_labels": ["homelab_gpu_ollama_state"],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 2
+    },
+    {
+      "id": "fitness_protein_muscle",
+      "description": "Protein intake and muscle training plan",
+      "query": "daily protein target post-workout shake and push pull legs muscle plan",
+      "tags": ["protein", "muscle"],
+      "expected_domain": "fitness",
+      "expected_labels": [
+        "fitness_protein_intake_decision",
+        "fitness_muscle_plan_pattern"
+      ],
+      "forbidden_labels": ["finance_budgeting_pattern"],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 2
+    },
+    {
+      "id": "finance_budget_invest",
+      "description": "Budgeting pattern and index-fund investment preference",
+      "query": "50/30/20 budgeting and low-cost index fund 70/30 allocation preference",
+      "tags": ["budgeting", "investment"],
+      "expected_domain": "finance",
+      "expected_labels": [
+        "finance_budgeting_pattern",
+        "finance_investment_preference_decision"
+      ],
+      "acceptable_labels": ["finance_emergency_fund_constraint"],
+      "forbidden_labels": ["fitness_protein_intake_decision"],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 2
+    },
+    {
+      "id": "generic_vague_query",
+      "description": "Vague generic integration query with no domain tags",
+      "query": "help me integrate the system interface properly",
+      "tags": [],
+      "expected_domain": "generic_noise",
+      "expected_labels": ["generic_interface_integration_noise"],
+      "acceptable_labels": [
+        "generic_api_surface_pattern",
+        "generic_system_binding_state"
+      ],
+      "forbidden_labels": [],
+      "k": 10,
+      "minimum_recall_at_k": 0.5,
+      "minimum_precision_at_k": 0.4,
+      "maximum_forbidden_hits": 3,
+      "hostile": "vague_query"
+    }
+  ]
+}

@@ -8,13 +8,16 @@ import (
 	"strings"
 	"time"
 
+	"control-plane/internal/agenttelemetry"
 	"control-plane/internal/app"
+	"control-plane/internal/compliance"
 	"control-plane/internal/contradiction"
 	"control-plane/internal/curation"
 	"control-plane/internal/distillation"
 	"control-plane/internal/drift"
 	"control-plane/internal/enforcement"
 	"control-plane/internal/evidence"
+	"control-plane/internal/formation"
 	"control-plane/internal/httpx"
 	"control-plane/internal/ingest"
 	"control-plane/internal/lexical"
@@ -25,6 +28,8 @@ import (
 	"control-plane/internal/similarity"
 	"control-plane/internal/synthesis"
 	"control-plane/internal/tooling"
+	"control-plane/internal/utility"
+	"control-plane/internal/utilitypolicy"
 	"control-plane/internal/vet"
 
 	"github.com/go-chi/chi/v5"
@@ -94,6 +99,11 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	if cfg.Memory.RecallReinforcement != nil {
 		memorySvc.Reinforcement = cfg.Memory.RecallReinforcement
 	}
+	formGate := formation.NewGate(cfg.Memory.Formation)
+	memorySvc.Formation = formGate
+	if cfg.Memory.Utility != nil {
+		memorySvc.ReinforceDuplicateAuthority = cfg.Memory.Utility.ReinforceDuplicateAuthorityEnabled()
+	}
 	if cfg.Recall.SemanticRetrieval != nil {
 		memorySvc.Semantic = cfg.Recall.SemanticRetrieval
 		memorySvc.Embedder = memory.NewEmbedderFromConfig(cfg.Recall.SemanticRetrieval)
@@ -102,8 +112,20 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	memorySvc.Relationships = memoryRelRepo
 	memoryHandlers := &memory.Handlers{Service: memorySvc, Relationships: memoryRelRepo}
 
+	complianceRepo := &compliance.Repo{DB: container.DB}
+	complianceSvc := compliance.NewService(complianceRepo)
+
+	utilityRepo := &utility.Repo{DB: container.DB}
+	utilitySvc := &utility.Service{
+		Repo:       utilityRepo,
+		Memory:     &utility.MemoryRepoAdapter{Repo: memoryRepo},
+		Compliance: complianceSvc,
+		Config:     cfg.Memory.Utility,
+	}
+	utilityHandlers := &utility.Handlers{Service: utilitySvc}
+
 	contradictionRepo := &contradiction.Repo{DB: container.DB}
-	contradictionSvc := &contradiction.Service{Repo: contradictionRepo, MemoryRepo: memoryRepo}
+	contradictionSvc := &contradiction.Service{Repo: contradictionRepo, MemoryRepo: memoryRepo, Utility: utilitySvc}
 	contradictionHandlers := &contradiction.Handlers{Service: contradictionSvc}
 
 	curationRepo := &curation.Repo{DB: container.DB}
@@ -115,9 +137,15 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 
 	recallRepo := &recall.Repo{DB: container.DB}
 	recallCompiler := &recall.Compiler{
-		Memory:          memorySvc,
-		Contradiction:   contradictionSvc,
-		Relationships:   memoryRelRepo,
+		Memory:        memorySvc,
+		Contradiction: contradictionSvc,
+		Relationships: memoryRelRepo,
+		Utility:       utilitySvc,
+	}
+	if cfg.Memory.Utility != nil {
+		recallCompiler.UtilityWeight = cfg.Memory.Utility.RankingWeight()
+	} else {
+		recallCompiler.UtilityWeight = (&utility.Config{}).RankingWeight()
 	}
 	if cfg.Memory.Dedup != nil {
 		recallCompiler.NearDupJaccardThreshold = cfg.Memory.Dedup.NearDupJaccardThreshold
@@ -150,6 +178,7 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		rk.WeightCrossAgentSalienceK,
 		0, // semantic resolved below (explicit YAML 0 is handled by ResolveSemanticSimilarityWeight)
 		rk.WeightElevationSuppression,
+		rk.WeightSituationalAffinity,
 	)
 	w.SemanticSimilarity = recall.ResolveSemanticSimilarityWeight(rk.WeightSemanticSimilarity)
 	recallCompiler.Ranking = &w
@@ -235,6 +264,9 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	}
 	recallSvc.MemoryPromoter = memorySvc
 	recallSvc.UsageReinforcer = memorySvc
+	if cfg.Memory.Utility != nil {
+		recallSvc.ReinforceOnRecall = cfg.Memory.Utility.ReinforceOnRecallEnabled()
+	}
 	if cfg.SlowPathEnabled() {
 		recallSvc.SlowPath = &recall.SlowPathPreflightConfig{
 			Enabled:               true,
@@ -249,6 +281,9 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		recallSvc.TriggerRecall = recall.NormalizeTriggerRecall(cfg.Recall.TriggeredRecall)
 	}
 	recallHandlers := &recall.Handlers{Service: recallSvc}
+	telemetryRepo := &agenttelemetry.Repo{DB: container.DB}
+	telemetrySvc := agenttelemetry.NewServiceWithRepo(telemetryRepo)
+	recallHandlers.Telemetry = telemetrySvc
 
 	driftRepo := &drift.Repo{DB: container.DB}
 	driftSvc := &drift.Service{Repo: driftRepo, Memory: memorySvc}
@@ -359,6 +394,13 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		McpDedupWindow:  dedupWin,
 	}
 	simSvc := &similarity.Service{Repo: simRepo, Config: simCfg}
+	minAdvisoryRunes := 12
+	if cfg.MCP != nil && cfg.MCP.MemoryFormation != nil && cfg.MCP.MemoryFormation.MinSummaryChars > 0 {
+		minAdvisoryRunes = cfg.MCP.MemoryFormation.MinSummaryChars
+	}
+	simSvc.AdvisoryValidate = func(summary string) error {
+		return formation.ValidateAdvisorySummaryShared(summary, minAdvisoryRunes, formGate)
+	}
 	simHandlers := &similarity.Handlers{Service: simSvc}
 
 	distSvc := &distillation.Service{
@@ -375,7 +417,7 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		simHandlers.AutoDistill = distSvc
 	}
 
-	vetSvc := &vet.Service{Memory: memorySvc, Episodes: simRepo}
+	vetSvc := &vet.Service{Memory: memorySvc, Episodes: simRepo, Formation: formGate}
 
 	simHandlers.AfterAdvisoryCreate = func(ctx context.Context, rec *similarity.Record, dedup bool) {
 		vetSvc.ProcessNewAdvisoryExperience(ctx, rec, dedup)
@@ -393,6 +435,13 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		}
 	}
 
+	complianceHandlers := &compliance.Handlers{Service: complianceSvc}
+	telemetryHandlers := &agenttelemetry.Handlers{Service: telemetrySvc}
+	policyRepo := &utilitypolicy.Repo{DB: container.DB}
+	policyReader := &agenttelemetry.PolicyReader{Repo: telemetryRepo}
+	policySvc := utilitypolicy.NewServiceWithDeps(policyReader, utilitySvc, policyRepo)
+	policyHandlers := &utilitypolicy.Handlers{Service: policySvc}
+
 	router.Route("/v1", func(r chi.Router) {
 		r.Route("/memories", func(r chi.Router) {
 			r.Post("/", memoryHandlers.CreateMemories)
@@ -407,6 +456,9 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			r.Post("/search", memoryHandlers.Search)
 			r.Put("/{id}/attributes", memoryHandlers.SetAttributes)
 			r.Post("/{id}/authority/event", memoryHandlers.ApplyAuthorityEvent)
+			r.Post("/{id}/feedback", utilityHandlers.PostFeedback)
+			r.Get("/{id}/feedback", utilityHandlers.ListFeedback)
+			r.Get("/{id}/utility", utilityHandlers.GetUtility)
 			r.Post("/expire", memoryHandlers.ExpireMemories)
 		})
 		r.Route("/contradictions", func(r chi.Router) {
@@ -431,6 +483,7 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		r.Route("/recall", func(r chi.Router) {
 			r.Get("/", recallHandlers.GetBundle)
 			r.Post("/preflight", recallHandlers.Preflight)
+			r.Post("/wakeup", recallHandlers.Wakeup)
 			r.Post("/compile", recallHandlers.Compile)
 			r.Post("/compile-multi", recallHandlers.CompileMulti)
 			r.Post("/run-multi", recallHandlers.RunMulti)
@@ -457,6 +510,34 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			r.Post("/prune-rejected", simHandlers.PruneRejected)
 		})
 		r.Post("/episodes/distill", distHandlers.Distill)
+		r.Route("/compliance", func(r chi.Router) {
+			r.Get("/summary", complianceHandlers.Summary)
+			r.Post("/evaluate", complianceHandlers.Evaluate)
+			r.Get("/sessions", complianceHandlers.ListSessions)
+			r.Get("/sessions/{id}", complianceHandlers.GetSession)
+			r.Get("/sessions/{id}/events", complianceHandlers.SessionEvents)
+		})
+		r.Route("/agent/telemetry", func(r chi.Router) {
+			r.Post("/session/start", telemetryHandlers.StartSession)
+			r.Post("/recall", telemetryHandlers.RecordRecall)
+			r.Post("/decision", telemetryHandlers.RecordDecision)
+			r.Post("/output", telemetryHandlers.RecordOutput)
+			r.Post("/evaluate", telemetryHandlers.Evaluate)
+			r.Get("/session/{session_id}", telemetryHandlers.GetSession)
+			r.Get("/memory/{memory_id}", telemetryHandlers.GetMemory)
+			r.Get("/violations", telemetryHandlers.ListViolations)
+			r.Get("/utility-candidates", telemetryHandlers.ListUtilityCandidates)
+		})
+		r.Route("/agent/utility/policy", func(r chi.Router) {
+			r.Post("/evaluate-candidate", policyHandlers.EvaluateCandidate)
+			r.Post("/apply-candidate", policyHandlers.ApplyCandidate)
+			r.Post("/apply-batch", policyHandlers.ApplyBatch)
+			r.Post("/revert-application", policyHandlers.RevertApplication)
+			r.Get("/candidate/{candidate_id}", policyHandlers.GetCandidate)
+			r.Get("/memory/{memory_id}", policyHandlers.GetMemoryHistory)
+			r.Get("/applications", policyHandlers.ListApplications)
+			r.Get("/summary", policyHandlers.Summary)
+		})
 		if cfg.Lexical != nil && cfg.Lexical.ExperimentalHTTP {
 			lexH := lexical.NewHandlers(container.DB, cfg.Lexical)
 			r.Route("/experimental/lexical", func(r chi.Router) {
@@ -465,5 +546,5 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		}
 	})
 
-	return httpx.WrapWithPluribusAuth(mcp.WrapHandler(router, cfg), container.APIKey), nil
+	return httpx.WrapWithPluribusAuth(mcp.WrapHandler(router, cfg, complianceSvc), container.APIKey), nil
 }

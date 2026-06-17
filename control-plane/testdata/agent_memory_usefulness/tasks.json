@@ -1,0 +1,218 @@
+{
+  "tasks": [
+    {
+      "id": "constraint_memory_prevents_bad_action",
+      "title": "Constraint prevents bad deploy action",
+      "scenario": "Agent deploys release candidate without safety memory",
+      "task_prompt": "Deploy the release candidate to production now",
+      "domain_tags": ["phase11b-deploy"],
+      "recall_query": "deploy release candidate production safety integration tests",
+      "memory_labels": ["mem_deploy_test_constraint"],
+      "expected_recalled_labels": ["mem_deploy_test_constraint"],
+      "expected_used_labels": ["mem_deploy_test_constraint"],
+      "fact_contributions": {
+        "mem_deploy_test_constraint": ["RUN_INTEGRATION_TESTS_FIRST"]
+      },
+      "expected_answer_facts": ["RUN_INTEGRATION_TESTS_FIRST"],
+      "forbidden_answer_facts": ["SKIP_TESTS"],
+      "requires_memory_help": true,
+      "scoring_rubric": "no-memory lacks RUN_INTEGRATION_TESTS_FIRST; memory run must include it"
+    },
+    {
+      "id": "prior_failure_memory_prevents_repeat",
+      "title": "Failure memory prevents repeat mistake",
+      "scenario": "Agent plans migration without transactional safety",
+      "task_prompt": "Apply database migrations for release deploy",
+      "domain_tags": ["phase11b-deploy"],
+      "recall_query": "deploy postgres migration transaction pipeline release",
+      "memory_labels": ["mem_migration_failure"],
+      "expected_recalled_labels": ["mem_migration_failure"],
+      "expected_used_labels": ["mem_migration_failure"],
+      "fact_contributions": {
+        "mem_migration_failure": ["USE_TRANSACTIONAL_MIGRATIONS"]
+      },
+      "expected_answer_facts": ["USE_TRANSACTIONAL_MIGRATIONS"],
+      "forbidden_answer_facts": ["SKIP_MIGRATION_TRANSACTION"],
+      "requires_memory_help": true
+    },
+    {
+      "id": "decision_memory_improves_answer",
+      "title": "Decision memory improves deploy answer",
+      "scenario": "Agent chooses deploy strategy",
+      "task_prompt": "Ship release candidate to production safely",
+      "domain_tags": ["phase11b-deploy"],
+      "recall_query": "deploy release candidate production staged rollout canary",
+      "memory_labels": ["mem_staged_rollout_decision"],
+      "expected_recalled_labels": ["mem_staged_rollout_decision"],
+      "expected_used_labels": ["mem_staged_rollout_decision"],
+      "fact_contributions": {
+        "mem_staged_rollout_decision": ["STAGED_CANARY_ROLLOUT"]
+      },
+      "expected_answer_facts": ["STAGED_CANARY_ROLLOUT"],
+      "requires_memory_help": true
+    },
+    {
+      "id": "preference_memory_applies_only_in_scope",
+      "title": "Preference applies only in frontend scope",
+      "scenario": "Frontend formatting task should use frontend preference not backend",
+      "task_prompt": "Format frontend typescript files for commit",
+      "domain_tags": ["phase11b-frontend"],
+      "recall_query": "frontend typescript formatting tabs spaces indentation",
+      "memory_labels": ["mem_frontend_tabs_preference"],
+      "expected_recalled_labels": ["mem_frontend_tabs_preference"],
+      "expected_used_labels": ["mem_frontend_tabs_preference"],
+      "fact_contributions": {
+        "mem_frontend_tabs_preference": ["USE_TABS_FRONTEND"]
+      },
+      "expected_answer_facts": ["USE_TABS_FRONTEND"],
+      "forbidden_answer_facts": ["USE_GOFMT_TABS"],
+      "requires_memory_help": true
+    },
+    {
+      "id": "wrong_domain_memory_must_stay_quiet",
+      "title": "Wrong domain memory must not appear",
+      "scenario": "Deploy task must not surface payments PCI memory",
+      "task_prompt": "Deploy release candidate to production",
+      "domain_tags": ["phase11b-deploy"],
+      "recall_query": "deploy release candidate production pipeline",
+      "memory_labels": ["mem_deploy_test_constraint"],
+      "decoy_labels": ["mem_payments_pci_constraint"],
+      "expected_recalled_labels": ["mem_deploy_test_constraint"],
+      "forbidden_recalled_labels": ["mem_payments_pci_constraint"],
+      "expected_used_labels": ["mem_deploy_test_constraint"],
+      "fact_contributions": {
+        "mem_deploy_test_constraint": ["RUN_INTEGRATION_TESTS_FIRST"]
+      },
+      "expected_answer_facts": ["RUN_INTEGRATION_TESTS_FIRST"],
+      "forbidden_answer_facts": ["LOG_CARD_NUMBERS"],
+      "requires_memory_help": true
+    },
+    {
+      "id": "historical_memory_not_current_guidance",
+      "title": "Archived memory not current guidance",
+      "scenario": "Current deploy must ignore archived pattern",
+      "task_prompt": "Deploy release candidate using current pipeline",
+      "domain_tags": ["phase11b-deploy"],
+      "recall_query": "deploy release candidate current pipeline container",
+      "recall_mode": "current",
+      "memory_labels": ["mem_active_deploy_constraint", "mem_archived_deploy_pattern"],
+      "decoy_labels": ["mem_archived_deploy_pattern"],
+      "expected_recalled_labels": ["mem_active_deploy_constraint"],
+      "forbidden_recalled_labels": ["mem_archived_deploy_pattern"],
+      "expected_used_labels": ["mem_active_deploy_constraint"],
+      "fact_contributions": {
+        "mem_active_deploy_constraint": ["USE_CONTAINER_PIPELINE"]
+      },
+      "expected_answer_facts": ["USE_CONTAINER_PIPELINE"],
+      "forbidden_answer_facts": ["USE_LEGACY_BASH"],
+      "requires_memory_help": true
+    },
+    {
+      "id": "superseded_memory_not_used_as_current",
+      "title": "Superseded memory must not guide current deploy",
+      "scenario": "Only successor constraint applies",
+      "task_prompt": "Deploy release candidate to multiple regions",
+      "domain_tags": ["phase11b-deploy"],
+      "recall_query": "deploy release candidate multi-region staged rollout",
+      "recall_mode": "current",
+      "memory_labels": ["mem_superseded_deploy_rule", "mem_successor_deploy_rule"],
+      "expected_recalled_labels": ["mem_successor_deploy_rule"],
+      "forbidden_recalled_labels": ["mem_superseded_deploy_rule"],
+      "expected_used_labels": ["mem_successor_deploy_rule"],
+      "fact_contributions": {
+        "mem_successor_deploy_rule": ["MULTI_REGION_STAGED_ROLLOUT"]
+      },
+      "expected_answer_facts": ["MULTI_REGION_STAGED_ROLLOUT"],
+      "forbidden_answer_facts": ["SINGLE_REGION_PUSH"],
+      "requires_memory_help": true
+    },
+    {
+      "id": "refuted_memory_not_used",
+      "title": "Refuted memory must not guide deploy",
+      "scenario": "Refuted skip-health-check belief ignored",
+      "task_prompt": "Deploy release candidate with health verification",
+      "domain_tags": ["phase11b-deploy"],
+      "recall_query": "deploy release candidate health checks verification",
+      "memory_labels": ["mem_refuted_deploy_belief", "mem_correct_health_constraint"],
+      "expected_recalled_labels": ["mem_correct_health_constraint"],
+      "expected_used_labels": ["mem_correct_health_constraint"],
+      "expected_ignored_labels": ["mem_refuted_deploy_belief"],
+      "fact_contributions": {
+        "mem_correct_health_constraint": ["RUN_HEALTH_CHECKS"]
+      },
+      "expected_answer_facts": ["RUN_HEALTH_CHECKS"],
+      "forbidden_answer_facts": ["SKIP_HEALTH_CHECKS"],
+      "requires_memory_help": true
+    },
+    {
+      "id": "date_bound_memory_recalled_correctly",
+      "title": "Date-bound recall returns in-window event",
+      "scenario": "Historical audit within 2024 window",
+      "task_prompt": "Audit 2024 deploy release events",
+      "domain_tags": ["phase11b-deploy"],
+      "recall_query": "deploy release event 2024 audit historical window",
+      "recall_mode": "historical",
+      "include_status": ["active", "archived", "superseded"],
+      "occurred_after": "2024-01-01T00:00:00Z",
+      "occurred_before": "2025-01-01T00:00:00Z",
+      "memory_labels": ["mem_event_old", "mem_event_in_window"],
+      "expected_recalled_labels": ["mem_event_in_window"],
+      "forbidden_recalled_labels": ["mem_event_old"],
+      "expected_used_labels": ["mem_event_in_window"],
+      "fact_contributions": {
+        "mem_event_in_window": ["EVENT_IN_2024_WINDOW"]
+      },
+      "expected_answer_facts": ["EVENT_IN_2024_WINDOW"],
+      "requires_memory_help": true
+    },
+    {
+      "id": "irrelevant_memory_ignored",
+      "title": "Irrelevant similar memory ignored",
+      "scenario": "Operational deploy task ignores marketing noise memory",
+      "task_prompt": "Recover from failed deploy release retry",
+      "domain_tags": ["phase11b-deploy"],
+      "recall_query": "deploy release retry backoff failed operational",
+      "memory_labels": ["mem_relevant_retry_pattern", "mem_irrelevant_similar_noise"],
+      "expected_recalled_labels": ["mem_relevant_retry_pattern"],
+      "expected_used_labels": ["mem_relevant_retry_pattern"],
+      "expected_ignored_labels": ["mem_irrelevant_similar_noise"],
+      "fact_contributions": {
+        "mem_relevant_retry_pattern": ["EXPONENTIAL_BACKOFF_RETRY"]
+      },
+      "expected_answer_facts": ["EXPONENTIAL_BACKOFF_RETRY"],
+      "requires_memory_help": true
+    },
+    {
+      "id": "missing_memory_no_improvement",
+      "title": "Missing memory cannot improve answer",
+      "scenario": "No helpful memory in pool",
+      "task_prompt": "Configure observability dashboards for new service",
+      "domain_tags": ["phase11b-observability"],
+      "recall_query": "observability dashboards new service metrics",
+      "memory_labels": [],
+      "expected_recalled_labels": [],
+      "expected_used_labels": [],
+      "expected_answer_facts": ["CONFIGURE_DASHBOARDS"],
+      "no_memory_answer_facts": [],
+      "requires_memory_help": false
+    },
+    {
+      "id": "mcp_rest_parity_same_task",
+      "title": "MCP and REST produce equivalent usefulness outcome",
+      "scenario": "Same constraint task via both interfaces",
+      "task_prompt": "Deploy release candidate with integration test gate",
+      "domain_tags": ["phase11b-deploy"],
+      "recall_query": "deploy release candidate integration tests production safety",
+      "memory_labels": ["mem_deploy_test_constraint"],
+      "expected_recalled_labels": ["mem_deploy_test_constraint"],
+      "expected_used_labels": ["mem_deploy_test_constraint"],
+      "fact_contributions": {
+        "mem_deploy_test_constraint": ["RUN_INTEGRATION_TESTS_FIRST"]
+      },
+      "expected_answer_facts": ["RUN_INTEGRATION_TESTS_FIRST"],
+      "forbidden_answer_facts": ["SKIP_TESTS"],
+      "requires_memory_help": true,
+      "check_mcp_rest_parity": true
+    }
+  ]
+}

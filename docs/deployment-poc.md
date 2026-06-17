@@ -117,7 +117,7 @@ Ensure firewall allows **TCP 8123** (and **5432** only if you intentionally expo
 | `connection refused` on :8123 | Controlplane not up or still building | `docker compose logs -f controlplane` |
 | **`readyz` 503** | DB down or migrations failed during boot | `docker compose logs controlplane` |
 | API 500 on use | Rare if `readyz` ok | App logs |
-| `port is already allocated` | Another process uses 5432/6379/8123 | Stop conflicting service or change **ports:** in `docker-compose.yml` |
+| `port is already allocated` | Another process uses 5432/6379/8123 | Stop conflicting service, change **ports:** in `docker-compose.yml`, or use **`docker-compose.host-conflicts.override.example.yml`** → `docker-compose.override.yml` (Compose **`ports: !reset`** so homelab stacks like Supabase do not block Pluribus Postgres). Symptom: **`pluribus-postgres-1` Created**, **`pluribus-controlplane-1` Created**, MCP **`ECONNREFUSED`** on **:8123**. |
 | Postgres unhealthy | First start / disk | `docker compose logs postgres` |
 | Run-multi “not configured” for server-side synthesis | **`synthesis.enabled: false`** (default) | Enable **`synthesis`** in config or use client LLM — [backend-synthesis.md](../control-plane/docs/backend-synthesis.md), [mcp-poc-contract.md](mcp-poc-contract.md) |
 

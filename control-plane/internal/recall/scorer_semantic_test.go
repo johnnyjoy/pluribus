@@ -63,13 +63,13 @@ func TestSemantic_doesNotOutrankHighAuthority(t *testing.T) {
 	now := time.Now()
 	low := memory.MemoryObject{ID: lowAuth, Kind: api.MemoryKindDecision, Authority: 2, UpdatedAt: now}
 	high := memory.MemoryObject{ID: highAuth, Kind: api.MemoryKindDecision, Authority: 9, UpdatedAt: now}
-	// Stable sort: authority first — high authority row should sort before low even if semantic loves the low row.
+	// Stable sort: total score first — low-authority row with strong semantic can outrank when total score is higher.
 	sm := []ScoredMemory{
 		{Object: low, Score: scoreBase(low, req, w, 10, now), Reason: "x"},
 		{Object: high, Score: scoreBase(high, req, w, 10, now), Reason: "y"},
 	}
 	sortScoredMemoriesStable(sm)
-	if sm[0].Object.ID != highAuth {
-		t.Fatalf("expected higher-authority memory first: got %v before %v", sm[0].Object.ID, sm[1].Object.ID)
+	if sm[0].Object.ID != lowAuth {
+		t.Fatalf("expected higher total score first under relevance-first ranking: got %v before %v", sm[0].Object.ID, sm[1].Object.ID)
 	}
 }

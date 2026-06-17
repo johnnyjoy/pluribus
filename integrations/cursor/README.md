@@ -54,5 +54,6 @@ A **config and behavior pack** that makes Pluribus **native-feeling** in Cursor:
 | 401 / auth | Server has **`PLURIBUS_API_KEY`** → set **`PLURIBUS_API_KEY`** in env and keep **`X-API-Key`** in MCP config; or use [`mcp-config.no-auth.json`](mcp-config.no-auth.json) when API has no key. |
 | Agent ignores recall | Re-paste [`pluribus-instructions.md`](../pluribus-instructions.md), add [`prompts.md`](prompts.md) to user rules, ensure skill is installed, confirm MCP tools listed. |
 | Wrong host on LAN | Edit URL in MCP config; firewall allows port **8123** (or your mapped port). |
+| **`ECONNREFUSED` on LAN host (e.g. `10.1.1.79:8123`)** | Host is up but **controlplane is not**. On the server: `curl http://127.0.0.1:8123/healthz` and `docker compose ps`. Common homelab failure: **host `:5432` already taken** (e.g. Supabase) → `pluribus-postgres-1` stays `Created` and controlplane never starts. Fix: copy [`docker-compose.host-conflicts.override.example.yml`](../../docker-compose.host-conflicts.override.example.yml) → `docker-compose.override.yml` on the server, then `docker compose up -d`. Your Cursor URL can stay on the LAN IP. |
 
 Full doc: [`docs/integrations/cursor.md`](../../docs/integrations/cursor.md) · Memory model: [`docs/memory-doctrine.md`](../../docs/memory-doctrine.md).

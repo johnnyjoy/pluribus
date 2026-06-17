@@ -42,10 +42,7 @@ func bootMCPProof(t *testing.T, dsn string, autoDistill bool) (*httptest.Server,
 		}
 		_ = pgdb.Close()
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.05
@@ -222,7 +219,7 @@ func TestIntegration_HTTP_MCP_parityToolsRegistered(t *testing.T) {
 		found[n] = true
 	}
 	for _, name := range []string{
-		"memory_context_resolve", "memory_log_if_relevant", "auto_log_episode_if_relevant",
+		"memory_context_resolve", "wakeup_context", "memory_log_if_relevant", "auto_log_episode_if_relevant",
 		"episode_search_similar", "episode_distill_explicit",
 		"memory_recall_advanced", "memory_preflight_check",
 		"curation_review_candidate", "curation_reject_candidate", "curation_auto_promote", "curation_promote_candidate",

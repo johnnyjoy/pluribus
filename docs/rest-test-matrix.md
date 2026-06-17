@@ -57,6 +57,14 @@
 |--------|----------|---------------|
 | Valid body | JSON object (e.g. `{}` or `changed_files_count` / `tags`) | `cmd/controlplane` `TestREST_recallPreflight_returnsRiskShape` |
 
+### Recall — `POST /v1/recall/wakeup`
+
+| Aspect | Required | Primary tests |
+|--------|----------|---------------|
+| L0/L1 shape | JSON includes **`identity`** and **`governing_memory`** (`MemoryItem` arrays) | `internal/recall/wakeup_test.go`; `cmd/controlplane` `TestREST_recallWakeup_returnsWakeupResponseShape` (integration + `TEST_PG_DSN`) |
+| No parallel semantics | Same compiler + **`applicability`** filter + caps only | `internal/recall/wakeup.go` + docs in `docs/architecture/layered-memory-L0-L3.md` |
+| MCP | **`wakeup_context`** → same route; response text = REST body | `internal/mcp/proxy_test.go` |
+
 ### Enforcement — `POST /v1/enforcement/evaluate`
 
 | Aspect | Required | Primary tests |

@@ -12,7 +12,9 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/controlplane ./cmd/controlplane
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath \
+	-ldflags="-s -w -X control-plane/internal/buildinfo.Version=${VERSION} -X control-plane/internal/buildinfo.GitCommit=${VERSION}" \
+	-o /out/controlplane ./cmd/controlplane
 
 FROM alpine:3.19
 RUN apk add --no-cache ca-certificates tzdata

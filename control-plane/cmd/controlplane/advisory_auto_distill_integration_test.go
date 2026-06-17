@@ -21,10 +21,7 @@ import (
 
 func bootAdvisoryAutoDistill(t *testing.T, dsn string, auto bool) (*httptest.Server, func()) {
 	t.Helper()
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.05
@@ -150,7 +147,7 @@ func TestREST_advisory_autoDistill_noSignal(t *testing.T) {
 	defer cleanup()
 
 	tag := "rest:auto-no-sig:" + uuid.New().String()[:8]
-	body := fmt.Sprintf(`{"summary":"short","source":"manual","tags":[%q]}`, tag)
+	body := fmt.Sprintf(`{"summary":"long enough planning notes about cafeteria logistics coordination only","source":"manual","tags":[%q]}`, tag)
 	resp, err := http.Post(srv.URL+"/v1/advisory-episodes", "application/json", strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)

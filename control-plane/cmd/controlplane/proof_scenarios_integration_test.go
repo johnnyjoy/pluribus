@@ -33,10 +33,7 @@ func TestIntegration_proofScenarioSuite(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 
 	container, err := app.Boot(cfg)
@@ -161,7 +158,7 @@ func readBody(t *testing.T, resp *http.Response) []byte {
 
 func createConstraintPostgres(t *testing.T, base string) {
 	t.Helper()
-	body := `{"kind":"constraint","authority":9,"statement":"All durable project data must use Postgres; SQLite is not permitted."}`
+	body := `{"kind":"constraint","authority":9,"applicability":"governing","statement":"All durable project data must use Postgres; SQLite is not permitted."}`
 	resp := postJSON(t, base+"/v1/memory", body)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

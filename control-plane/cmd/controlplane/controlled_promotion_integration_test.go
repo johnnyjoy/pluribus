@@ -26,10 +26,7 @@ func TestREST_controlledPromotion_autoPromote(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Distillation.Enabled = true
@@ -151,10 +148,7 @@ func TestREST_controlledPromotion_autoPromoteDisabled(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Promotion.AutoPromote = false
 

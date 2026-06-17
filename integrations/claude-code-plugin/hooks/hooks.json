@@ -1,5 +1,5 @@
 {
-  "description": "Pluribus: session primer, optional HTTP recall preview on prompt submit, optional post-failure record hint. Control plane owns memory; hooks orchestrate only.",
+  "description": "Pluribus: session primer + HTTP MCP wakeup_context, optional HTTP recall preview on prompt submit, optional post-failure record hint. Control plane owns memory; hooks orchestrate only.",
   "hooks": {
     "SessionStart": [
       {

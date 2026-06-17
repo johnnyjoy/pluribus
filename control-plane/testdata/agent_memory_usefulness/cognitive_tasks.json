@@ -1,0 +1,335 @@
+{
+  "tasks": [
+    {
+      "id": "encoding_specificity_matching_cues_help",
+      "title": "Strong encoding cues enable helpful recall",
+      "scenario": "Deploy task matches encoded retrieval cues",
+      "task_prompt": "Deploy release candidate with signature verification",
+      "domain_tags": ["phase11c-deploy"],
+      "recall_query": "deploy release candidate verify artifact signatures production",
+      "memory_labels": ["cmem_encoded_strong_deploy"],
+      "expected_recalled_labels": ["cmem_encoded_strong_deploy"],
+      "expected_used_labels": ["cmem_encoded_strong_deploy"],
+      "fact_contributions": {
+        "cmem_encoded_strong_deploy": ["VERIFY_ARTIFACT_SIGNATURES"]
+      },
+      "expected_answer_facts": ["VERIFY_ARTIFACT_SIGNATURES"],
+      "forbidden_answer_facts": ["SKIP_SIGNATURE_CHECK"],
+      "requires_memory_help": true,
+      "research_principle": "encoding_specificity",
+      "min_encoding_cue_match": 0.5
+    },
+    {
+      "id": "encoding_specificity_missing_cues_fail_to_help",
+      "title": "Under-encoded memory does not help",
+      "scenario": "Only under-encoded memory in pool cannot improve answer",
+      "task_prompt": "Deploy release candidate with signature verification gate",
+      "domain_tags": ["phase11c-deploy"],
+      "recall_query": "deploy release candidate signature verification gate production",
+      "memory_labels": ["cmem_underencoded_deploy"],
+      "expected_recalled_labels": ["cmem_underencoded_deploy"],
+      "expected_ignored_labels": ["cmem_underencoded_deploy"],
+      "expected_used_labels": [],
+      "expected_answer_facts": ["VERIFY_ARTIFACT_SIGNATURES"],
+      "no_memory_answer_facts": [],
+      "requires_memory_help": false,
+      "research_principle": "encoding_specificity",
+      "expected_ignore_reason": "not selected for this task"
+    },
+    {
+      "id": "encoding_specificity_misleading_cues_harm_risk",
+      "title": "Misleading cues must not guide deploy action",
+      "scenario": "Similar terms but negative scope excludes deploy context",
+      "task_prompt": "Deploy release candidate to production safely",
+      "domain_tags": ["phase11c-deploy"],
+      "recall_query": "deploy release candidate production safety validation",
+      "memory_labels": ["cmem_encoded_strong_deploy", "cmem_misleading_deploy"],
+      "decoy_labels": ["cmem_misleading_deploy"],
+      "expected_recalled_labels": ["cmem_encoded_strong_deploy"],
+      "expected_used_labels": ["cmem_encoded_strong_deploy"],
+      "expected_ignored_labels": ["cmem_misleading_deploy"],
+      "near_miss_memory_labels": ["cmem_misleading_deploy"],
+      "expected_suppressed_memory_ids": ["cmem_misleading_deploy"],
+      "fact_contributions": {
+        "cmem_encoded_strong_deploy": ["VERIFY_ARTIFACT_SIGNATURES"]
+      },
+      "expected_answer_facts": ["VERIFY_ARTIFACT_SIGNATURES"],
+      "forbidden_answer_facts": ["SKIP_VALIDATION_FAST_PATH"],
+      "requires_memory_help": true,
+      "research_principle": "encoding_specificity"
+    },
+    {
+      "id": "schema_constraint_changes_action",
+      "title": "Constraint schema changes allowed TLS action",
+      "scenario": "Security constraint memory governs ingress TLS",
+      "task_prompt": "Configure public ingress TLS for new service",
+      "domain_tags": ["phase11c-security"],
+      "recall_query": "ingress TLS public endpoints minimum version configure",
+      "memory_labels": ["cmem_schema_constraint_tls"],
+      "expected_recalled_labels": ["cmem_schema_constraint_tls"],
+      "expected_used_labels": ["cmem_schema_constraint_tls"],
+      "fact_contributions": {
+        "cmem_schema_constraint_tls": ["MIN_TLS_1_2_REQUIRED"]
+      },
+      "expected_answer_facts": ["MIN_TLS_1_2_REQUIRED"],
+      "forbidden_answer_facts": ["ALLOW_TLS_1_0"],
+      "requires_memory_help": true,
+      "research_principle": "schema_memory"
+    },
+    {
+      "id": "schema_failure_prevents_repeat",
+      "title": "Failure schema prevents repeated cache mistake",
+      "scenario": "Failure memory prevents deploy without cache invalidation",
+      "task_prompt": "Deploy release with configuration updates",
+      "domain_tags": ["phase11c-deploy"],
+      "recall_query": "deploy release configuration cache invalidation",
+      "memory_labels": ["cmem_schema_failure_cache"],
+      "expected_recalled_labels": ["cmem_schema_failure_cache"],
+      "expected_used_labels": ["cmem_schema_failure_cache"],
+      "fact_contributions": {
+        "cmem_schema_failure_cache": ["INVALIDATE_CACHE_BEFORE_DEPLOY"]
+      },
+      "expected_answer_facts": ["INVALIDATE_CACHE_BEFORE_DEPLOY"],
+      "forbidden_answer_facts": ["SKIP_CACHE_INVALIDATION"],
+      "requires_memory_help": true,
+      "research_principle": "schema_memory"
+    },
+    {
+      "id": "schema_warning_prevents_risky_action",
+      "title": "Warning schema prevents prod data load test",
+      "scenario": "Warning memory blocks risky load test action",
+      "task_prompt": "Plan load test for new feature validation",
+      "domain_tags": ["phase11c-ops"],
+      "recall_query": "load test production customer data validation",
+      "memory_labels": ["cmem_schema_warning_prod_data"],
+      "expected_recalled_labels": ["cmem_schema_warning_prod_data"],
+      "expected_used_labels": ["cmem_schema_warning_prod_data"],
+      "fact_contributions": {
+        "cmem_schema_warning_prod_data": ["NO_LOAD_TEST_ON_PROD_DATA"]
+      },
+      "expected_answer_facts": ["NO_LOAD_TEST_ON_PROD_DATA"],
+      "forbidden_answer_facts": ["USE_PROD_CUSTOMER_DATA"],
+      "requires_memory_help": true,
+      "research_principle": "schema_memory"
+    },
+    {
+      "id": "schema_procedure_orders_steps",
+      "title": "Procedure schema produces ordered incident steps",
+      "scenario": "Procedure memory orders incident response steps",
+      "task_prompt": "Respond to production incident escalation",
+      "domain_tags": ["phase11c-ops"],
+      "recall_query": "incident response triage isolate notify postmortem",
+      "memory_labels": ["cmem_schema_procedure_incident"],
+      "expected_recalled_labels": ["cmem_schema_procedure_incident"],
+      "expected_used_labels": ["cmem_schema_procedure_incident"],
+      "fact_contributions": {
+        "cmem_schema_procedure_incident": ["STEP_TRIAGE", "STEP_ISOLATE", "STEP_NOTIFY", "STEP_POSTMORTEM"]
+      },
+      "expected_answer_facts": ["STEP_TRIAGE", "STEP_ISOLATE", "STEP_NOTIFY", "STEP_POSTMORTEM"],
+      "requires_memory_help": true,
+      "research_principle": "schema_memory"
+    },
+    {
+      "id": "context_wrong_project_ignored",
+      "title": "Wrong project memory ignored",
+      "scenario": "Project alpha task must ignore project beta config",
+      "task_prompt": "Deploy project alpha service to primary region",
+      "domain_tags": ["phase11c-shared", "phase11c-project-alpha"],
+      "recall_query": "deploy project alpha primary region configuration",
+      "memory_labels": ["cmem_project_alpha_config", "cmem_project_beta_config"],
+      "decoy_labels": ["cmem_project_beta_config"],
+      "expected_recalled_labels": ["cmem_project_alpha_config"],
+      "expected_used_labels": ["cmem_project_alpha_config"],
+      "expected_ignored_labels": ["cmem_project_beta_config"],
+      "near_miss_memory_labels": ["cmem_project_beta_config"],
+      "fact_contributions": {
+        "cmem_project_alpha_config": ["USE_US_EAST_1_PRIMARY"]
+      },
+      "expected_answer_facts": ["USE_US_EAST_1_PRIMARY"],
+      "forbidden_answer_facts": ["USE_EU_WEST_1_PRIMARY"],
+      "requires_memory_help": true,
+      "research_principle": "context_dependent_recall"
+    },
+    {
+      "id": "context_wrong_system_ignored",
+      "title": "Wrong system memory ignored",
+      "scenario": "Kubernetes task must ignore VM deploy pattern",
+      "task_prompt": "Deploy service on kubernetes cluster",
+      "domain_tags": ["phase11c-shared", "phase11c-system-k8s"],
+      "recall_query": "kubernetes deploy helm rollout status wait",
+      "memory_labels": ["cmem_system_k8s_deploy", "cmem_system_vm_deploy"],
+      "decoy_labels": ["cmem_system_vm_deploy"],
+      "expected_recalled_labels": ["cmem_system_k8s_deploy"],
+      "expected_used_labels": ["cmem_system_k8s_deploy"],
+      "expected_ignored_labels": ["cmem_system_vm_deploy"],
+      "near_miss_memory_labels": ["cmem_system_vm_deploy"],
+      "fact_contributions": {
+        "cmem_system_k8s_deploy": ["HELM_ROLLOUT_STATUS_WAIT"]
+      },
+      "expected_answer_facts": ["HELM_ROLLOUT_STATUS_WAIT"],
+      "forbidden_answer_facts": ["ANSIBLE_ROLLING_RESTART"],
+      "requires_memory_help": true,
+      "research_principle": "context_dependent_recall"
+    },
+    {
+      "id": "interference_similar_but_wrong_ignored",
+      "title": "Similar but wrong deploy memory suppressed",
+      "scenario": "Operational deploy ignores marketing-adjacent near miss",
+      "task_prompt": "Recover failed deploy release retry",
+      "domain_tags": ["phase11c-deploy"],
+      "recall_query": "deploy release retry backoff failed operational",
+      "memory_labels": ["cmem_helpful_retry_pattern", "cmem_similar_wrong_deploy"],
+      "decoy_labels": ["cmem_similar_wrong_deploy"],
+      "expected_recalled_labels": ["cmem_helpful_retry_pattern"],
+      "expected_used_labels": ["cmem_helpful_retry_pattern"],
+      "expected_ignored_labels": ["cmem_similar_wrong_deploy"],
+      "near_miss_memory_labels": ["cmem_similar_wrong_deploy"],
+      "expected_suppressed_memory_ids": ["cmem_similar_wrong_deploy"],
+      "fact_contributions": {
+        "cmem_helpful_retry_pattern": ["EXPONENTIAL_BACKOFF_RETRY"]
+      },
+      "expected_answer_facts": ["EXPONENTIAL_BACKOFF_RETRY"],
+      "forbidden_answer_facts": ["MARKETING_ROLLBACK_SCRIPT"],
+      "requires_memory_help": true,
+      "research_principle": "interference_control"
+    },
+    {
+      "id": "interference_high_authority_wrong_scope_ignored",
+      "title": "High authority wrong scope memory ignored",
+      "scenario": "Deploy alpha task must ignore high-authority beta PCI constraint",
+      "task_prompt": "Deploy project alpha checkout service",
+      "domain_tags": ["phase11c-shared", "phase11c-project-alpha"],
+      "recall_query": "deploy project alpha checkout service release",
+      "memory_labels": ["cmem_project_alpha_config", "cmem_high_auth_wrong_scope"],
+      "decoy_labels": ["cmem_high_auth_wrong_scope"],
+      "expected_recalled_labels": ["cmem_project_alpha_config"],
+      "expected_used_labels": ["cmem_project_alpha_config"],
+      "expected_ignored_labels": ["cmem_high_auth_wrong_scope"],
+      "near_miss_memory_labels": ["cmem_high_auth_wrong_scope"],
+      "fact_contributions": {
+        "cmem_project_alpha_config": ["USE_US_EAST_1_PRIMARY"]
+      },
+      "expected_answer_facts": ["USE_US_EAST_1_PRIMARY"],
+      "forbidden_answer_facts": ["LOG_CARD_NUMBERS"],
+      "requires_memory_help": true,
+      "research_principle": "interference_control"
+    },
+    {
+      "id": "interference_high_utility_wrong_scope_ignored",
+      "title": "High utility wrong scope memory ignored",
+      "scenario": "Alpha deploy ignores high-utility beta analytics pattern",
+      "task_prompt": "Deploy project alpha data pipeline",
+      "domain_tags": ["phase11c-shared", "phase11c-project-alpha"],
+      "recall_query": "deploy project alpha data pipeline release",
+      "memory_labels": ["cmem_project_alpha_config", "cmem_high_utility_wrong_scope"],
+      "decoy_labels": ["cmem_high_utility_wrong_scope"],
+      "expected_recalled_labels": ["cmem_project_alpha_config"],
+      "expected_used_labels": ["cmem_project_alpha_config"],
+      "expected_ignored_labels": ["cmem_high_utility_wrong_scope"],
+      "near_miss_memory_labels": ["cmem_high_utility_wrong_scope"],
+      "fact_contributions": {
+        "cmem_project_alpha_config": ["USE_US_EAST_1_PRIMARY"]
+      },
+      "expected_answer_facts": ["USE_US_EAST_1_PRIMARY"],
+      "forbidden_answer_facts": ["COLUMNAR_WAREHOUSE_BATCH"],
+      "requires_memory_help": true,
+      "research_principle": "interference_control"
+    },
+    {
+      "id": "retrieval_practice_recalled_ignored_not_helpful",
+      "title": "Recalled but ignored memory is not helpful",
+      "scenario": "Helpful memory used; similar noise recalled but ignored",
+      "task_prompt": "Retry failed deploy release with backoff",
+      "domain_tags": ["phase11c-deploy"],
+      "recall_query": "deploy release retry backoff failed",
+      "memory_labels": ["cmem_helpful_retry_pattern", "cmem_recalled_noise_deploy"],
+      "expected_recalled_labels": ["cmem_helpful_retry_pattern", "cmem_recalled_noise_deploy"],
+      "expected_used_labels": ["cmem_helpful_retry_pattern"],
+      "expected_ignored_labels": ["cmem_recalled_noise_deploy"],
+      "fact_contributions": {
+        "cmem_helpful_retry_pattern": ["EXPONENTIAL_BACKOFF_RETRY"]
+      },
+      "expected_answer_facts": ["EXPONENTIAL_BACKOFF_RETRY"],
+      "requires_memory_help": true,
+      "research_principle": "retrieval_practice"
+    },
+    {
+      "id": "retrieval_practice_used_no_improvement_not_helpful",
+      "title": "Used memory without improvement is not helpful",
+      "scenario": "Memory used but empty contribution does not improve answer",
+      "task_prompt": "Deploy release candidate with signature verification gate",
+      "domain_tags": ["phase11c-deploy"],
+      "recall_query": "deploy release candidate signature verification",
+      "memory_labels": ["cmem_empty_contribution"],
+      "expected_recalled_labels": ["cmem_empty_contribution"],
+      "expected_used_labels": ["cmem_empty_contribution"],
+      "fact_contributions": {
+        "cmem_empty_contribution": []
+      },
+      "expected_answer_facts": ["VERIFY_ARTIFACT_SIGNATURES"],
+      "no_memory_answer_facts": [],
+      "requires_memory_help": true,
+      "research_principle": "retrieval_practice"
+    },
+    {
+      "id": "experience_following_bad_prior_experience_suppressed",
+      "title": "Bad prior experience must not replay as guidance",
+      "scenario": "Stale failure recommending skip tests is suppressed",
+      "task_prompt": "Deploy release candidate to production with safety gates",
+      "domain_tags": ["phase11c-deploy"],
+      "recall_query": "deploy release candidate integration tests production safety",
+      "memory_labels": ["cmem_bad_experience_replay", "cmem_correct_deploy_tests"],
+      "decoy_labels": ["cmem_bad_experience_replay"],
+      "expected_recalled_labels": ["cmem_correct_deploy_tests"],
+      "expected_used_labels": ["cmem_correct_deploy_tests"],
+      "expected_ignored_labels": ["cmem_bad_experience_replay"],
+      "expected_suppressed_memory_ids": ["cmem_bad_experience_replay"],
+      "near_miss_memory_labels": ["cmem_bad_experience_replay"],
+      "fact_contributions": {
+        "cmem_correct_deploy_tests": ["RUN_INTEGRATION_TESTS_FIRST"]
+      },
+      "expected_answer_facts": ["RUN_INTEGRATION_TESTS_FIRST"],
+      "forbidden_answer_facts": ["SKIP_INTEGRATION_TESTS"],
+      "requires_memory_help": true,
+      "research_principle": "experience_following_risk"
+    },
+    {
+      "id": "lifecycle_refuted_historical_not_guidance",
+      "title": "Refuted historical memory must not guide action",
+      "scenario": "Refuted skip-health belief ignored; current guidance used",
+      "task_prompt": "Deploy release candidate with health verification",
+      "domain_tags": ["phase11c-deploy"],
+      "recall_query": "deploy release candidate health checks verification",
+      "recall_mode": "current",
+      "memory_labels": ["cmem_refuted_historical_guidance", "cmem_correct_health_guidance"],
+      "expected_recalled_labels": ["cmem_correct_health_guidance"],
+      "expected_used_labels": ["cmem_correct_health_guidance"],
+      "expected_ignored_labels": ["cmem_refuted_historical_guidance"],
+      "fact_contributions": {
+        "cmem_correct_health_guidance": ["RUN_HEALTH_CHECKS"]
+      },
+      "expected_answer_facts": ["RUN_HEALTH_CHECKS"],
+      "forbidden_answer_facts": ["SKIP_HEALTH_CHECKS"],
+      "requires_memory_help": true,
+      "research_principle": "memory_lifecycle_governance"
+    },
+    {
+      "id": "reconstructive_metadata_exposed",
+      "title": "Recall manifest exposes lifecycle and utility metadata",
+      "scenario": "Agent simulator receives reconstructive risk metadata via manifest",
+      "task_prompt": "Deploy release candidate with blue-green cutover",
+      "domain_tags": ["phase11c-deploy"],
+      "recall_query": "deploy release candidate blue-green zero downtime cutover",
+      "memory_labels": ["cmem_reconstructive_metadata"],
+      "expected_recalled_labels": ["cmem_reconstructive_metadata"],
+      "expected_used_labels": ["cmem_reconstructive_metadata"],
+      "fact_contributions": {
+        "cmem_reconstructive_metadata": ["BLUE_GREEN_CUTOVER"]
+      },
+      "expected_answer_facts": ["BLUE_GREEN_CUTOVER"],
+      "requires_memory_help": true,
+      "research_principle": "reconstructive_memory_risk",
+      "check_mcp_rest_parity": true
+    }
+  ]
+}

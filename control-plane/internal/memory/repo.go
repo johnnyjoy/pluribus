@@ -97,11 +97,28 @@ func (r *Repo) Create(ctx context.Context, req CreateRequest) (*MemoryObject, er
 	var err error
 	if len(req.Embedding) > 0 {
 		vec := FormatVectorLiteral(req.Embedding)
+		meta := req.EmbeddingWrite
+		var model, provider, sourceHash, embStatus sql.NullString
+		var dim sql.NullInt64
+		var embCreated, embUpdated sql.NullTime
+		if meta != nil {
+			model = sql.NullString{String: meta.Model, Valid: meta.Model != ""}
+			provider = sql.NullString{String: meta.Provider, Valid: meta.Provider != ""}
+			sourceHash = sql.NullString{String: meta.SourceHash, Valid: meta.SourceHash != ""}
+			embStatus = sql.NullString{String: meta.Status, Valid: meta.Status != ""}
+			if meta.Dimension > 0 {
+				dim = sql.NullInt64{Int64: int64(meta.Dimension), Valid: true}
+			}
+			embCreated = sql.NullTime{Time: meta.CreatedAt, Valid: !meta.CreatedAt.IsZero()}
+			embUpdated = sql.NullTime{Time: meta.UpdatedAt, Valid: !meta.UpdatedAt.IsZero()}
+		}
 		err = r.DB.QueryRowContext(ctx,
-			`INSERT INTO memories (id, kind, statement, statement_canonical, statement_key, dedup_key, authority, applicability, status, ttl_seconds, payload, occurred_at, embedding)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::vector)
+			`INSERT INTO memories (id, kind, statement, statement_canonical, statement_key, dedup_key, authority, applicability, status, ttl_seconds, payload, occurred_at, embedding,
+			 embedding_model, embedding_provider, embedding_dimension, embedding_source_hash, embedding_created_at, embedding_updated_at, embedding_status)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::vector, $14, $15, $16, $17, $18, $19, $20)
 			 RETURNING id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at, occurred_at`,
 			id, string(req.Kind), req.Statement, canon, stmtKey, dedup, req.Authority, applicability, status, ttl, payloadArg, occurredArg, vec,
+			model, provider, dim, sourceHash, embCreated, embUpdated, embStatus,
 		).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredReturn)
 	} else {
 		err = r.DB.QueryRowContext(ctx,
@@ -195,6 +212,21 @@ func (r *Repo) UpdatePayload(ctx context.Context, id uuid.UUID, payload []byte) 
 	return err
 }
 
+// UpdatePromotedMaterialization upgrades an existing row to canonical materialized state.
+func (r *Repo) UpdatePromotedMaterialization(ctx context.Context, id uuid.UUID, status api.Status, applicability api.Applicability, authority int) error {
+	if r == nil || r.DB == nil {
+		return errors.New("memory repo: not configured")
+	}
+	app := string(applicability)
+	if app == "" {
+		app = string(api.ApplicabilityGoverning)
+	}
+	_, err := r.DB.ExecContext(ctx,
+		`UPDATE memories SET status = $1, applicability = $2, authority = $3, updated_at = now() WHERE id = $4`,
+		string(status), app, authority, id)
+	return err
+}
+
 // MergeTagsIntoMemory inserts tags not already present (case-insensitive dedupe vs existing).
 func (r *Repo) MergeTagsIntoMemory(ctx context.Context, memoryID uuid.UUID, newTags []string) error {
 	if r == nil || r.DB == nil {
@@ -237,13 +269,15 @@ func (r *Repo) MarkSuperseded(ctx context.Context, id uuid.UUID, deprecatedAt ti
 }
 
 // ListExpiredCandidates returns active memories with TTL set that have expired and authority below threshold (Task 75).
+// Phase 9B: rows with historical-value signals (utility, evidence, relationships, contradictions,
+// durable tags, material occurred_at, supersession payload) are excluded from TTL archive candidacy.
 func (r *Repo) ListExpiredCandidates(ctx context.Context, authorityThreshold int, asOf time.Time) ([]MemoryObject, error) {
-	rows, err := r.DB.QueryContext(ctx,
-		`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at, occurred_at
-		 FROM memories
-		 WHERE status = 'active' AND authority < $1 AND ttl_seconds IS NOT NULL AND ttl_seconds > 0
-		   AND created_at + (ttl_seconds * interval '1 second') < $2`,
-		authorityThreshold, asOf)
+	query := `SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.deprecated_at, m.ttl_seconds, m.payload, m.created_at, m.updated_at, m.occurred_at
+		 FROM memories m
+		 WHERE m.status = 'active' AND m.authority < $1 AND m.ttl_seconds IS NOT NULL AND m.ttl_seconds > 0
+		   AND m.created_at + (m.ttl_seconds * interval '1 second') < $2` + ttlHistoricalValueExclusionSQL
+	rows, err := r.DB.QueryContext(ctx, query,
+		authorityThreshold, asOf, OccurredAtMaterialDeltaSeconds, pq.Array(DurableHistoricalTags))
 	if err != nil {
 		return nil, err
 	}
@@ -424,7 +458,7 @@ func (r *Repo) SearchSimilar(ctx context.Context, queryEmbedding []float32, req 
 				(m.embedding <=> $1::vector) AS vec_dist
 			 FROM memories m
 			 WHERE m.status = $2
-			   AND m.embedding IS NOT NULL
+			   AND m.embedding IS NOT NULL`+embeddingFreshSQL+`
 			   AND m.kind = ANY($3)
 			   AND (m.embedding <=> $1::vector) <= $4
 			   AND EXISTS (SELECT 1 FROM memories_tags t WHERE t.memory_id = m.id AND t.tag = ANY($5))
@@ -437,7 +471,7 @@ func (r *Repo) SearchSimilar(ctx context.Context, queryEmbedding []float32, req 
 				(m.embedding <=> $1::vector) AS vec_dist
 			 FROM memories m
 			 WHERE m.status = $2
-			   AND m.embedding IS NOT NULL
+			   AND m.embedding IS NOT NULL`+embeddingFreshSQL+`
 			   AND (m.embedding <=> $1::vector) <= $3
 			   AND EXISTS (SELECT 1 FROM memories_tags t WHERE t.memory_id = m.id AND t.tag = ANY($4))
 			 ORDER BY vec_dist ASC, m.id
@@ -449,7 +483,7 @@ func (r *Repo) SearchSimilar(ctx context.Context, queryEmbedding []float32, req 
 				(embedding <=> $1::vector) AS vec_dist
 			 FROM memories
 			 WHERE status = $2
-			   AND embedding IS NOT NULL
+			   AND embedding IS NOT NULL`+embeddingFreshSQL+`
 			   AND kind = ANY($3)
 			   AND (embedding <=> $1::vector) <= $4
 			 ORDER BY vec_dist ASC, id
@@ -461,7 +495,7 @@ func (r *Repo) SearchSimilar(ctx context.Context, queryEmbedding []float32, req 
 				(embedding <=> $1::vector) AS vec_dist
 			 FROM memories
 			 WHERE status = $2
-			   AND embedding IS NOT NULL
+			   AND embedding IS NOT NULL`+embeddingFreshSQL+`
 			   AND (embedding <=> $1::vector) <= $3
 			 ORDER BY vec_dist ASC, id
 			 LIMIT $4`,
@@ -510,6 +544,8 @@ func (r *Repo) SearchSimilar(ctx context.Context, queryEmbedding []float32, req 
 	}
 	return list, simByID, nil
 }
+
+const embeddingFreshSQL = ` AND COALESCE(embedding_status, 'valid') = 'valid' AND embedding_source_hash IS NOT NULL`
 
 // SearchTagOnly searches by optional text query and tags (no project/global filter). Used by POST /v1/memories/search.
 func (r *Repo) SearchTagOnly(ctx context.Context, query string, tags []string, status string, max int) ([]MemoryObject, error) {

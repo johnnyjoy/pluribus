@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"control-plane/internal/formation"
 	"control-plane/internal/httpx"
 	"control-plane/pkg/api"
 
@@ -25,6 +26,7 @@ func (h *Handlers) Create(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	req.FormationPath = formation.PathDirectCreate
 	obj, err := h.Service.Create(r.Context(), req)
 	if err != nil {
 		var dup *ErrDuplicateMemory
@@ -103,6 +105,7 @@ func (h *Handlers) CreateMemories(w http.ResponseWriter, r *http.Request) {
 		Payload:       req.Payload,
 		Status:        req.Status,
 		OccurredAt:    req.OccurredAt,
+		FormationPath: formation.PathMemoriesCreate,
 	}
 	obj, err := h.Service.Create(r.Context(), cr)
 	if err != nil {

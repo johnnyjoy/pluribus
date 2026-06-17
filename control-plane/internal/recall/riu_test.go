@@ -38,7 +38,7 @@ func riuCompiler(weights RankingWeights, riu RIUConfig, mem *fakeMemorySearcher,
 	}
 }
 
-// T1: With RIU, transferable metadata is preserved; ordering follows authority-first (RC1).
+// T1: With RIU, transferable metadata is preserved; tag-aligned global row can outrank higher authority when total score is higher.
 func TestRIU_T1_globalOutranksWeakLocal(t *testing.T) {
 	now := time.Now()
 	idLocal := uuid.MustParse("c1000000-0000-0000-0000-000000000001")
@@ -72,14 +72,14 @@ func TestRIU_T1_globalOutranksWeakLocal(t *testing.T) {
 	if len(bundle.Decisions) != 2 {
 		t.Fatalf("decisions %d", len(bundle.Decisions))
 	}
-	if bundle.Decisions[0].Statement != "local-weak" {
-		t.Errorf("first = %q want local-weak (authority 8 > 4)", bundle.Decisions[0].Statement)
+	if bundle.Decisions[0].Statement != "global-transferable" {
+		t.Errorf("first = %q want global-transferable (tag-aligned higher total score)", bundle.Decisions[0].Statement)
 	}
-	if bundle.Decisions[1].Statement != "global-transferable" {
-		t.Errorf("second = %q want global-transferable", bundle.Decisions[1].Statement)
+	if bundle.Decisions[1].Statement != "local-weak" {
+		t.Errorf("second = %q want local-weak", bundle.Decisions[1].Statement)
 	}
-	if bundle.Decisions[1].RIU == nil || !bundle.Decisions[1].RIU.Transferable {
-		t.Errorf("expected global row with transferable RIU metadata: %+v", bundle.Decisions[1].RIU)
+	if bundle.Decisions[0].RIU == nil || !bundle.Decisions[0].RIU.Transferable {
+		t.Errorf("expected global row with transferable RIU metadata: %+v", bundle.Decisions[0].RIU)
 	}
 }
 

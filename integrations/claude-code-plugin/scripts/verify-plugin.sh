@@ -9,6 +9,11 @@ for f in .claude-plugin/plugin.json hooks/hooks.json .mcp.json; do
   python3 -m json.tool "$f" >/dev/null
   echo "ok: $f"
 done
+MP="$(cd "$ROOT/.." && pwd)/.claude-plugin/marketplace.json"
+if [[ -f "$MP" ]]; then
+  python3 -m json.tool "$MP" >/dev/null
+  echo "ok: $MP"
+fi
 
 echo "== Bash hook scripts =="
 for s in hooks/*.sh; do

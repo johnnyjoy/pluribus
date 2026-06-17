@@ -2,6 +2,8 @@
 
 **Pluribus** is the governed memory control plane. Chat is not durable memory until ingested; **probationary memory** can be formed **at ingest** when the summary carries deterministic learning signals.
 
+> **Compliance (Phase 2):** These instructions guide agent behavior. **Compliance is measured by Pluribus telemetry** (`compliance_evaluate`, `/v1/compliance/*`), but clients may still skip tools unless the client runtime enforces them. Pluribus does not block local file edits outside MCP.
+
 **If** your available tools include Pluribus (`recall_context`, `record_experience`, or HTTP/RPC equivalents your client documents for this server), **then**:
 
 ## Recall (before acting)

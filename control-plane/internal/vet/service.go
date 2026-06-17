@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"control-plane/internal/distillation"
+	"control-plane/internal/formation"
 	"control-plane/internal/memory"
 	"control-plane/internal/similarity"
 	"control-plane/pkg/api"
@@ -22,8 +23,9 @@ const (
 
 // Service wires memory creation to advisory experiences at ingest time only.
 type Service struct {
-	Memory   *memory.Service
-	Episodes *similarity.Repo
+	Memory     *memory.Service
+	Episodes   *similarity.Repo
+	Formation  *formation.Gate
 }
 
 type formationLink struct {
@@ -77,6 +79,13 @@ func (s *Service) tryFormProbationary(ctx context.Context, ep *similarity.Record
 	if len(runes) < minRunes {
 		return nil, "below_min_length", nil
 	}
+	if s.Formation != nil {
+		if reject, reason := s.Formation.RejectRecordExperienceSummary(stmt); reject {
+			return nil, reason, nil
+		}
+	} else if formation.IsWeakRecordExperienceSummary(stmt, 4) {
+		return nil, "junk_or_vague_summary", nil
+	}
 	kind, sigReason, ok, weak := distillation.QualifyForProbationaryMemory(stmt, ep.Tags)
 	if !ok {
 		return nil, "no_qualifying_signal", nil
@@ -105,6 +114,25 @@ func (s *Service) tryFormProbationary(ctx context.Context, ep *similarity.Record
 		Statement:     stmt,
 		Tags:          uniqTags(tags),
 		Payload:       (*json.RawMessage)(&pj),
+		FormationPath: formation.PathProbationaryIngest,
+	}
+	if s.Formation != nil {
+		in := &formation.CreateInput{
+			Path:          formation.PathProbationaryIngest,
+			Kind:          kind,
+			Authority:     auth,
+			Applicability: api.ApplicabilityAdvisory,
+			Statement:     stmt,
+			Tags:          cr.Tags,
+		}
+		if d, err := s.Formation.EvaluateCreateInput(in); err != nil {
+			return nil, "formation_rejected", nil
+		} else if d.Outcome == formation.OutcomeReject {
+			return nil, d.Reason, nil
+		}
+		cr.Authority = in.Authority
+		cr.Applicability = in.Applicability
+		cr.Status = in.Status
 	}
 	if ep.OccurredAt != nil {
 		cr.OccurredAt = ep.OccurredAt

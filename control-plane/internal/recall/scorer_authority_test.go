@@ -10,18 +10,16 @@ import (
 	"github.com/google/uuid"
 )
 
-// TestScoreAndSortWithReason_authorityDominates proves a lower-authority row with newer UpdatedAt
-// does not sort above a higher-authority row when both are the same kind (RC1 authority dominance).
+// TestScoreAndSortWithReason_authorityDominates proves authority breaks ties when total scores are equal.
 func TestScoreAndSortWithReason_authorityDominates(t *testing.T) {
-	old := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
-	newer := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	same := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	idWeak := uuid.MustParse("00000000-0000-0000-0000-0000000000aa")
 	idStrong := uuid.MustParse("00000000-0000-0000-0000-0000000000bb")
 	objs := []memory.MemoryObject{
 		{ID: idWeak, Kind: api.MemoryKindDecision,
-			Statement: "weak newer", Authority: 3, UpdatedAt: newer, Status: api.StatusActive},
+			Statement: "weak", Authority: 3, UpdatedAt: same, Status: api.StatusActive},
 		{ID: idStrong, Kind: api.MemoryKindDecision,
-			Statement: "strong older", Authority: 9, UpdatedAt: old, Status: api.StatusActive},
+			Statement: "strong", Authority: 9, UpdatedAt: same, Status: api.StatusActive},
 	}
 	w := DefaultRankingWeights()
 	out := ScoreAndSortWithReason(objs, ScoreRequest{Tags: []string{}}, w, 0)

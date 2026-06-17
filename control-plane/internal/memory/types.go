@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"control-plane/internal/formation"
 	"control-plane/pkg/api"
 
 	"github.com/google/uuid"
@@ -164,6 +165,8 @@ type MemoryObject struct {
 	UpdatedAt    time.Time       `json:"updated_at"`
 	// OccurredAt is when the underlying event or fact took place (optional). Omitted in JSON when unset.
 	OccurredAt *time.Time `json:"occurred_at,omitempty"`
+	// EmbeddingMeta optional pgvector metadata (loaded from DB when present).
+	EmbeddingMeta EmbeddingMeta `json:"embedding_meta,omitempty"`
 }
 
 // CreateRequest is the payload for creating a memory object.
@@ -184,19 +187,33 @@ type CreateRequest struct {
 	Status api.Status `json:"status,omitempty"`
 	// Embedding optional dense vector for pgvector (set by Service when semantic retrieval is enabled); not accepted from JSON.
 	Embedding []float32 `json:"-"`
+	// EmbeddingWrite optional metadata written with the vector (internal).
+	EmbeddingWrite *EmbeddingWriteMeta `json:"-"`
 	// SkipPatternNearMerge when true skips tryMergeNearDuplicatePattern (internal: pattern elevation create).
 	SkipPatternNearMerge bool `json:"-"`
 	// OccurredAt is optional event time (when the fact/event occurred), RFC3339 on the wire.
 	OccurredAt *time.Time `json:"occurred_at,omitempty"`
+	// FormationPath selects gate rules (direct_create, probationary_ingest, promote). Not accepted from JSON.
+	FormationPath formation.Path `json:"-"`
 }
 
 // SearchRequest is the payload for POST /memory/search.
 type SearchRequest struct {
 	Tags   []string `json:"tags,omitempty"`   // match objects that have any of these tags
-	Status string   `json:"status,omitempty"` // default "active"
+	Status string   `json:"status,omitempty"` // default "active" when Statuses empty
+	// Statuses when non-empty restricts rows to any of these statuses (vector + multi-status search).
+	Statuses []string `json:"statuses,omitempty"`
 	Max    int      `json:"max,omitempty"`    // default 20
 	// Kinds when non-empty restricts rows to these memory kinds (e.g. pattern-only scan).
 	Kinds []api.MemoryKind `json:"kinds,omitempty"`
+	// EmbeddingFilter optional constraints for vector search (staleness/model/dimension).
+	EmbeddingFilter *EmbeddingSearchFilter `json:"-"`
+}
+
+// EmbeddingSearchFilter excludes stale or mismatched embeddings from vector search.
+type EmbeddingSearchFilter struct {
+	Model     string
+	Dimension int
 }
 
 // ListBindingRequest loads memory rows eligible for pre-change enforcement (binding only).

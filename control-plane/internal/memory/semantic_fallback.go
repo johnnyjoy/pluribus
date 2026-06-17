@@ -9,4 +9,5 @@ const (
 	SemanticFallbackEmbeddingFailed     = "embedding_failed"
 	SemanticFallbackVectorSearchFailed  = "vector_search_failed"
 	SemanticFallbackBackendUnsupported  = "backend_unsupported"
+	SemanticFallbackStaleEmbedding      = "stale_embedding"
 )

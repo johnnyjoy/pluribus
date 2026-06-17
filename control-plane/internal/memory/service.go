@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"control-plane/internal/cache"
+	"control-plane/internal/formation"
 	"control-plane/internal/memorynorm"
 	"control-plane/pkg/api"
 
@@ -66,6 +67,10 @@ type Service struct {
 	Embedder Embedder
 	// PatternElevation optional cluster elevation into a dominant pattern row (default off).
 	PatternElevation *PatternElevationConfig
+	// Formation optional memory formation quality gate (Phase 5). Nil = gate disabled (legacy).
+	Formation *formation.Gate
+	// ReinforceDuplicateAuthority when true restores legacy duplicate authority +1 (Phase 7 default: false).
+	ReinforceDuplicateAuthority bool
 }
 
 // ReinforceRecallUsage increases authority for recalled memories (frequency/reuse signal).
@@ -251,6 +256,12 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*MemoryObject,
 	if !validBehaviorKind(req.Kind) {
 		return nil, fmt.Errorf("invalid kind %q", req.Kind)
 	}
+	if req.FormationPath == "" {
+		req.FormationPath = formation.PathDirectCreate
+	}
+	if err := s.applyFormationGate(ctx, &req); err != nil {
+		return nil, err
+	}
 	if req.Status != "" && !validCreateStatus(req.Status) {
 		return nil, fmt.Errorf("invalid status %q for create (use active or pending)", req.Status)
 	}
@@ -276,18 +287,27 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*MemoryObject,
 			if gerr != nil || existing == nil {
 				return nil, &ErrDuplicateMemory{ExistingID: *dupID}
 			}
-			newAuth := existing.Authority + 1
-			if newAuth > 10 {
-				newAuth = 10
+			if req.FormationPath == formation.PathPromote && shouldUpgradePromotedDuplicate(existing, req) {
+				upgraded, err := s.finalizePromotedDuplicate(ctx, *dupID, existing, req)
+				if err != nil {
+					return nil, err
+				}
+				return upgraded, nil
 			}
-			if err := s.Repo.UpdateAuthority(ctx, *dupID, newAuth); err != nil {
-				return nil, err
+			if s.ReinforceDuplicateAuthority {
+				newAuth := existing.Authority + 1
+				if newAuth > 10 {
+					newAuth = 10
+				}
+				if err := s.Repo.UpdateAuthority(ctx, *dupID, newAuth); err != nil {
+					return nil, err
+				}
+				existing.Authority = newAuth
 			}
 			if s.Cache != nil {
 				_ = s.Cache.DeleteByPrefix(ctx, "memory:tags:")
 				s.invalidateRecallBundleCache(ctx)
 			}
-			existing.Authority = newAuth
 			existing.UpdatedAt = time.Now()
 			return existing, nil
 		}
@@ -326,6 +346,77 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*MemoryObject,
 		s.invalidateRecallBundleCache(ctx)
 	}
 	return obj, nil
+}
+
+func (s *Service) applyFormationGate(ctx context.Context, req *CreateRequest) error {
+	if s == nil || s.Formation == nil || req == nil {
+		return nil
+	}
+	if req.FormationPath == formation.PathDirectCreate || req.FormationPath == formation.PathMemoriesCreate {
+		if req.Applicability == "" {
+			req.Applicability = api.ApplicabilityAdvisory
+		}
+	}
+	var payload []byte
+	if req.Payload != nil {
+		payload = append(payload, (*req.Payload)...)
+	}
+	in := &formation.CreateInput{
+		Path:          req.FormationPath,
+		Kind:          req.Kind,
+		Authority:     req.Authority,
+		Applicability: req.Applicability,
+		Status:        req.Status,
+		Statement:     req.Statement,
+		Tags:          req.Tags,
+		Payload:       payload,
+	}
+	if _, err := s.Formation.EvaluateCreateInput(in); err != nil {
+		return err
+	}
+	req.Authority = in.Authority
+	req.Applicability = in.Applicability
+	req.Status = in.Status
+	if s.Formation.Config().ContradictionOnWrite && req.Kind == api.MemoryKindConstraint {
+		if err := s.applyContradictionOnWrite(ctx, req); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Service) applyContradictionOnWrite(ctx context.Context, req *CreateRequest) error {
+	if s == nil || s.Repo == nil || req == nil {
+		return nil
+	}
+	if req.Status == api.StatusPending {
+		return nil
+	}
+	if req.Applicability != api.ApplicabilityGoverning && req.Authority < s.Formation.Config().DirectCreate.HighRiskAuthorityThreshold {
+		return nil
+	}
+	list, err := s.Repo.SearchUnscoped(ctx, SearchRequest{
+		Kinds:  []api.MemoryKind{api.MemoryKindConstraint},
+		Status: string(api.StatusActive),
+		Max:    40,
+	})
+	if err != nil {
+		return nil
+	}
+	for _, m := range list {
+		if m.Applicability != api.ApplicabilityGoverning {
+			continue
+		}
+		if formation.ContradictsStatement(req.Statement, m.Statement) {
+			req.Status = api.StatusPending
+			if req.Payload == nil {
+				raw := json.RawMessage(`{"formation":"contradiction_on_write"}`)
+				req.Payload = &raw
+			}
+			return nil
+		}
+	}
+	return nil
 }
 
 // GetByID loads one memory by id (for relationship hints and callers that need a pointer).
@@ -528,6 +619,7 @@ func (s *Service) Promote(ctx context.Context, req PromoteRequest) (*PromoteResp
 		Statement:     req.Content,
 		Tags:          tags,
 		OccurredAt:    req.OccurredAt,
+		FormationPath: formation.PathPromote,
 	}
 	if kind == api.MemoryKindConstraint {
 		cr.Applicability = api.ApplicabilityGoverning
@@ -564,4 +656,53 @@ func kindStringsForSearchCache(kinds []api.MemoryKind) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+func shouldUpgradePromotedDuplicate(existing *MemoryObject, req CreateRequest) bool {
+	if existing == nil {
+		return false
+	}
+	if existing.Status == api.StatusPending {
+		return true
+	}
+	if req.Applicability == api.ApplicabilityGoverning && existing.Applicability != api.ApplicabilityGoverning {
+		return true
+	}
+	return false
+}
+
+func (s *Service) finalizePromotedDuplicate(ctx context.Context, id uuid.UUID, existing *MemoryObject, req CreateRequest) (*MemoryObject, error) {
+	if s == nil || s.Repo == nil {
+		return nil, fmt.Errorf("memory service not configured")
+	}
+	status := req.Status
+	if status == "" {
+		status = api.StatusActive
+	}
+	app := req.Applicability
+	if app == "" {
+		app = existing.Applicability
+	}
+	auth := existing.Authority
+	if req.Authority > auth {
+		auth = req.Authority
+	}
+	if err := s.Repo.UpdatePromotedMaterialization(ctx, id, status, app, auth); err != nil {
+		return nil, err
+	}
+	if len(req.Tags) > 0 {
+		if err := s.Repo.MergeTagsIntoMemory(ctx, id, req.Tags); err != nil {
+			return nil, err
+		}
+	}
+	if req.Payload != nil && len(*req.Payload) > 0 {
+		if err := s.Repo.UpdatePayload(ctx, id, *req.Payload); err != nil {
+			return nil, err
+		}
+	}
+	if s.Cache != nil {
+		_ = s.Cache.DeleteByPrefix(ctx, "memory:tags:")
+		s.invalidateRecallBundleCache(ctx)
+	}
+	return s.Repo.GetByID(ctx, id)
 }

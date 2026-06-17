@@ -186,9 +186,47 @@ func TestCompile_authoritySortDominatesSemanticStrength(t *testing.T) {
 	if len(bundle.ApplicablePatterns) < 2 {
 		t.Fatalf("want 2 patterns, got %d", len(bundle.ApplicablePatterns))
 	}
-	// sortScoredMemoriesStable: higher authority first regardless of softer score.
+	// Semantic cap + score-first sort: high-authority row still leads when semantic is capped below authority contribution.
 	if bundle.ApplicablePatterns[0].ID != weakSemID.String() {
-		t.Fatalf("expected high-authority pattern first, got first=%q second=%q",
+		t.Fatalf("expected high-authority pattern first under semantic cap, got first=%q second=%q",
 			bundle.ApplicablePatterns[0].ID, bundle.ApplicablePatterns[1].ID)
+	}
+}
+
+func TestSemanticRetrievalReportsFallbackReason(t *testing.T) {
+	ctx := context.Background()
+	id := uuid.New()
+	lex := patternMem(id, 3, "lexical fallback row", "lexical fallback row")
+	searcher := &semanticHybridTestSearcher{
+		baseSearch: []memory.MemoryObject{lex},
+		embedErr:   context.DeadlineExceeded,
+	}
+	w := DefaultRankingWeights()
+	c := &Compiler{
+		Memory:  searcher,
+		Ranking: &w,
+		Semantic: &SemanticRecallConfig{
+			Enabled:             true,
+			MaxCandidates:       10,
+			MinCosineSimilarity: 0.1,
+		},
+	}
+	bundle, err := c.Compile(ctx, CompileRequest{
+		RetrievalQuery: "deploy pipeline",
+		MaxPerKind:     5,
+		MaxTotal:       10,
+		Mode:           "continuity",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bundle.SemanticRetrieval == nil {
+		t.Fatal("expected semantic retrieval debug")
+	}
+	if bundle.SemanticRetrieval.FallbackReason != memory.SemanticFallbackEmbeddingFailed {
+		t.Fatalf("fallback=%q", bundle.SemanticRetrieval.FallbackReason)
+	}
+	if len(bundle.ApplicablePatterns) == 0 && len(bundle.Continuity) == 0 {
+		t.Fatal("expected lexical fallback results")
 	}
 }

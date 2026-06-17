@@ -326,3 +326,60 @@ func evidenceAttach(client *http.Client, base, apiKey string, arguments json.Raw
 		"isError": statusErr,
 	}
 }
+
+// memoryFeedback posts structured utility feedback for an existing memory (Phase 7).
+func memoryFeedback(client *http.Client, base, apiKey string, arguments json.RawMessage) map[string]any {
+	if len(bytes.TrimSpace(arguments)) == 0 {
+		return ToolResultErr("memory_feedback requires arguments (memory_id, event_type)")
+	}
+	var m map[string]any
+	if err := json.Unmarshal(arguments, &m); err != nil {
+		return ToolResultErr(fmt.Sprintf("memory_feedback: %v", err))
+	}
+	mid := strings.TrimSpace(firstString(m, "memory_id"))
+	et := strings.TrimSpace(firstString(m, "event_type"))
+	if mid == "" || et == "" {
+		return ToolResultErr("memory_feedback requires memory_id and event_type")
+	}
+	if _, err := uuid.Parse(mid); err != nil {
+		return ToolResultErr("memory_feedback: memory_id must be a UUID")
+	}
+	body := map[string]any{
+		"event_type":        et,
+		"reason":            strings.TrimSpace(firstString(m, "reason")),
+		"source":            strings.TrimSpace(firstString(m, "source")),
+		"source_tool":       strings.TrimSpace(firstString(m, "source_tool")),
+		"source_session_id": strings.TrimSpace(firstString(m, "source_session_id", "session_id")),
+		"correlation_id":    strings.TrimSpace(firstString(m, "correlation_id")),
+		"recall_bundle_id":  strings.TrimSpace(firstString(m, "recall_bundle_id")),
+	}
+	if v, ok := m["payload"].(map[string]any); ok {
+		body["payload"] = v
+	}
+	if eid := strings.TrimSpace(firstString(m, "evidence_id")); eid != "" {
+		body["evidence_id"] = eid
+	}
+	b, err := json.Marshal(body)
+	if err != nil {
+		return ToolResultErr(err.Error())
+	}
+	req, err := http.NewRequest(http.MethodPost, base+"/v1/memory/"+url.PathEscape(mid)+"/feedback", bytes.NewReader(b))
+	if err != nil {
+		return ToolResultErr(err.Error())
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if apiKey != "" {
+		req.Header.Set("X-API-Key", apiKey)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return ToolResultErr(fmt.Sprintf("memory_feedback http error: %v", err))
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	text := fmt.Sprintf("POST /v1/memory/%s/feedback\nHTTP %s\n%s", mid, resp.Status, string(raw))
+	return map[string]any{
+		"content": []map[string]any{{"type": "text", "text": text}},
+		"isError": resp.StatusCode >= 400,
+	}
+}

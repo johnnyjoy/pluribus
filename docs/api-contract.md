@@ -173,6 +173,38 @@ See `control-plane/internal/memory/types.go` (`CreateRequest`) and `pkg/api` enu
 
 ---
 
+## `POST /v1/recall/wakeup`
+
+**Purpose:** **Session-start** recall: a **small, deterministic projection** of the same compiler and memory semantics as compile — **not** a separate memory system.
+
+### Request
+
+| Field | Required | Notes |
+|-------|----------|--------|
+| `tags` | no | Same tag filter as compile |
+| `agent_id`, `correlation_id` | no | Same semantics as **`CompileRequest`** |
+| `max_state` | no | Cap **L0** rows (default **4**) |
+| `max_per_kind` | no | Per-bucket cap before L1 merge (default **2**) |
+| `max_governing_total` | no | Cap **L1** rows after applicability filter (default **12**) |
+
+### Response
+
+| Status | Body |
+|--------|------|
+| **`200`** | **`WakeupResponse`**: **`identity`** (`MemoryItem[]`), **`governing_memory`** (`MemoryItem[]`), optional **`recall_preamble`**, **`limits_applied`** |
+| **`400`** | Decode / compiler errors |
+| **`503`** | Compiler not configured |
+
+### Behavioral notes
+
+- **Empty situation:** No **`retrieval_query`** — no semantic/lexical expansion path.
+- **No experience prepend:** Promoted JSONL experiences are **not** merged into the candidate pool for this call.
+- **No compile cache / no reuse_recall reinforcement** for this handler (implementation uses **`Compiler.Compile`** directly for this path).
+- **`MemoryItem.applicability`** is set on items so clients can audit governing vs advisory without a second fetch.
+- **MCP:** **`wakeup_context`** forwards to this route with optional limit fields only (see [mcp-poc-contract.md](mcp-poc-contract.md)).
+
+---
+
 ## `POST /v1/enforcement/evaluate`
 
 **Purpose:** Evaluate **`proposal_text`** against **binding** trusted memory (memory-first).

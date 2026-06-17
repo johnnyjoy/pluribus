@@ -16,7 +16,9 @@ This document states how the **Recall / Pluribus** stack is shaped **when viewed
 
 - **Recall** assembles a **bundle** for the current question: continuity, constraints, experience (and related groupings per API version).
 - The bundle is **selected**, not a full database dump — token-bounded and relevance-ranked.
-- Inputs are **situation-shaped**: natural-language **retrieval query**, optional **tags**, optional symbols/LSP hints where configured — **not** a required container selector.
+- Inputs are **situation-shaped**: natural-language **retrieval query**, optional **tags**, optional **`repo_root`** (basename adds a soft affinity token), optional symbols/LSP hints where configured — **not** a required container selector.
+
+**Situational affinity ranking** (additive, global pool preserved): [architecture/situational-affinity-ranking.md](architecture/situational-affinity-ranking.md).
 
 ---
 

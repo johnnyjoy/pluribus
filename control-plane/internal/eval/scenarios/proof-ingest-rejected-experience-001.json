@@ -12,10 +12,9 @@
         "source": "manual",
         "tags": ["proof:ingest:reject:{{RUN_ID}}"]
       },
-      "expect_status": 201,
+      "expect_status": 400,
       "asserts": [
-        {"kind": "body_contains", "value": "\"memory_formation_status\":\"rejected\""},
-        {"kind": "body_contains", "value": "rejection_reason"}
+        {"kind": "body_contains", "value": "summary rejected"}
       ]
     },
     {

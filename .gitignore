@@ -13,6 +13,8 @@ dev-debug.log
 .roam
 .idea
 .vscode
+.cursor/
+.agents/
 *.suo
 *.ntvs*
 *.njsproj
@@ -21,6 +23,19 @@ dev-debug.log
 
 # OS specific
 .DS_Store
+
+# Session scratchpad (local orientation — not public canon; see docs/memory-doctrine.md)
+active.md
+decisions.md
+
+# Personal planning / research notes (maintainer machine)
+adoption.md
+future-todo.md
+roadmap.md
+skills-lock.json
+
+# Historical memory-bank (not active system truth — see docs/memory-doctrine.md)
+archive/
 
 # Task files
 # tasks.json
@@ -35,6 +50,10 @@ control-plane/configs/config.local.yaml
 # Accidental `go build -o toolapi` in module root (cmd/toolapi removed)
 control-plane/toolapi
 
+# Built binaries (regenerate: `make build` from repo root or control-plane/)
+control-plane/controlplane
+control-plane/pluribus-mcp
+
 # Go
 /bin
 /vendor
@@ -46,3 +65,15 @@ coverage.out
 # pg_textsearch eval output (regenerate with make pg-textsearch-eval)
 artifacts/pg-textsearch/*.json
 artifacts/pg-textsearch/eval-summary.md
+
+# Generated proof / benchmark artifacts (regenerate via make proof-* / recall-benchmark-*)
+artifacts/*-benchmark.json
+artifacts/agent-*.json
+artifacts/recall-benchmark-*.json
+artifacts/local-upgrade-*.json
+artifacts/codebase-test-isolation.json
+
+# Local-only documentation (editor workflows, phase audit trail — not public repo)
+docs/reports/
+docs/local/*
+!docs/local/README.md

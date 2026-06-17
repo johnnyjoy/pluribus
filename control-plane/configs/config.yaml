@@ -47,8 +47,9 @@ recall:
     weight_cross_context_salience: 0.12
     weight_cross_agent_salience: 0.12
     weight_semantic_similarity: 0.4
+    weight_situational_affinity: 0.35
   semantic_retrieval:
-    enabled: true
+    enabled: false
   # evidence_in_bundle:
   #   enabled: false
   #   max_per_memory: 2

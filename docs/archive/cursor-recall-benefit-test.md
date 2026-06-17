@@ -4,6 +4,6 @@ ARCHIVED — NOT ACTIVE SYSTEM TRUTH
 
 # Moved
 
-This page is superseded by **[cursor-verify-recall.md](cursor-verify-recall.md)** (ask Cursor to verify Recall—not framed as a “test”).
+This page is superseded by the **local-only** verify protocol (`docs/local/cursor-verify-recall.md` on maintainer machines — see [public-documentation-policy.md](../public-documentation-policy.md)).
 
 Command: **`/ask-cursor-verify-recall`**

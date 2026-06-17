@@ -316,7 +316,7 @@ Route index: [docs/http-api-index.md](docs/http-api-index.md). RC1-oriented exam
 | Work orders | `workorders/` |
 | Evidence artifacts | `evidence/` |
 
-Work order format: [docs/work-order-format.md](docs/work-order-format.md). Curation style: [docs/memory-curation.md](docs/memory-curation.md). File-based retrieval order (for agents working *in* this repo): [docs/retrieval-order.md](docs/retrieval-order.md).
+Work order and retrieval-order formats are **local-only** on maintainer machines — see [docs/public-documentation-policy.md](docs/public-documentation-policy.md). Curation style: [docs/memory-curation.md](docs/memory-curation.md).
 
 ---
 

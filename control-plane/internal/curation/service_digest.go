@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"control-plane/internal/formation"
 	"control-plane/internal/memory"
 	"control-plane/internal/memorynorm"
 	"control-plane/pkg/api"
@@ -255,6 +256,7 @@ func (s *Service) materializeInternal(ctx context.Context, candidateID uuid.UUID
 		Tags:          p.Tags,
 		Status:        status,
 		Applicability: app,
+		FormationPath: formation.PathPromote,
 	}
 	if req.Authority <= 0 {
 		req.Authority = defaultAuthority(p.Kind)

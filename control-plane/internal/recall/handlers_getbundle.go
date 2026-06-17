@@ -61,6 +61,12 @@ func (h *Handlers) GetBundle(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	opts := telemetryOptionsFromQuery(r.URL.Query())
+	mode := strings.TrimSpace(req.RecallMode)
+	if mode == "" {
+		mode = "current"
+	}
+	h.attachBundleTelemetry(r.Context(), opts, "rest", bundle, requestMapFromStruct(req), mode)
 	httpx.WriteJSON(w, bundle)
 }
 

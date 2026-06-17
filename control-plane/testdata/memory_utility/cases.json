@@ -1,0 +1,25 @@
+{
+  "cases": [
+    {"id": "helpful_feedback_increases_utility", "category": "positive", "event_type": "helpful", "delta": 1.0},
+    {"id": "confirmed_feedback_increases_more_than_helpful", "category": "positive", "event_type": "confirmed", "delta": 2.0, "compare_gt": "helpful"},
+    {"id": "helpful_memory_rises_among_similar_candidates", "category": "ranking", "utility_a": 3.0, "utility_b": 0.0, "expect_a_higher": true},
+    {"id": "harmful_feedback_decreases_utility", "category": "negative", "event_type": "harmful", "delta": -2.0},
+    {"id": "wrong_feedback_decreases_more_than_harmful", "category": "negative", "compare_lt": {"a": "wrong", "b": "harmful"}},
+    {"id": "outdated_feedback_decreases_utility", "category": "negative", "event_type": "outdated", "delta": -1.0},
+    {"id": "irrelevant_feedback_decreases_mildly", "category": "negative", "event_type": "irrelevant", "delta": -0.5},
+    {"id": "wrong_memory_falls_below_neutral_similar_memory", "category": "ranking", "utility_a": -6.0, "utility_b": 0.0, "expect_a_higher": false},
+    {"id": "recall_alone_does_not_increase_authority", "category": "false_signal", "reinforce_on_recall": false, "expect_reinforce": false},
+    {"id": "recall_alone_does_not_increase_utility", "category": "false_signal", "reinforce_on_recall": false, "expect_utility_bump": false},
+    {"id": "duplicate_write_does_not_increase_authority", "category": "false_signal", "reinforce_duplicate_authority": false, "expect_authority_bump": false},
+    {"id": "duplicate_write_does_not_increase_utility", "category": "false_signal", "reinforce_duplicate_authority": false, "expect_utility_bump": false},
+    {"id": "bad_duplicate_repetition_does_not_promote_memory", "category": "false_signal", "repetitions": 5, "expect_authority_bump": false},
+    {"id": "contradiction_creates_demoting_utility_event", "category": "contradiction", "event_type": "refuted", "delta": -4.0},
+    {"id": "contradicted_memory_falls_or_is_suppressed", "category": "contradiction", "utility_a": -8.0, "utility_b": 0.0, "expect_a_higher": false},
+    {"id": "rest_feedback_valid_helpful", "category": "interface", "event_type": "helpful", "exposed": true},
+    {"id": "rest_feedback_invalid_event_rejected", "category": "interface", "event_type": "bogus", "exposed": false},
+    {"id": "rest_feedback_negative_requires_reason", "category": "interface", "event_type": "wrong", "requires_reason": true},
+    {"id": "mcp_feedback_valid_wrong", "category": "interface", "event_type": "wrong", "exposed": true, "requires_reason": true},
+    {"id": "mcp_feedback_invalid_memory_rejected", "category": "interface", "expect_not_found": true},
+    {"id": "mcp_rest_feedback_parity", "category": "interface", "parity_event_types": ["helpful", "harmful", "wrong", "outdated", "irrelevant"]}
+  ]
+}

@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,10 +14,18 @@ import (
 	"strings"
 	"time"
 
+	"control-plane/internal/buildinfo"
+	"control-plane/internal/formation"
 	"control-plane/internal/mcp"
 )
 
 func main() {
+	showVersion := flag.Bool("version", false, "print version and exit")
+	flag.Parse()
+	if *showVersion {
+		fmt.Println(buildinfo.String())
+		return
+	}
 	log.SetOutput(os.Stderr)
 	if err := run(); err != nil {
 		log.Fatal(err)
@@ -66,7 +75,23 @@ func run() error {
 		case "tools/list":
 			writeResult(req.ID, map[string]any{"tools": mcp.ToolDefinitions()})
 		case "tools/call":
-			res, err := mcp.HandleToolsCall(client, base, apiKey, req.Params, mcp.DefaultMemoryFormationPolicy())
+			var p struct {
+				Name      string          `json:"name"`
+				Arguments json.RawMessage `json:"arguments"`
+			}
+			if err := json.Unmarshal(req.Params, &p); err != nil {
+				writeErr(req.ID, -32602, "invalid tools/call params: "+err.Error(), nil)
+				continue
+			}
+			if strings.TrimSpace(p.Name) == "" {
+				writeErr(req.ID, -32602, "missing required argument: name", nil)
+				continue
+			}
+			if err := mcp.ValidateToolArguments(p.Name, p.Arguments); err != nil {
+				writeErr(req.ID, -32602, err.Error(), nil)
+				continue
+			}
+			res, err := mcp.HandleToolsCall(client, base, apiKey, req.Params, mcp.DefaultMemoryFormationPolicy(), formation.NewGate(nil))
 			if err != nil {
 				writeErr(req.ID, -32000, err.Error(), nil)
 				continue

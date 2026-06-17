@@ -1,0 +1,685 @@
+{
+  "cases": [
+    {
+      "id": "current_guidance_contract_complete",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_001",
+          "statement": "If scope matches, proceed with payments webhook retry.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Do the retry steps only when project:payments matches.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.7,
+          "quality_state": "accept_active",
+          "quality_score": 0.9,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "use",
+        "expected_ignore_reason": "contract_fields_present_and_safe",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "constraint_scope_and_negative_scope_exposed",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_002",
+          "statement": "Constraint: only retry idempotent webhook flows.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Retry only when scope matches.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.6,
+          "quality_state": "accept_active",
+          "quality_score": 0.88,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "use",
+        "expected_ignore_reason": "contract_fields_present_and_safe",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "preference_scope_limit_exposed",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_003",
+          "statement": "Preference: use retry logic for payments pipeline.",
+          "schema_type": "preference",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Prefer retry steps for payments.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.65,
+          "quality_state": "accept_active",
+          "quality_score": 0.86,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "use",
+        "expected_ignore_reason": "contract_fields_present_and_safe",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "failure_warning_avoidance_instruction_exposed",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_004",
+          "statement": "Failure warning: avoid retrying non-idempotent operations.",
+          "schema_type": "failure_warning",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Avoid retry steps on non-idempotent operations in scope.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.62,
+          "quality_state": "accept_active",
+          "quality_score": 0.84,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "use",
+        "expected_ignore_reason": "contract_fields_present_and_safe",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "procedure_instruction_exposed",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_005",
+          "statement": "Procedure: validate signature before retrying payments webhook.",
+          "schema_type": "procedure",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Follow ordered procedure steps when scope matches.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.69,
+          "quality_state": "accept_active",
+          "quality_score": 0.91,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "use",
+        "expected_ignore_reason": "contract_fields_present_and_safe",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "historical_context_not_current_guidance",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_006",
+          "statement": "Historical: earlier retry bug discovered and fixed.",
+          "schema_type": "constraint",
+          "lifecycle_role": "historical_context",
+          "status": "active",
+          "applicability": "advisory",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "",
+          "misuse_warning": "Do not reintroduce the fixed retry bug as current guidance.",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.3,
+          "quality_state": "accept_active",
+          "quality_score": 0.7,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": false,
+        "expected_use_decision": "historical_only",
+        "expected_ignore_reason": "historical_context_not_current_guidance",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": ["historical_returned_without_historical_label"]
+      }
+    },
+    {
+      "id": "historical_misuse_warning_exposed",
+      "interface": "both",
+      "recall_mode": "historical",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_007",
+          "statement": "Historical: do not retry non-idempotent operations.",
+          "schema_type": "failure_warning",
+          "lifecycle_role": "historical_context",
+          "status": "active",
+          "applicability": "advisory",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "",
+          "misuse_warning": "Misuse warning: do not perform unsafe retries even within scope.",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.25,
+          "quality_state": "accept_active",
+          "quality_score": 0.65,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "historical_only",
+        "expected_ignore_reason": "historical_context_not_current_guidance",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "superseded_guidance_marker_exposed",
+      "interface": "both",
+      "recall_mode": "historical",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_008",
+          "statement": "Superseded guidance: old retry rules.",
+          "schema_type": "constraint",
+          "lifecycle_role": "superseded_context",
+          "status": "superseded",
+          "applicability": "advisory",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "",
+          "misuse_warning": "Misuse warning: do not use old rules as current.",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.2,
+          "quality_state": "accept_active",
+          "quality_score": 0.6,
+          "safe_for_active_recall": true,
+          "superseded_by": "mem_009"
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "ignore",
+        "expected_ignore_reason": "superseded_guidance_not_current",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "refuted_guidance_marker_exposed",
+      "interface": "both",
+      "recall_mode": "historical",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_010",
+          "statement": "Refuted guidance: belief about idempotency was wrong.",
+          "schema_type": "constraint",
+          "lifecycle_role": "refuted_context",
+          "status": "active",
+          "applicability": "advisory",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "",
+          "misuse_warning": "Refuted misuse warning: do not act on this belief.",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.1,
+          "quality_state": "accept_active",
+          "quality_score": 0.5,
+          "safe_for_active_recall": false,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "ignore",
+        "expected_ignore_reason": "refuted_guidance_not_current",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "low_quality_memory_marked_needs_curation",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_011",
+          "statement": "Low-quality: vague retry statement.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "pending",
+          "applicability": "advisory",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Use only if accept_active.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.05,
+          "quality_state": "needs_curation",
+          "quality_score": 0.2,
+          "safe_for_active_recall": false,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "ignore",
+        "expected_ignore_reason": "quality_state_not_accept_active",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "under_encoded_memory_not_action_guidance",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_012",
+          "statement": "Under-encoded: missing cues would have been rejected at formation time.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "pending",
+          "applicability": "advisory",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Should not guide current action unless accept_active.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.02,
+          "quality_state": "needs_curation",
+          "quality_score": 0.15,
+          "safe_for_active_recall": false,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "ignore",
+        "expected_ignore_reason": "quality_state_not_accept_active",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "wrong_scope_memory_ignored_with_reason",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_013",
+          "statement": "Wrong scope guidance for payments task.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:wrong",
+          "negative_scope": ["project:wrong:decoy"],
+          "use_instruction": "Do X in the wrong scope.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.8,
+          "quality_state": "accept_active",
+          "quality_score": 0.95,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "ignore",
+        "expected_ignore_reason": "scope_mismatch_wrong_domain",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "negative_scope_suppresses_use",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_014",
+          "statement": "Constraint: do X, but explicitly exclude payments project.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:payments"],
+          "use_instruction": "Do X when scope matches, unless negative scope hits.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.71,
+          "quality_state": "accept_active",
+          "quality_score": 0.93,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "ignore",
+        "expected_ignore_reason": "negative_scope_hit",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "provenance_summary_exposed",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_015",
+          "statement": "Provenance-exposed guidance.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Proceed when scope matches.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.59,
+          "quality_state": "accept_active",
+          "quality_score": 0.87,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "use",
+        "expected_ignore_reason": "contract_fields_present_and_safe",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "authority_basis_exposed",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_016",
+          "statement": "Missing authority basis should fail contract.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Proceed when scope matches.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.55,
+          "quality_state": "accept_active",
+          "quality_score": 0.8,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "use",
+        "expected_ignore_reason": "contract_fields_present_and_safe",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "utility_score_exposed",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_017",
+          "statement": "Missing utility score should fail contract.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Proceed when scope matches.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.66,
+          "quality_state": "accept_active",
+          "quality_score": 0.8,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "use",
+        "expected_ignore_reason": "contract_fields_present_and_safe",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "quality_state_exposed",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_018",
+          "statement": "Missing quality state should fail contract.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Proceed when scope matches.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.55,
+          "quality_state": "accept_active",
+          "quality_score": 0.8,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "use",
+        "expected_ignore_reason": "contract_fields_present_and_safe",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "mcp_rest_contract_parity_current",
+      "interface": "both",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_019",
+          "statement": "Parity current guidance.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Proceed when scope matches.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.55,
+          "quality_state": "accept_active",
+          "quality_score": 0.8,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "use",
+        "expected_ignore_reason": "contract_fields_present_and_safe",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "mcp_rest_contract_parity_historical",
+      "interface": "both",
+      "recall_mode": "historical",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_020",
+          "statement": "Parity historical misuse warning.",
+          "schema_type": "constraint",
+          "lifecycle_role": "historical_context",
+          "status": "active",
+          "applicability": "advisory",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "",
+          "misuse_warning": "Do not act as current guidance.",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.2,
+          "quality_state": "accept_active",
+          "quality_score": 0.7,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": true,
+        "expected_use_decision": "historical_only",
+        "expected_ignore_reason": "historical_context_not_current_guidance",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": []
+      }
+    },
+    {
+      "id": "flattened_text_only_memory_rejected_by_contract",
+      "interface": "mcp",
+      "recall_mode": "current",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {
+          "memory_id": "mem_021",
+          "statement": "MCP flattened text-only simulation: contract must reject.",
+          "schema_type": "constraint",
+          "lifecycle_role": "current_guidance",
+          "status": "active",
+          "applicability": "governing",
+          "scope": "project:payments",
+          "negative_scope": ["project:wrong"],
+          "use_instruction": "Proceed when scope matches.",
+          "misuse_warning": "",
+          "source_type": "formationquality",
+          "authority_basis": "authority_basis:formed_from_gate",
+          "utility_score": 0.55,
+          "quality_state": "accept_active",
+          "quality_score": 0.8,
+          "safe_for_active_recall": true,
+          "superseded_by": ""
+        }
+      ],
+      "expected": {
+        "contract_passed": false,
+        "expected_use_decision": "ignore",
+        "expected_ignore_reason": "flattened_text_only_memory",
+        "expected_missing_required_fields_contains": [],
+        "expected_unsafe_omissions_contains": ["flattened_text_only_memory"]
+      }
+    }
+  ]
+}
+

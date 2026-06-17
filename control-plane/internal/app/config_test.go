@@ -267,8 +267,8 @@ postgres:
 	if cfg.Recall.SemanticRetrieval == nil {
 		t.Fatal("expected SemanticRetrieval struct after defaults")
 	}
-	if !cfg.Recall.SemanticRetrieval.RetrievalEnabled() {
-		t.Error("expected semantic retrieval enabled when YAML omits enabled (nil => on)")
+	if cfg.Recall.SemanticRetrieval.RetrievalEnabled() {
+		t.Error("expected semantic retrieval disabled by default when YAML omits enabled")
 	}
 	if cfg.Recall.Ranking == nil {
 		t.Fatal("expected Ranking struct after defaults")

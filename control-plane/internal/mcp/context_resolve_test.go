@@ -64,6 +64,46 @@ func TestBuildMemoryContextResolveCompileBody_taskAlias(t *testing.T) {
 	}
 }
 
+func TestBuildMemoryContextResolveCompileBody_repoRoot(t *testing.T) {
+	b, _, err := buildMemoryContextResolveCompileBody(json.RawMessage(`{"task":"review architecture","repo_root":"/projects/pluribus"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatal(err)
+	}
+	if m["repo_root"] != "/projects/pluribus" {
+		t.Fatalf("repo_root: %v", m["repo_root"])
+	}
+}
+
+func TestBuildMemoryContextResolveCompileBody_dateBounds(t *testing.T) {
+	b, _, err := buildMemoryContextResolveCompileBody(json.RawMessage(`{
+		"task":"what were we doing three years ago",
+		"recall_mode":"historical",
+		"occurred_after":"2023-06-15T00:00:00Z",
+		"occurred_before":"2023-06-16T00:00:00Z"
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatal(err)
+	}
+	if m["occurred_after"] == nil || m["occurred_before"] == nil {
+		t.Fatalf("missing date bounds: %v", m)
+	}
+}
+
+func TestValidateToolArguments_recallContext_invalidDate(t *testing.T) {
+	err := ValidateToolArguments("recall_context", json.RawMessage(`{"task":"history","occurred_after":"bad-date"}`))
+	if err == nil {
+		t.Fatal("expected invalid date error")
+	}
+}
+
 func TestBuildMemoryContextResolveCompileBody(t *testing.T) {
 	b, meta, err := buildMemoryContextResolveCompileBody(json.RawMessage(`{"task_description":"error timeout incident","entities":["api"]}`))
 	if err != nil {

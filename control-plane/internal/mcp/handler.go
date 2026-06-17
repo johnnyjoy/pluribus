@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,10 @@ import (
 	"time"
 
 	"control-plane/internal/app"
+	"control-plane/internal/compliance"
+	"control-plane/internal/formation"
+
+	"github.com/google/uuid"
 )
 
 // Version is the MCP serverInfo.version (stdio and HTTP share this).
@@ -25,11 +30,11 @@ const (
 // WrapHandler wraps the API handler. When MCP is enabled (default), POST /v1/mcp serves
 // MCP JSON-RPC; all other requests go to inner. inner receives loopback tool traffic (same
 // middleware and routes as real HTTP).
-func WrapHandler(inner http.Handler, cfg *app.Config) http.Handler {
+func WrapHandler(inner http.Handler, cfg *app.Config, telemetry *compliance.Service) http.Handler {
 	if cfg == nil || !cfg.MCPEnabled() {
 		return inner
 	}
-	h := NewHTTPHandler(inner, PolicyFromAppConfig(cfg))
+	h := NewHTTPHandler(inner, PolicyFromAppConfig(cfg), telemetry, formation.NewGate(cfg.Memory.Formation))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && r.URL.Path == "/v1/mcp" {
 			h.ServeHTTP(w, r)
@@ -41,13 +46,13 @@ func WrapHandler(inner http.Handler, cfg *app.Config) http.Handler {
 
 // NewHTTPHandler serves MCP JSON-RPC over HTTP. Tool calls use HTTP client with a loopback
 // RoundTripper into inner (preserves API key middleware on nested requests).
-func NewHTTPHandler(inner http.Handler, policy *MemoryFormationPolicy) http.Handler {
+func NewHTTPHandler(inner http.Handler, policy *MemoryFormationPolicy, telemetry *compliance.Service, gate *formation.Gate) http.Handler {
 	client := &http.Client{
 		Transport: &loopbackTransport{h: inner},
 		Timeout:   10 * time.Minute,
 	}
 	base := "http://" + loopbackHost
-	return &httpHandler{client: client, base: base, policy: policy}
+	return &httpHandler{client: client, base: base, policy: policy, telemetry: telemetry, formation: gate}
 }
 
 type loopbackTransport struct {
@@ -61,9 +66,13 @@ func (t *loopbackTransport) RoundTrip(req *http.Request) (*http.Response, error)
 }
 
 type httpHandler struct {
-	client *http.Client
-	base   string
-	policy *MemoryFormationPolicy
+	client    *http.Client
+	base      string
+	policy    *MemoryFormationPolicy
+	telemetry *compliance.Service
+	formation *formation.Gate
+	req       *http.Request
+	sessionID uuid.UUID
 }
 
 type jsonRPCWire struct {
@@ -87,6 +96,13 @@ type jsonRPCErrorObj struct {
 }
 
 func (h *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.req = r
+	h.sessionID = uuid.Nil
+	if sid := strings.TrimSpace(r.Header.Get(compliance.HeaderSessionID)); sid != "" {
+		if id, err := uuid.Parse(sid); err == nil {
+			h.sessionID = id
+		}
+	}
 	if r.Method != http.MethodPost {
 		http.Error(w, "MCP endpoint accepts POST only", http.StatusMethodNotAllowed)
 		return
@@ -176,7 +192,9 @@ func (h *httpHandler) handleOne(raw json.RawMessage, apiKey string) (jsonRPCWire
 		}, req.ID != nil
 	}
 
+	started := time.Now()
 	result, wireErr := h.dispatch(req.Method, req.Params, apiKey)
+	h.recordMethod(req.Method, started, wireErr)
 	if wireErr != nil {
 		return jsonRPCWireResponse{
 			JSONRPC: "2.0",
@@ -190,16 +208,48 @@ func (h *httpHandler) handleOne(raw json.RawMessage, apiKey string) (jsonRPCWire
 func (h *httpHandler) dispatch(method string, params json.RawMessage, apiKey string) (any, *jsonRPCErrorObj) {
 	switch method {
 	case "initialize":
-		return InitializeResult(mcpServerNameHTTP, Version), nil
+		mc := h.mcpContext("", "")
+		var initParams struct {
+			ClientInfo struct {
+				Name    string `json:"name"`
+				Version string `json:"version"`
+			} `json:"clientInfo"`
+		}
+		_ = json.Unmarshal(params, &initParams)
+		mc = compliance.ContextFromRequest(h.req, initParams.ClientInfo.Name, initParams.ClientInfo.Version)
+		if h.telemetry != nil {
+			_ = h.telemetry.EnsureSession(context.Background(), mc)
+		}
+		h.sessionID = mc.SessionID
+		res := InitializeResult(mcpServerNameHTTP, Version)
+		return enrichInitializeResult(res, mc.SessionID.String()), nil
 	case "ping":
 		return map[string]any{}, nil
 	case "tools/list":
 		return map[string]any{"tools": ToolDefinitions()}, nil
 	case "tools/call":
-		res, err := HandleToolsCall(h.client, h.base, apiKey, params, h.policy)
+		var p struct {
+			Name      string          `json:"name"`
+			Arguments json.RawMessage `json:"arguments"`
+		}
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, &jsonRPCErrorObj{Code: -32602, Message: "invalid tools/call params: " + err.Error()}
+		}
+		if strings.TrimSpace(p.Name) == "" {
+			return nil, &jsonRPCErrorObj{Code: -32602, Message: "missing required argument: name"}
+		}
+		callStarted := time.Now()
+		if err := ValidateToolArguments(p.Name, p.Arguments); err != nil {
+			h.recordToolCall(p.Name, p.Arguments, callStarted, &jsonRPCErrorObj{Code: -32602, Message: err.Error()}, nil)
+			return nil, &jsonRPCErrorObj{Code: -32602, Message: err.Error()}
+		}
+		callParams, _ := json.Marshal(p)
+		res, err := HandleToolsCall(h.client, h.base, apiKey, callParams, h.policy, h.formation)
 		if err != nil {
+			h.recordToolCall(p.Name, p.Arguments, callStarted, &jsonRPCErrorObj{Code: -32000, Message: err.Error()}, nil)
 			return nil, &jsonRPCErrorObj{Code: -32000, Message: err.Error()}
 		}
+		h.recordToolCall(p.Name, p.Arguments, callStarted, nil, res)
 		return res, nil
 	case "prompts/list":
 		return map[string]any{"prompts": PromptDefinitions()}, nil

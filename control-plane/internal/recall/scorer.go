@@ -125,6 +125,8 @@ type RankingWeights struct {
 	SemanticSimilarity float64
 	// ElevationSuppression subtracts from score when a superseded pattern appears alongside its elevated replacement (default 0 = off).
 	ElevationSuppression float64
+	// SituationalAffinity scales query-coverage overlap between situation text/repo/tags and memory (additive; no filtering).
+	SituationalAffinity float64
 }
 
 // DefaultRankingWeights returns weights with all factors enabled (1.0 or 0.5).
@@ -134,10 +136,10 @@ func DefaultRankingWeights() RankingWeights {
 		Recency:        0.5,
 		TagMatch:       1.0,
 		FailureOverlap: 0.5,
-		SymbolOverlap:  0.5,
+		SymbolOverlap:  1.0,
 		PatternPriority: 0.0,
-		// Lexical overlap: kept below authority weight so situation matching cannot swamp binding strength on ties.
-		LexicalSimilarity:     0.15,
+		// Lexical/situational weights drive relevance-first ranking; authority is a multiplier (Phase 4).
+		LexicalSimilarity:     0.35,
 		PatternGeneralization: 0.0,
 		FailureSeverity:       0,
 		CrossContextSalience:  0.12,
@@ -146,6 +148,7 @@ func DefaultRankingWeights() RankingWeights {
 		CrossAgentSalienceK:   0,
 		SemanticSimilarity:    DefaultSemanticSimilarityWeight,
 		ElevationSuppression:  0,
+		SituationalAffinity:   0.55,
 	}
 }
 
@@ -165,7 +168,7 @@ func crossContextScoreTerm(distinct int, weight, k float64) float64 {
 
 // RankingWeightsFromConfig builds RankingWeights from config. Zero or omitted values use defaults so ranking is always on when config is present.
 // semanticSimilarity 0 means "use DefaultSemanticSimilarityWeight" for this helper; use ResolveSemanticSimilarityWeight when YAML may set explicit 0.
-func RankingWeightsFromConfig(authority, recency, tagMatch, failureOverlap, symbolOverlap, patternPriority, lexicalSimilarity, patternGeneralization, failureSeverity, crossContextSalience, crossContextSalienceK, crossAgentSalience, crossAgentSalienceK, semanticSimilarity, elevationSuppression float64) RankingWeights {
+func RankingWeightsFromConfig(authority, recency, tagMatch, failureOverlap, symbolOverlap, patternPriority, lexicalSimilarity, patternGeneralization, failureSeverity, crossContextSalience, crossContextSalienceK, crossAgentSalience, crossAgentSalienceK, semanticSimilarity, elevationSuppression, situationalAffinity float64) RankingWeights {
 	d := DefaultRankingWeights()
 	w := RankingWeights{
 		Authority:             authority,
@@ -183,6 +186,7 @@ func RankingWeightsFromConfig(authority, recency, tagMatch, failureOverlap, symb
 		CrossAgentSalienceK:   crossAgentSalienceK,
 		SemanticSimilarity:    semanticSimilarity,
 		ElevationSuppression:  elevationSuppression,
+		SituationalAffinity:   situationalAffinity,
 	}
 	if w.Authority == 0 {
 		w.Authority = d.Authority
@@ -207,6 +211,9 @@ func RankingWeightsFromConfig(authority, recency, tagMatch, failureOverlap, symb
 	}
 	if w.CrossAgentSalience == 0 {
 		w.CrossAgentSalience = d.CrossAgentSalience
+	}
+	if w.SituationalAffinity == 0 {
+		w.SituationalAffinity = d.SituationalAffinity
 	}
 	if semanticSimilarity == 0 {
 		w.SemanticSimilarity = d.SemanticSimilarity
@@ -238,12 +245,20 @@ type ScoreRequest struct {
 	// SituationQuery is the derived "what is this about?" string used for lexical overlap scoring.
 	// Empty => lexical similarity term is 0.
 	SituationQuery string
+	// RepoRoot optional workspace path; basename adds a soft affinity token (ranking only, never filters).
+	RepoRoot string
 	// SemanticSimilarity maps memory id -> cosine similarity [0,1] for semantic candidate rows (optional).
 	SemanticSimilarity map[uuid.UUID]float64
 	// Supersession maps superseded pattern id -> elevated pattern id (payload.superseded_by).
 	Supersession map[uuid.UUID]uuid.UUID
 	// CandidateSet is the set of memory ids in the current compile batch (for elevation suppression).
 	CandidateSet map[uuid.UUID]struct{}
+	// UtilityScores maps memory id -> utility_score from memory_utility_scores (Phase 7).
+	UtilityScores map[uuid.UUID]float64
+	// UtilityWeight scales utility contribution (typically 0.12).
+	UtilityWeight float64
+	// RecallMode affects lifecycle score caps (Phase 8 historical recall).
+	RecallMode RecallMode
 }
 
 // lexicalSimilarity returns a bounded [0,1] Jaccard overlap between statement and query tokens.
@@ -263,9 +278,9 @@ func lexicalSimilarity(statement, query string) float64 {
 			return !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9')
 		}) {
 			tok = strings.TrimSpace(tok)
-			if len(tok) < 4 {
-				continue
-			}
+		if len(tok) < 3 {
+			continue
+		}
 			if _, isStop := stop[tok]; isStop {
 				continue
 			}
@@ -296,88 +311,21 @@ func lexicalSimilarity(statement, query string) float64 {
 // scoreBase returns the weighted score without object-lesson boost (used by Score and DominantReason).
 // refTime is the "as of" instant for recency; if zero, RefTimeForRanking(single-element) would apply — callers should pass RefTimeForRanking(objs) for batches.
 func scoreBase(obj memory.MemoryObject, req ScoreRequest, weights RankingWeights, maxAuthority int, refTime time.Time) float64 {
-	if maxAuthority <= 0 {
-		maxAuthority = 10
-	}
-	if refTime.IsZero() {
-		refTime = RefTimeForRanking([]memory.MemoryObject{obj})
-	}
-	authNorm := float64(obj.Authority) / float64(maxAuthority)
-	if authNorm > 1 {
-		authNorm = 1
-	}
-	score := weights.Authority * authNorm
-	const year = 365 * 24 * time.Hour
-	eff := memory.EffectiveRecencyTime(obj)
-	age := refTime.Sub(eff)
-	if age < 0 {
-		age = 0
-	}
-	recency := 1.0 - float64(age)/float64(year)
-	if recency < 0 {
-		recency = 0
-	}
-	score += weights.Recency * recency
-	tagMatch := tagMatchScore(obj.Tags, req.Tags)
-	score += weights.TagMatch * tagMatch
-	if req.SessionCorrelationID != "" {
-		want := "mcp:session:" + strings.TrimSpace(req.SessionCorrelationID)
-		for _, t := range obj.Tags {
-			if t == want {
-				// Fixed boost so session-tagged memories surface without filtering the global pool off the search path.
-				const sessionCorrelationBoost = 0.28
-				score += sessionCorrelationBoost
-				break
-			}
-		}
-	}
-	if obj.Kind == api.MemoryKindFailure && tagMatch > 0 {
-		score += weights.FailureOverlap
-	}
-	if weights.LexicalSimilarity > 0 && req.SituationQuery != "" {
-		statement := obj.StatementCanonical
-		if statement == "" {
-			statement = obj.Statement
-		}
-		if sim := lexicalSimilarity(statement, req.SituationQuery); sim > 0 {
-			score += weights.LexicalSimilarity * sim
-		}
-	}
+	score, _ := scoreBaseWithBreakdown(obj, req, weights, maxAuthority, refTime)
+	return score
+}
+
+func scoreBaseWithBreakdown(obj memory.MemoryObject, req ScoreRequest, weights RankingWeights, maxAuthority int, refTime time.Time) (float64, ScoreComponentBreakdown) {
+	bd := computeScoreComponents(obj, req, weights, maxAuthority, refTime)
+	score := bd.FinalScore
 	if obj.Kind == api.MemoryKindPattern && weights.PatternPriority > 0 {
 		score += weights.PatternPriority
 	}
-	// FailureSeverity and CrossContextSalience are optional (default off): keyword heuristic + payload.salience.distinct_contexts.
 	if weights.FailureSeverity > 0 && obj.Kind == api.MemoryKindFailure {
 		score += weights.FailureSeverity * FailureSeverityScore(obj.Statement)
 	}
-	if weights.CrossContextSalience > 0 {
-		if n := PayloadDistinctContexts(obj.Payload); n > 0 {
-			score += crossContextScoreTerm(n, weights.CrossContextSalience, weights.CrossContextSalienceK)
-		}
-	}
-	if weights.CrossAgentSalience > 0 {
-		if n := PayloadDistinctAgents(obj.Payload); n > 0 {
-			score += crossContextScoreTerm(n, weights.CrossAgentSalience, weights.CrossAgentSalienceK)
-		}
-	}
-	if weights.SemanticSimilarity > 0 && req.SemanticSimilarity != nil {
-		if sim, ok := req.SemanticSimilarity[obj.ID]; ok && sim > 0 {
-			score += semanticScoreTerm(weights, authNorm, sim)
-		}
-	}
-	if weights.ElevationSuppression > 0 && req.Supersession != nil && req.CandidateSet != nil {
-		if elevID, ok := req.Supersession[obj.ID]; ok {
-			if _, has := req.CandidateSet[elevID]; has {
-				score -= weights.ElevationSuppression
-			}
-		}
-	}
-	// Non-destructive invalidation: payload.pluribus_evolution.invalidated_by deprioritizes without hiding the row.
-	if evolutionInvalidated(obj.Payload) {
-		const invalidationPenalty = 0.35
-		score -= invalidationPenalty
-	}
-	return score
+	bd.FinalScore = score
+	return score, bd
 }
 
 // evolutionInvalidated is true when JSON payload has non-empty pluribus_evolution.invalidated_by.
@@ -414,19 +362,24 @@ func Score(obj memory.MemoryObject, req ScoreRequest, weights RankingWeights, ma
 
 // scoreAt is like Score but uses refTime for recency when non-zero (single instant for whole batch).
 func scoreAt(obj memory.MemoryObject, req ScoreRequest, weights RankingWeights, maxAuthority int, refTime time.Time) float64 {
-	score := scoreBase(obj, req, weights, maxAuthority, refTime)
+	score, _ := scoreAtWithBreakdown(obj, req, weights, maxAuthority, refTime)
+	return score
+}
+
+func scoreAtWithBreakdown(obj memory.MemoryObject, req ScoreRequest, weights RankingWeights, maxAuthority int, refTime time.Time) (float64, ScoreComponentBreakdown) {
+	score, bd := scoreBaseWithBreakdown(obj, req, weights, maxAuthority, refTime)
 	if obj.Kind == api.MemoryKindPattern && len(obj.Payload) > 0 {
 		var p memory.PatternPayload
 		if json.Unmarshal(obj.Payload, &p) == nil {
 			score = PatternScoreFactor(score, &p)
 			score += patternGeneralizationScore(&p, weights)
-			// Symbol overlap boost: at least one task symbol in common with memory symbols
 			if overlap := symbolOverlapCount(req.Symbols, p.Symbols); overlap > 0 && weights.SymbolOverlap > 0 {
-				score += weights.SymbolOverlap * min(1.0, float64(overlap))
+				score += weights.SymbolOverlap * min(1.0, float64(overlap)) * 0.15
 			}
 		}
 	}
-	return score
+	bd.FinalScore = score
+	return score, bd
 }
 
 // symbolOverlapCount returns how many of taskSymbols appear in memorySymbols (case-sensitive).
@@ -470,7 +423,8 @@ type ScoredMemory struct {
 	Object memory.MemoryObject
 	Score  float64
 	Reason string
-	RIU    *RIUScoreBreakdown `json:"riu,omitempty"`
+	RIU    *RIUScoreBreakdown          `json:"riu,omitempty"`
+	Components *ScoreComponentBreakdown `json:"components,omitempty"`
 }
 
 // DominantReason returns the primary factor that contributed to the score (e.g. "tag_match", "authority").
@@ -479,53 +433,16 @@ func DominantReason(obj memory.MemoryObject, req ScoreRequest, weights RankingWe
 }
 
 func dominantReasonAt(obj memory.MemoryObject, req ScoreRequest, weights RankingWeights, maxAuthority int, refTime time.Time) string {
-	if maxAuthority <= 0 {
-		maxAuthority = 10
-	}
-	if refTime.IsZero() {
-		refTime = RefTimeForRanking([]memory.MemoryObject{obj})
-	}
-	authNorm := float64(obj.Authority) / float64(maxAuthority)
-	if authNorm > 1 {
-		authNorm = 1
-	}
-	tagMatch := tagMatchScore(obj.Tags, req.Tags)
-	const year = 365 * 24 * time.Hour
-	eff := memory.EffectiveRecencyTime(obj)
-	age := refTime.Sub(eff)
-	if age < 0 {
-		age = 0
-	}
-	recency := 1.0 - float64(age)/float64(year)
-	if recency < 0 {
-		recency = 0
-	}
+	bd := computeScoreComponents(obj, req, weights, maxAuthority, refTime)
 	contrib := map[string]float64{
-		"authority":              weights.Authority * authNorm,
-		"tag_match":                weights.TagMatch * tagMatch,
-		"lexical_similarity":       0,
-		"recency":                  weights.Recency * recency,
-		"failure_overlap":          0,
-		"failure_severity":         0,
-		"cross_context_salience":   0,
-		"cross_agent_salience":     0,
-		"semantic_similarity":      0,
-		"pattern_boost":            0,
-		"symbol_overlap":           0,
-		"pattern_priority":         0,
-		"pattern_generalization":   0,
+		"situational_affinity": bd.SituationalScore,
+		"lexical_similarity":   bd.LexicalScore,
+		"tag_match":            bd.TagMatchScore,
+		"recency":              bd.RecencyScore,
+		"relevance":            bd.RelevanceScore,
 	}
-	if weights.LexicalSimilarity > 0 && req.SituationQuery != "" {
-		statement := obj.StatementCanonical
-		if statement == "" {
-			statement = obj.Statement
-		}
-		if sim := lexicalSimilarity(statement, req.SituationQuery); sim > 0 {
-			contrib["lexical_similarity"] = weights.LexicalSimilarity * sim
-		}
-	}
-	if obj.Kind == api.MemoryKindFailure && tagMatch > 0 {
-		contrib["failure_overlap"] = weights.FailureOverlap
+	if obj.Kind == api.MemoryKindPattern && weights.PatternPriority > 0 {
+		contrib["pattern_priority"] = weights.PatternPriority
 	}
 	if weights.FailureSeverity > 0 && obj.Kind == api.MemoryKindFailure {
 		contrib["failure_severity"] = weights.FailureSeverity * FailureSeverityScore(obj.Statement)
@@ -541,12 +458,15 @@ func dominantReasonAt(obj memory.MemoryObject, req ScoreRequest, weights Ranking
 		}
 	}
 	if weights.SemanticSimilarity > 0 && req.SemanticSimilarity != nil {
+		authNorm := float64(obj.Authority) / float64(maxAuthority)
+		if authNorm > 1 {
+			authNorm = 1
+		}
 		if sim, ok := req.SemanticSimilarity[obj.ID]; ok && sim > 0 {
 			contrib["semantic_similarity"] = semanticScoreTerm(weights, authNorm, sim)
 		}
 	}
 	if obj.Kind == api.MemoryKindPattern && len(obj.Payload) > 0 {
-		contrib["pattern_priority"] = weights.PatternPriority
 		var p memory.PatternPayload
 		if json.Unmarshal(obj.Payload, &p) == nil {
 			base := scoreBase(obj, req, weights, maxAuthority, refTime)
@@ -557,8 +477,10 @@ func dominantReasonAt(obj memory.MemoryObject, req ScoreRequest, weights Ranking
 			}
 		}
 	}
-	// Fixed order for tie-break: pattern terms, cross-context, failure severity, authority, tags, lexical, recency, failure overlap.
-	order := []string{"pattern_boost", "pattern_generalization", "pattern_priority", "symbol_overlap", "cross_context_salience", "cross_agent_salience", "semantic_similarity", "failure_severity", "authority", "tag_match", "lexical_similarity", "recency", "failure_overlap"}
+	if bd.WrongDomainPenalty > 0 {
+		contrib["wrong_domain_penalty"] = -bd.WrongDomainPenalty
+	}
+	order := []string{"pattern_boost", "pattern_generalization", "pattern_priority", "symbol_overlap", "cross_context_salience", "cross_agent_salience", "semantic_similarity", "failure_severity", "situational_affinity", "lexical_similarity", "tag_match", "relevance", "recency"}
 	best := ""
 	var bestVal float64
 	for _, k := range order {
@@ -570,6 +492,9 @@ func dominantReasonAt(obj memory.MemoryObject, req ScoreRequest, weights Ranking
 	}
 	if best != "" {
 		return best
+	}
+	if bd.RelevanceScore > 0 {
+		return "relevance"
 	}
 	return "authority"
 }
@@ -603,28 +528,30 @@ func ScoreAndSortWithReason(objs []memory.MemoryObject, req ScoreRequest, weight
 	refTime := RefTimeForRanking(objs)
 	out := make([]ScoredMemory, len(objs))
 	for i, o := range objs {
+		score, bd := scoreAtWithBreakdown(o, req, weights, maxAuthority, refTime)
+		comp := bd
 		out[i] = ScoredMemory{
-			Object: o,
-			Score:  scoreAt(o, req, weights, maxAuthority, refTime),
-			Reason: dominantReasonAt(o, req, weights, maxAuthority, refTime),
+			Object:     o,
+			Score:      score,
+			Reason:     dominantReasonAt(o, req, weights, maxAuthority, refTime),
+			Components: &comp,
 		}
 	}
 	sortScoredMemoriesStable(out)
 	return out
 }
 
-// sortScoredMemoriesStable orders by: authority descending (binding strength), then total score
-// descending, then memory ID ascending. RC1: higher-authority memory is never ranked below
-// lower-authority memory solely because of recency or soft factors.
+// sortScoredMemoriesStable orders by total score descending, then authority as tie-breaker,
+// then memory ID ascending. Phase 4: relevance-first scoring must not be undone at sort time.
 func sortScoredMemoriesStable(out []ScoredMemory) {
 	sort.SliceStable(out, func(i, j int) bool {
-		ai, aj := out[i].Object.Authority, out[j].Object.Authority
-		if ai != aj {
-			return ai > aj
-		}
 		si, sj := out[i].Score, out[j].Score
 		if si != sj {
 			return si > sj
+		}
+		ai, aj := out[i].Object.Authority, out[j].Object.Authority
+		if ai != aj {
+			return ai > aj
 		}
 		return out[i].Object.ID.String() < out[j].Object.ID.String()
 	})

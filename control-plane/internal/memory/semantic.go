@@ -8,8 +8,8 @@ import (
 )
 
 // SemanticRetrievalConfig gates pgvector-backed semantic candidate retrieval.
-// When Enabled is omitted (nil), retrieval defaults to on (situation-first recall).
-// Set enabled: false to disable semantic expansion and embedding calls.
+// When Enabled is omitted (nil), retrieval defaults to off (lexical-only).
+// Set enabled: true only after hybrid benchmark gates pass in controlled environments.
 type SemanticRetrievalConfig struct {
 	Enabled *bool `yaml:"enabled,omitempty"`
 	// EmbeddingEndpoint is the OpenAI-compatible API base (e.g. https://api.openai.com/v1).
@@ -39,13 +39,13 @@ func EmbeddingTextForMemory(kind api.MemoryKind, statementCanonical, statement s
 	return fmt.Sprintf("%s: %s", kind, s)
 }
 
-// RetrievalEnabled reports whether semantic retrieval should run. Nil Enabled defaults to true.
+// RetrievalEnabled reports whether semantic retrieval should run. Nil Enabled defaults to false (lexical-only).
 func (c *SemanticRetrievalConfig) RetrievalEnabled() bool {
 	if c == nil {
 		return false
 	}
 	if c.Enabled == nil {
-		return true
+		return false
 	}
 	return *c.Enabled
 }

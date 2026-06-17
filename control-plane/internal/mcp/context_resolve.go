@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"control-plane/internal/formation"
 )
 
 // Context strategy names (deterministic routing from task text).
@@ -139,6 +141,30 @@ func buildMemoryContextResolveCompileBody(arguments json.RawMessage) ([]byte, ma
 	if cid != "" {
 		out["correlation_id"] = cid
 	}
+	if tsid := strings.TrimSpace(firstString(m, "telemetry_session_id")); tsid != "" {
+		out["telemetry_session_id"] = tsid
+	} else if sid := strings.TrimSpace(firstString(m, "session_id")); sid != "" && cid == "" {
+		out["telemetry_session_id"] = sid
+	}
+	if tid := strings.TrimSpace(firstString(m, "task_id")); tid != "" {
+		out["task_id"] = tid
+	}
+	if rm := strings.TrimSpace(firstString(m, "recall_mode")); rm != "" {
+		out["recall_mode"] = rm
+	}
+	if oa := strings.TrimSpace(firstString(m, "occurred_after")); oa != "" {
+		out["occurred_after"] = oa
+	}
+	if ob := strings.TrimSpace(firstString(m, "occurred_before")); ob != "" {
+		out["occurred_before"] = ob
+	}
+	if inc := parseStringSliceField(m, "include_status"); len(inc) > 0 {
+		out["include_status"] = dedupeStrings(inc)
+	}
+	repoRoot := strings.TrimSpace(firstString(m, "repo_root", "workspace_root", "project_root"))
+	if repoRoot != "" {
+		out["repo_root"] = repoRoot
+	}
 	meta := map[string]any{
 		"strategy":               strategy,
 		"compile_mode":           compileMode,
@@ -151,6 +177,11 @@ func buildMemoryContextResolveCompileBody(arguments json.RawMessage) ([]byte, ma
 	}
 	body, err := json.Marshal(out)
 	return body, meta, err
+}
+
+// BuildMemoryContextResolveCompileBodyForTest exposes compile body mapping for lifecycle parity tests.
+func BuildMemoryContextResolveCompileBodyForTest(arguments json.RawMessage) ([]byte, map[string]any, error) {
+	return buildMemoryContextResolveCompileBody(arguments)
 }
 
 func dedupeStrings(in []string) []string {
@@ -214,6 +245,7 @@ func execMemoryContextResolve(client *http.Client, base, apiKey string, argument
 	}
 	enrichMCPContextFromRecallBundle(meta, bundle)
 	applyMCPRecallBehaviorHints(meta)
+	mergeRecallTelemetryIntoMCPContext(meta, bundle)
 	wrap := map[string]any{
 		"mcp_context":   meta,
 		"recall_bundle": bundle,
@@ -224,7 +256,12 @@ func execMemoryContextResolve(client *http.Client, base, apiKey string, argument
 	}
 	return map[string]any{
 		"content": []map[string]any{
-			{"type": "text", "text": string(out)},
+			{
+				"type": "json",
+				"json": wrap,
+				// Keep legacy text output for existing tests and clients that parse only `content[0].text`.
+				"text": string(out),
+			},
 		},
 		"isError": false,
 	}
@@ -239,7 +276,7 @@ func mustJSONMeta(meta map[string]any) string {
 }
 
 // execMemoryLogIfRelevant ingests an advisory episode when deterministic signals match (same policy as mcp_episode_ingest).
-func execMemoryLogIfRelevant(client *http.Client, base, apiKey string, arguments json.RawMessage, pol *MemoryFormationPolicy) map[string]any {
+func execMemoryLogIfRelevant(client *http.Client, base, apiKey string, arguments json.RawMessage, pol *MemoryFormationPolicy, gate *formation.Gate) map[string]any {
 	if len(bytes.TrimSpace(arguments)) == 0 {
 		return ToolResultErr("memory_log_if_relevant requires arguments with text_block")
 	}
@@ -275,7 +312,7 @@ func execMemoryLogIfRelevant(client *http.Client, base, apiKey string, arguments
 		argMap["tags"] = tags
 	}
 	raw, _ := json.Marshal(argMap)
-	payload, vErr := buildAdvisoryEpisodeMCPBody(raw, pol)
+	payload, vErr := buildAdvisoryEpisodeMCPBody(raw, pol, gate)
 	if vErr != nil {
 		return ToolResultErr(vErr.Error())
 	}

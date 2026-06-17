@@ -64,6 +64,9 @@ Implementation detail may still carry **optional correlation** fields in narrow 
 - **Hybrid retrieval** — combine semantic similarity, lexical/tag overlap, authority, and constraint relevance as implemented by the server.
 - **No container scoping** — recall is **not** “search inside project X”; it is “search the global pool for this **situation** (query + tags + policy).”
 - **Situation, not silo** — the client describes the **situation**; the server ranks memory.
+- **Situational affinity** — additive ranking boost from query/repo/tag overlap (not a partition filter). See **[architecture/situational-affinity-ranking.md](architecture/situational-affinity-ranking.md)**.
+- **Layered context (L0–L3)** — **how much** of the ranked pool to inject per call (identity vs governing vs task vs deep recall) is described in **[architecture/layered-memory-L0-L3.md](architecture/layered-memory-L0-L3.md)**. **`POST /v1/recall/wakeup`** is the **L0/L1** read path: a **compiled projection** over the same **`memories`** pool and recall compiler as **`POST /v1/recall/compile`**, with stricter caps and no second store, ranker, or truth pipeline.
+- **Lifecycle recall (Phase 8)** — default compile is **current-guidance biased** (`recall_mode: current`). **Historical** recall (`recall_mode: historical`) retrieves superseded and archived rows as **labeled historical context**, not as present guidance. See **[memory-lifecycle-semantics.md](memory-lifecycle-semantics.md)**.
 
 ---
 
@@ -79,7 +82,9 @@ Pluribus is most effective when agents use a **before/after loop**: **`recall_co
 
 ### Ingestion vs ranking (probationary memory)
 
-**Be generous at ingestion; be ruthless at ranking.** Probationary rows formed at **`POST /v1/advisory-episodes`** are accepted when the text is **plausibly useful** (keyword signals, `mcp:event:*`, experiment/benchmark language, or long situational context)—not only when confidence is already high. Clear noise still goes to the **reject bucket** (`advisory_experiences`). New ingest starts at **low authority (1–2)**; **recall ranking**, reinforcement, consolidation, and contradiction policy **separate** durable signal from weak material over time—intake filtering is not the primary quality gate.
+**Be generous at ingestion; be ruthless at ranking** — with Phase 5 **formation gates** on what may become active memory, and Phase 11D **formation quality** rules that reject vague/garbage writes and route under-encoded or overgeneralized guidance to **pending** rather than active recall. Probationary rows from **`record_experience`** must pass **junk/vague summary rejection**; risky constraints become **pending**, not active governing. **Direct `memory_create`** is high-risk: authority is capped, governing writes default to **pending**, junk is rejected, high-risk writes require minimal provenance, and schema-specific quality defects block active guidance. See [memory-formation-quality.md](memory-formation-quality.md).
+
+Clear noise goes to the **reject bucket** (`advisory_experiences`). Valid ingest starts at **low authority (1–2)** advisory; **recall ranking**, reinforcement, consolidation, and contradiction policy separate durable signal from weak material over time.
 
 **Advisory episodes** may be **distilled** into **candidate** rows (`POST /v1/episodes/distill`) as *possible* structured learning; those candidates are **not** memory until curated and materialized. Recall comes **before** substantive action; enforcement gates **risky** proposals; curation captures **validated** learning, not noise.
 
@@ -88,19 +93,21 @@ Pluribus is most effective when agents use a **before/after loop**: **`recall_co
 - **Truth stays explicit** — durable memory created from candidates carries **traceability** (`payload.pluribus_promotion`: originating `candidate_id`, supporting advisory episode ids, `distill_support_count_at_promotion`).
 - **Automation is gated** — optional **`promotion.auto_promote`** with conservative thresholds (`min_support_count`, `min_salience`, `allowed_kinds`); default **off**. **`POST /v1/curation/auto-promote`** returns **403** when disabled.
 - **Guardrails** apply before **any** materialize (manual or auto): validation rejects vague statements, missing evidence when required, inconsistent signals, and **`supersedes_memory_id`** mismatches when a duplicate statement key is explicitly superseded. **Duplicate statement keys without supersession** are **not** rejected: promotion **converges** into the existing canonical row when **`promotion.canonical_consolidation`** is enabled (deterministic match), or **reinforces authority** on exact dedup via the memory create path when consolidation is off.
-- **No destructive retire** — there is no retire/archive endpoint. Memory is **permanent** in the store; influence changes through **authority, ranking, contradiction policy, supersession**, and **additive payload relationships** — not subtraction.
+- **Archive is non-destructive** — **`POST /v1/memory/expire`** moves eligible **active** rows to **`archived`** status; it does **not** delete canonical `memories` rows. Archived memory remains historically recoverable via **`recall_mode: historical`**. TTL expiration is **operational garbage handling**, not memory philosophy: it applies only to low-authority, TTL-bearing rows that show **no historical-value signals** (utility history, evidence, relationships, contradictions, durable tags, material `occurred_at`, supersession payload). See [memory-lifecycle-semantics.md](memory-lifecycle-semantics.md).
+- **Canonical preservation vs advisory garbage** — **canonical `memories` rows are preserved by default** through lifecycle transitions (superseded, archived, pending). **Rejected advisory episodes** may be pruned via **`POST /v1/advisory-episodes/prune-rejected`** under explicit garbage-handling policy; that is **not** canonical memory deletion.
+- **Pluribus is a memory system, not a forgetory** — it may **demote guidance influence** (ranking, utility, status, archive). It must **not** discard canonical history merely because memory is old, low-utility, low-authority, superseded, outdated, or refuted.
 - **No recall / enforcement drift from candidates** — candidates do not affect recall or enforcement until **materialized**; ranking and compile behavior are unchanged by this path.
 
 ### Canonical convergence (truth gains strength, not copies)
 
 - **Repeated validated lessons** should **strengthen** an existing canonical statement when the server can **match** them deterministically (normalized **statement key**, bounded **lexical** similarity on canonical text, **tag** / **entity** overlap, same **kind**) — not spawn endless near-duplicate rows.
-- **Non-destructive** — nothing is deleted. The **dominant** row gains **bounded** authority increments and **`payload.pluribus_consolidation`** lineage (`support_count`, `reinforcing_candidates`, last reason / jaccard). Weaker signals remain traceable through candidate ids and payload, not through row removal.
+- **Non-destructive convergence** — canonical rows are not deleted during consolidation. The **dominant** row gains **bounded** authority increments and **`payload.pluribus_consolidation`** lineage (`support_count`, `reinforcing_candidates`, last reason / jaccard). Weaker signals remain traceable through candidate ids and payload, not through row removal.
 - **Contradiction** — when a guard detects **opposing** canonical statements (e.g. negation heuristic), materialize may **create a new** memory and record a **`contradicts`** edge; dominance is decided by **scoring + relationships**, not overwrite.
 - **Explainable** — every merge decision is **reproducible** from inputs and config (no LLM consolidation).
 
 ### Memory evolution (non-destructive)
 
-- **Corrections are additive** — express change with **new** memories, stronger authority, and optional **`payload.pluribus_evolution`**: `superseded_by`, `contradicts`, `invalidated_by` (memory UUID strings). No agent-facing API archives or hides rows to “undo” truth.
+- **Corrections are additive** — express change with **new** memories, stronger authority, and optional **`payload.pluribus_evolution`**: `superseded_by`, `contradicts`, `invalidated_by` (memory UUID strings). Agents do not delete rows to “undo” truth; **TTL expire** archives only eligible disposable rows (see Archive above).
 - **Supersession** — **`POST /v1/memory`** accepts **`supersedes_id`**; materialize accepts **`supersedes_memory_id`** on the candidate proposal when replacing a row with the same statement key. Prior row moves to **`superseded`** (relationship + lifecycle), not deleted.
 - **Invalidation signal** — `pluribus_evolution.invalidated_by` keeps the row **auditable**; recall scoring applies a **deprioritization penalty** so influence drops without erasure.
 

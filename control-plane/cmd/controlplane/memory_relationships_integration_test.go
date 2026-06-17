@@ -21,10 +21,7 @@ import (
 
 func bootMemoryRelServer(t *testing.T, dsn string) (*httptest.Server, func()) {
 	t.Helper()
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {

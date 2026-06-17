@@ -1,0 +1,198 @@
+{
+  "cases": [
+    {
+      "id": "missing_memory_id_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "", "statement": "x", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_memory_id"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_statement_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_statement"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_schema_type_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_schema_type"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_lifecycle_role_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_lifecycle_role"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_status_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_status"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_scope_for_current_guidance_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_scope_for_guidance"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_negative_scope_for_universal_rule_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": [], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_negative_scope_for_universal_rule"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_use_instruction_for_current_guidance_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_use_instruction_for_guidance"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_misuse_warning_for_historical_fails",
+      "interface": "rest",
+      "recall_mode": "historical",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "historical_context", "status": "archived", "misuse_warning": "", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_misuse_warning_for_historical"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_provenance_summary_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "", "authority_basis": "", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_provenance_summary"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_source_type_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_source_type"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_authority_basis_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_authority_basis"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_utility_score_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_utility_score"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_quality_state_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_quality_state"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_quality_score_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active"}],
+      "expected_defect_codes": ["missing_quality_score"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_superseded_by_for_superseded_fails",
+      "interface": "rest",
+      "recall_mode": "historical",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "superseded_context", "status": "superseded", "misuse_warning": "do not use", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8, "superseded_by": ""}],
+      "expected_defect_codes": ["missing_supersession_marker"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "missing_refutation_marker_for_refuted_fails",
+      "interface": "rest",
+      "recall_mode": "historical",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "", "status": "refuted", "misuse_warning": "do not use", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_lifecycle_role"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "historical_returned_without_historical_label_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "historical_context", "status": "archived", "misuse_warning": "historical only", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["historical_returned_without_historical_label"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "superseded_returned_as_current_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "superseded_context", "status": "superseded", "misuse_warning": "old", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8, "superseded_by": "m2"}],
+      "expected_defect_codes": ["superseded_returned_as_current"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "refuted_returned_as_current_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "refuted_context", "status": "refuted", "misuse_warning": "refuted", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["refuted_returned_as_current"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "wrong_scope_without_warning_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "wrong", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": [],
+      "expected_contract_passed": true,
+      "note": "scope mismatch is discipline not contract omission"
+    },
+    {
+      "id": "negative_scope_without_suppression_fails",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": [], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["missing_negative_scope_for_universal_rule"],
+      "expected_contract_passed": false
+    },
+    {
+      "id": "mcp_text_only_without_json_fails",
+      "interface": "mcp",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8}],
+      "expected_defect_codes": ["mcp_text_only_without_json", "flattened_text_only_memory"],
+      "expected_contract_passed": false,
+      "flattened_mcp": true
+    },
+    {
+      "id": "optional_field_omission_allowed_when_safe",
+      "interface": "rest",
+      "recall_mode": "current",
+      "input_memories": [{"memory_id": "m1", "statement": "s", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "p", "negative_scope": ["n"], "use_instruction": "u", "source_type": "formationquality", "authority_basis": "ab", "utility_score": 0.5, "quality_state": "accept_active", "quality_score": 0.8, "superseded_by": ""}],
+      "expected_defect_codes": [],
+      "expected_contract_passed": true
+    }
+  ]
+}

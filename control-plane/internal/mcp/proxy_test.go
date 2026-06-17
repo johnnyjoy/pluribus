@@ -2,6 +2,9 @@ package mcp
 
 import (
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -21,10 +24,10 @@ func TestToolDefinitions_recallRecordLoopDescriptions(t *testing.T) {
 	for _, pair := range []struct {
 		desc, needle string
 	}{
-		{recallDesc, "BEFORE complex reasoning"},
-		{recallDesc, "reuse proven patterns"},
-		{recordDesc, "AFTER solving"},
-		{recordDesc, "future tasks benefit"},
+		{recallDesc, "start of a substantive task"},
+		{recallDesc, "prior constraints"},
+		{recordDesc, "after solving"},
+		{recordDesc, "meaningful outcomes"},
 	} {
 		if !strings.Contains(pair.desc, pair.needle) {
 			t.Fatalf("description must contain %q, got %q", pair.needle, pair.desc)
@@ -35,7 +38,7 @@ func TestToolDefinitions_recallRecordLoopDescriptions(t *testing.T) {
 func TestInitializeResult_memoryLoopInstructions(t *testing.T) {
 	res := InitializeResult("test", "0.0.0")
 	inst, _ := res["instructions"].(string)
-	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") {
+	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") {
 		t.Fatalf("instructions: %q", inst)
 	}
 }
@@ -130,4 +133,82 @@ func TestBuildRecallGetURL_queryAlias(t *testing.T) {
 	if !strings.Contains(u, "retrieval_query=same+as+retrieval") && !strings.Contains(u, "retrieval_query=same%20as%20retrieval") {
 		t.Fatalf("expected query mapped to retrieval_query param: %s", u)
 	}
+}
+
+func TestBuildWakeupContextBody(t *testing.T) {
+	for _, tc := range []struct {
+		raw  string
+		want string
+	}{
+		{``, `{}`},
+		{`   `, `{}`},
+		{`null`, `{}`},
+		{`{}`, `{}`},
+		{`{"max_state":3}`, `{"max_state":3}`},
+		{`{"max_per_kind":2,"max_governing_total":8}`, `{"max_per_kind":2,"max_governing_total":8}`},
+	} {
+		b, err := buildWakeupContextBody(json.RawMessage(tc.raw))
+		if err != nil {
+			t.Fatalf("raw=%q: %v", tc.raw, err)
+		}
+		if string(b) != tc.want {
+			t.Fatalf("raw=%q: got %s want %s", tc.raw, b, tc.want)
+		}
+	}
+}
+
+func TestHandleToolsCall_wakeupContext_forwardsPOST(t *testing.T) {
+	var gotMethod, gotPath string
+	var gotBody []byte
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"identity":[],"governing_memory":[]}`))
+	}))
+	defer ts.Close()
+	base := strings.TrimSuffix(ts.URL, "/")
+	params := json.RawMessage(`{"name":"wakeup_context","arguments":{"max_state":2}}`)
+	res, err := HandleToolsCall(ts.Client(), base, "", params, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotMethod != "POST" || gotPath != "/v1/recall/wakeup" {
+		t.Fatalf("got %s %s", gotMethod, gotPath)
+	}
+	if string(gotBody) != `{"max_state":2}` {
+		t.Fatalf("body: %s", gotBody)
+	}
+	m, ok := res.(map[string]any)
+	if !ok {
+		t.Fatalf("result type %T", res)
+	}
+	if m["isError"] == true {
+		t.Fatalf("isError: %+v", m)
+	}
+}
+
+func TestToolDefinitions_wakeupContext_schemaStrict(t *testing.T) {
+	for _, tool := range ToolDefinitions() {
+		name, _ := tool["name"].(string)
+		if name != "wakeup_context" {
+			continue
+		}
+		schema, _ := tool["inputSchema"].(map[string]any)
+		if schema["additionalProperties"] != false {
+			t.Fatalf("wakeup_context inputSchema.additionalProperties want false, got %v", schema["additionalProperties"])
+		}
+		props, _ := schema["properties"].(map[string]any)
+		if len(props) != 3 {
+			t.Fatalf("expected 3 properties, got %d", len(props))
+		}
+		for _, k := range []string{"max_state", "max_per_kind", "max_governing_total"} {
+			if props[k] == nil {
+				t.Fatalf("missing property %q", k)
+			}
+		}
+		return
+	}
+	t.Fatal("wakeup_context not in ToolDefinitions")
 }

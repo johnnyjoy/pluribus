@@ -27,10 +27,7 @@ func TestREST_memoryCreate_rejectsContainerOntologyJSON(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -82,10 +79,7 @@ func TestREST_recallCompile_returnsShapedBundle(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -149,16 +143,129 @@ func TestREST_recallCompile_returnsShapedBundle(t *testing.T) {
 	}
 }
 
-// TestREST_recallPreflight_returnsRiskShape exercises POST /v1/recall/preflight on the full router.
+// TestREST_recallWakeup_returnsWakeupResponseShape asserts POST /v1/recall/wakeup returns the same JSON shape as the handler (MCP proxies this body unchanged for limit-only calls).
+func TestREST_recallWakeup_returnsWakeupResponseShape(t *testing.T) {
+	dsn := os.Getenv("TEST_PG_DSN")
+	if dsn == "" {
+		t.Skip("TEST_PG_DSN not set")
+	}
+	cfg := loadIntegrationConfig(t)
+	cfg.Postgres.DSN = dsn
+	container, err := app.Boot(cfg)
+	if err != nil {
+		t.Fatalf("boot: %v", err)
+	}
+	defer container.DB.Close()
+
+	rtr, err := apiserver.NewRouter(cfg, container)
+	if err != nil {
+		t.Fatalf("NewRouter: %v", err)
+	}
+	srv := httptest.NewServer(rtr)
+	defer srv.Close()
+
+	tag := "rest:wakeup:" + uuid.NewString()
+	for _, body := range []string{
+		fmt.Sprintf(`{"kind":"state","statement":"Mission WAKEUP_STATE integration marker","authority":9,"tags":[%q]}`, tag),
+		fmt.Sprintf(`{"kind":"constraint","statement":"WAKEUP_L1 constraint integration marker","authority":8,"tags":[%q]}`, tag),
+		fmt.Sprintf(`{"kind":"constraint","statement":"WAKEUP_L1 second constraint","authority":7,"tags":[%q]}`, tag),
+	} {
+		resp, perr := http.Post(srv.URL+"/v1/memories", "application/json", strings.NewReader(body))
+		if perr != nil {
+			t.Fatalf("POST /v1/memories: %v", perr)
+		}
+		b, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("seed memory: status=%d %s", resp.StatusCode, string(b))
+		}
+	}
+
+	t.Run("empty_body_ok", func(t *testing.T) {
+		resp, err := http.Post(srv.URL+"/v1/recall/wakeup", "application/json", strings.NewReader(`{}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			b, _ := io.ReadAll(resp.Body)
+			t.Fatalf("wakeup {}: status=%d %s", resp.StatusCode, string(b))
+		}
+		var out recall.WakeupResponse
+		if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		// Same wire shape as MCP tool result body (raw JSON text).
+		if out.LimitsApplied.MaxState != 4 || out.LimitsApplied.MaxPerKind != 2 || out.LimitsApplied.MaxGoverningTotal != 12 {
+			t.Fatalf("limits_applied defaults: %+v", out.LimitsApplied)
+		}
+	})
+
+	t.Run("tagged_pool_non_empty_and_limits", func(t *testing.T) {
+		full := fmt.Sprintf(`{"tags":[%q]}`, tag)
+		resp, err := http.Post(srv.URL+"/v1/recall/wakeup", "application/json", strings.NewReader(full))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			b, _ := io.ReadAll(resp.Body)
+			t.Fatalf("wakeup: status=%d %s", resp.StatusCode, string(b))
+		}
+		var out recall.WakeupResponse
+		if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if out.LimitsApplied.MaxState != 4 || out.LimitsApplied.MaxPerKind != 2 || out.LimitsApplied.MaxGoverningTotal != 12 {
+			t.Fatalf("limits_applied defaults: %+v", out.LimitsApplied)
+		}
+		foundState, foundL1 := false, false
+		for _, it := range out.Identity {
+			if it.Kind == "state" && strings.Contains(it.Statement, "WAKEUP_STATE") {
+				foundState = true
+			}
+		}
+		for _, it := range out.GoverningMemory {
+			if it.Kind == "constraint" && strings.Contains(it.Statement, "WAKEUP_L1") {
+				foundL1 = true
+			}
+		}
+		if !foundState {
+			t.Fatalf("expected seeded state in identity, got identity=%+v", out.Identity)
+		}
+		if !foundL1 {
+			t.Fatalf("expected seeded constraint in governing_memory, got governing=%+v", out.GoverningMemory)
+		}
+
+		limited := fmt.Sprintf(`{"tags":[%q],"max_governing_total":1}`, tag)
+		resp2, err := http.Post(srv.URL+"/v1/recall/wakeup", "application/json", strings.NewReader(limited))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp2.Body.Close()
+		if resp2.StatusCode != http.StatusOK {
+			b, _ := io.ReadAll(resp2.Body)
+			t.Fatalf("wakeup limited: status=%d %s", resp2.StatusCode, string(b))
+		}
+		var out2 recall.WakeupResponse
+		if err := json.NewDecoder(resp2.Body).Decode(&out2); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if len(out2.GoverningMemory) != 1 {
+			t.Fatalf("max_governing_total=1: want 1 governing row, got %d", len(out2.GoverningMemory))
+		}
+		if out2.LimitsApplied.MaxGoverningTotal != 1 {
+			t.Fatalf("limits_applied.max_governing_total: got %d", out2.LimitsApplied.MaxGoverningTotal)
+		}
+	})
+}
+
 func TestREST_recallPreflight_returnsRiskShape(t *testing.T) {
 	dsn := os.Getenv("TEST_PG_DSN")
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -200,10 +307,7 @@ func TestREST_recallCompileMulti_minimal(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -243,10 +347,7 @@ func TestREST_enforcementEvaluate_fullRouter(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -303,10 +404,7 @@ func TestREST_curationDigest_dryRun(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -350,10 +448,7 @@ func TestREST_memories_occurredAt_createAndRecallRank(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -430,10 +525,7 @@ func TestREST_memories_withoutOccurredAt_backwardCompatible(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {

@@ -31,9 +31,6 @@ func TestService_Create_duplicateBeforeInsert(t *testing.T) {
 		WithArgs(existingID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
 			AddRow(existingID, api.MemoryKindDecision, stmt, memorynorm.StatementCanonical(stmt), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
-	mock.ExpectExec(`UPDATE memories SET authority`).
-		WithArgs(6, existingID).
-		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	svc := &Service{Repo: &Repo{DB: db}}
 	obj, err := svc.Create(ctx, CreateRequest{
@@ -43,8 +40,8 @@ func TestService_Create_duplicateBeforeInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if obj == nil || obj.ID != existingID || obj.Authority != 6 {
-		t.Fatalf("want reinforced existing memory, got %+v", obj)
+	if obj == nil || obj.ID != existingID || obj.Authority != 5 {
+		t.Fatalf("want existing memory without authority bump, got %+v", obj)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

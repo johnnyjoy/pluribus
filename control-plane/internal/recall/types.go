@@ -7,6 +7,7 @@ import (
 
 	"control-plane/internal/memory"
 	"control-plane/internal/merge"
+	"control-plane/pkg/api"
 
 	"github.com/google/uuid"
 )
@@ -43,6 +44,18 @@ type CompileRequest struct {
 	Mode string `json:"mode,omitempty"`
 	// CorrelationID optional client session id; boosts memories tagged mcp:session:<id> in ranking (does not filter global pool).
 	CorrelationID string `json:"correlation_id,omitempty"`
+	// SkipExperienceHydration when true skips prepending promoted JSONL experiences before ranking (session wake-up and similar views).
+	SkipExperienceHydration bool `json:"skip_experience_hydration,omitempty"`
+	// RecallMode selects lifecycle-aware retrieval: "current" (default) or "historical".
+	RecallMode string `json:"recall_mode,omitempty"`
+	// IncludeStatus optionally overrides recall_mode with an explicit status filter (active, superseded, archived).
+	IncludeStatus []string `json:"include_status,omitempty"`
+	// OccurredAfter optionally filters canonical candidates to effective time >= bound (RFC3339).
+	// Effective time uses occurred_at when present, otherwise created_at.
+	OccurredAfter string `json:"occurred_after,omitempty"`
+	// OccurredBefore optionally filters canonical candidates to effective time < bound (RFC3339).
+	OccurredBefore string `json:"occurred_before,omitempty"`
+	TelemetryOptions
 }
 
 // TriggerMetadata is included on RecallBundle when enable_triggered_recall is used (see triggered.go).
@@ -95,6 +108,10 @@ type RecallBundle struct {
 	SemanticRetrieval *SemanticRetrievalDebug `json:"semantic_retrieval,omitempty"`
 	// RecallPreamble is a single neutral line when any memory is present (deterministic; not marketing copy).
 	RecallPreamble string `json:"recall_preamble,omitempty"`
+	// LifecycleRecall describes the lifecycle recall mode applied to this bundle (Phase 8).
+	LifecycleRecall *LifecycleRecallMeta `json:"lifecycle_recall,omitempty"`
+	// Telemetry is set when automatic recall telemetry is enabled for this response (Phase 11J).
+	Telemetry *RecallTelemetry `json:"telemetry,omitempty"`
 }
 
 // EvidenceInBundleConfig controls bounded supporting evidence in recall bundles (YAML: recall.evidence_in_bundle).
@@ -203,11 +220,17 @@ type RIUScoreBreakdown struct {
 }
 
 // MemoryItem is a minimal memory view for the bundle (statement, authority, kind).
+type QualityIssue struct {
+	Code     string `json:"code"`
+	Severity string `json:"severity"`
+}
+
 type MemoryItem struct {
 	ID            string            `json:"id"`
 	Kind          string            `json:"kind"`
 	Statement     string            `json:"statement"`
 	Authority     int                `json:"authority"`
+	SourceCreatedAt *time.Time     `json:"source_created_at,omitempty"`
 	// OccurredAt is set when the underlying memory row has event time (canonical occurred_at).
 	OccurredAt   *time.Time         `json:"occurred_at,omitempty"`
 	Justification *JustificationMeta `json:"justification,omitempty"`
@@ -218,12 +241,61 @@ type MemoryItem struct {
 	WhyMatters string `json:"why_matters,omitempty"`
 	// SessionLocal is true when this row matched correlation_id session tagging (mcp:session:*) for ranking.
 	SessionLocal bool `json:"session_local,omitempty"`
+	// Applicability mirrors durable memory applicability (governing vs advisory, etc.); used by wake-up and clients that gate on it.
+	Applicability api.Applicability `json:"applicability,omitempty"`
+	// Status is the persisted memories.status row value (active, superseded, archived, …).
+	Status string `json:"status,omitempty"`
+	// LifecycleRole tells agents whether this item is current guidance or historical context.
+	LifecycleRole string `json:"lifecycle_role,omitempty"`
+
+	// SchemaType is the formation-quality schema classification (constraint, procedure, etc.).
+	SchemaType string `json:"schema_type,omitempty"`
+
+	// Scope is the positive applicability scope tag (e.g. "project:alpha").
+	Scope string `json:"scope,omitempty"`
+
+	// NegativeScope is an explicit exclusion list that suppresses use when matched.
+	NegativeScope []string `json:"negative_scope,omitempty"`
+
+	// RetrievalCues are the deterministic encoding cues used by the formation-quality gate.
+	RetrievalCues []string `json:"retrieval_cues,omitempty"`
+
+	// UseInstruction is the agent-facing instruction describing how to apply this guidance.
+	UseInstruction string `json:"use_instruction,omitempty"`
+
+	// MisuseWarning is the agent-facing warning describing how NOT to apply this guidance.
+	MisuseWarning string `json:"misuse_warning,omitempty"`
+
+	// SourceType is a deterministic provenance classification of how this memory was sourced.
+	SourceType string `json:"source_type,omitempty"`
+
+	// AuthorityBasis is the deterministic explanation basis for authority scoring.
+	AuthorityBasis string `json:"authority_basis,omitempty"`
+
+	// QualityScore is the deterministic formation-quality score.
+	QualityScore *float64 `json:"quality_score,omitempty"`
+
+	// QualityState is the deterministic formation-quality decision (accept_active / accept_pending / needs_curation).
+	QualityState string `json:"quality_state,omitempty"`
+
+	SafeForActiveRecall *bool `json:"safe_for_active_recall,omitempty"`
+
+	QualityDefects  []QualityIssue `json:"quality_defects,omitempty"`
+	QualityWarnings []QualityIssue `json:"quality_warnings,omitempty"`
+
+	// UtilityScore is the bounded aggregate utility score when utility ranking is enabled.
+	UtilityScore *float64 `json:"utility_score,omitempty"`
+	// SupersededBy is the replacing memory id when this row was superseded.
+	SupersededBy string `json:"superseded_by,omitempty"`
+	// DeprecatedAt when the row was superseded or archived (from payload or DB when available).
+	DeprecatedAt *time.Time `json:"deprecated_at,omitempty"`
 }
 
 // JustificationMeta explains why a memory was recalled (RIE / Task 73).
 type JustificationMeta struct {
-	Reason string  `json:"reason"`
-	Score  float64 `json:"score"`
+	Reason     string                   `json:"reason"`
+	Score      float64                  `json:"score"`
+	Components *ScoreComponentBreakdown `json:"components,omitempty"`
 }
 
 // PreflightRequest is the payload for POST /v1/recall/preflight.
@@ -287,11 +359,13 @@ type CompileMultiRequest struct {
 	RetrievalQuery string `json:"retrieval_query,omitempty"`
 	// AgentID optional opaque client identifier for salience / reinforcement only (not used for recall search).
 	AgentID string `json:"agent_id,omitempty"`
+	TelemetryOptions
 }
 
 // CompileMultiResponse is the response from compile-multi.
 type CompileMultiResponse struct {
-	Bundles []VariantBundle `json:"bundles"`
+	Bundles   []VariantBundle  `json:"bundles"`
+	Telemetry *RecallTelemetry `json:"telemetry,omitempty"`
 }
 
 // VariantBundle pairs a variant name with its recall bundle.
@@ -352,6 +426,7 @@ type RunMultiRequest struct {
 	EnableTriggeredRecall bool `json:"enable_triggered_recall,omitempty"`
 	// RetrievalQuery optional situation / intent text forwarded to compile-multi (merged with triggered recall when enabled).
 	RetrievalQuery string `json:"retrieval_query,omitempty"`
+	TelemetryOptions
 }
 
 // RunMultiDebug is mandatory observability for run-multi (Pluribus phase-next).
@@ -379,6 +454,8 @@ type RunMultiResponse struct {
 	Confidence     float64            `json:"confidence"`
 	// Debug is always present (use newRunMultiDebug); do not omitempty.
 	Debug RunMultiDebug `json:"debug"`
+	// Telemetry is set when run-multi performed an underlying recall with telemetry enabled (Phase 11J).
+	Telemetry *RecallTelemetry `json:"telemetry,omitempty"`
 }
 
 // Validate validates contract-level requirements for RunMultiRequest.

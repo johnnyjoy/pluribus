@@ -1,0 +1,368 @@
+{
+  "memories": [
+    {
+      "label": "pluribus_mcp_primary_interface_constraint",
+      "domain": "pluribus",
+      "kind": "constraint",
+      "statement": "Pluribus MCP is the primary agent interface; agents must use recall_context and record_experience through MCP tools rather than ad-hoc file reads for durable memory.",
+      "authority": 9,
+      "tags": ["mcp", "interface", "agent-loop", "compliance"],
+      "applicability": "governing"
+    },
+    {
+      "label": "pluribus_phase1_mcp_proof_pattern",
+      "domain": "pluribus",
+      "kind": "pattern",
+      "statement": "Phase 1 MCP proof validated recall_context and record_experience as the minimal viable agent memory loop with compile-time bundle assembly.",
+      "authority": 8,
+      "tags": ["mcp", "phase1", "proof", "recall"]
+    },
+    {
+      "label": "pluribus_agent_loop_contract_context",
+      "domain": "pluribus",
+      "kind": "state",
+      "statement": "The agent loop contract requires recall before non-trivial work and record_experience after meaningful outcomes; skipping the loop violates Pluribus compliance.",
+      "authority": 8,
+      "tags": ["agent-loop", "compliance", "recall", "record"]
+    },
+    {
+      "label": "pluribus_recall_benchmark_work_pattern",
+      "domain": "pluribus",
+      "kind": "pattern",
+      "statement": "Recall benchmark fixtures live under control-plane/testdata/recall_benchmark with labeled memories and gated cases measuring Recall@K, Precision@K, and forbidden-hit rates.",
+      "authority": 7,
+      "tags": ["benchmark", "recall", "testdata", "metrics"]
+    },
+    {
+      "label": "pluribus_mcp_empty_tags_failure",
+      "domain": "pluribus",
+      "kind": "failure",
+      "statement": "Empty MCP tags on recall requests caused over-broad lexical matches; tag-scoped compile now penalizes untagged queries that pull cross-domain noise.",
+      "authority": 7,
+      "tags": ["mcp", "tags", "failure", "recall"]
+    },
+    {
+      "label": "pluribus_deprecated_sqlite_constraint",
+      "domain": "pluribus",
+      "kind": "constraint",
+      "statement": "SQLite was the original Pluribus memory store; it is superseded by the Postgres-backed control-plane store and must not be used for new deployments.",
+      "authority": 6,
+      "tags": ["sqlite", "migration", "deprecated"],
+      "status": "superseded",
+      "applicability": "advisory"
+    },
+    {
+      "label": "pluribus_enforcement_gate_constraint",
+      "domain": "pluribus",
+      "kind": "constraint",
+      "statement": "Enforcement gates block agent actions when governing constraints are violated; pre-change enforcement requires recall of active constraints before edits.",
+      "authority": 8,
+      "tags": ["enforcement", "gate", "compliance", "pre-change"]
+    },
+    {
+      "label": "pluribus_curation_promotion_pattern",
+      "domain": "pluribus",
+      "kind": "pattern",
+      "statement": "Curation promotes repeated experiences into durable patterns only after confidence thresholds; one-off observations stay advisory until review_learnings confirms stability.",
+      "authority": 7,
+      "tags": ["curation", "promotion", "learning", "review"]
+    },
+    {
+      "label": "pluribus_semantic_recall_state",
+      "domain": "pluribus",
+      "kind": "state",
+      "statement": "Semantic recall hybrid path embeds retrieval queries when an embedder is available; lexical-only fallback remains the default in benchmark runs without embeddings.",
+      "authority": 7,
+      "tags": ["semantic", "recall", "embedder", "hybrid"]
+    },
+    {
+      "label": "pluribus_memory_migration_pattern",
+      "domain": "pluribus",
+      "kind": "pattern",
+      "statement": "Memory migrations move legacy archive/memory-bank content into Postgres objects with domain tags; superseded constraints keep status=superseded to avoid stale recall.",
+      "authority": 7,
+      "tags": ["migration", "postgres", "archive", "status"]
+    },
+    {
+      "label": "dornan_pro_enterprise_marketing_pattern",
+      "domain": "dornan_pro",
+      "kind": "pattern",
+      "statement": "Dornan Pro enterprise marketing positions fractional CTO services for mid-market SaaS with executive thought-leadership content and case-study driven outbound.",
+      "authority": 9,
+      "tags": ["marketing", "enterprise", "consulting", "positioning"],
+      "forbidden_use": "pluribus"
+    },
+    {
+      "label": "dornan_pro_consulting_positioning_decision",
+      "domain": "dornan_pro",
+      "kind": "decision",
+      "statement": "Dornan Pro consulting focuses on product-engineering alignment workshops rather than staff augmentation; engagements are outcome-based retainers.",
+      "authority": 7,
+      "tags": ["consulting", "positioning", "retainer"]
+    },
+    {
+      "label": "dornan_pro_website_brand_pattern",
+      "domain": "dornan_pro",
+      "kind": "pattern",
+      "statement": "The Dornan Pro website uses a dark executive aesthetic with proof points from Stanford-adjacent advisory work and a single primary CTA for discovery calls.",
+      "authority": 6,
+      "tags": ["website", "brand", "design"]
+    },
+    {
+      "label": "dornan_pro_executive_advisory_state",
+      "domain": "dornan_pro",
+      "kind": "state",
+      "statement": "Executive advisory positioning emphasizes board-ready memos, roadmap audits, and hiring-bar calibration for Series A–C startups.",
+      "authority": 7,
+      "tags": ["executive", "advisory", "board"]
+    },
+    {
+      "label": "dornan_pro_client_engagement_failure",
+      "domain": "dornan_pro",
+      "kind": "failure",
+      "statement": "A fixed-scope website rewrite without discovery failed because stakeholders disagreed on ICP; now all engagements start with a two-week diagnostic.",
+      "authority": 5,
+      "tags": ["client", "engagement", "failure", "discovery"]
+    },
+    {
+      "label": "onguard_housing_badge_integration_fact",
+      "domain": "onguard",
+      "kind": "state",
+      "statement": "OnGuard integrates Stanford housing badge readers with mobile credential APIs so residents tap phones at dorm entrances instead of physical cards.",
+      "authority": 8,
+      "tags": ["housing", "badge", "integration", "stanford"]
+    },
+    {
+      "label": "onguard_integration_interface_pattern",
+      "domain": "onguard",
+      "kind": "pattern",
+      "statement": "OnGuard exposes a REST integration interface for housing systems to sync resident roster changes and push credential updates to badge controllers.",
+      "authority": 7,
+      "tags": ["integration", "interface", "api", "housing"]
+    },
+    {
+      "label": "onguard_stanford_housing_constraint",
+      "domain": "onguard",
+      "kind": "constraint",
+      "statement": "Stanford housing deployments must keep PII on-campus; external SaaS credential stores require IRB-style review before production use.",
+      "authority": 8,
+      "tags": ["stanford", "housing", "pii", "compliance"]
+    },
+    {
+      "label": "onguard_databolt_harvester_pattern",
+      "domain": "onguard",
+      "kind": "pattern",
+      "statement": "The Databolt harvester ingests access-log batches from badge controllers, normalizes timestamps, and feeds anomaly detection for tailgating alerts.",
+      "authority": 7,
+      "tags": ["databolt", "harvester", "access-log", "anomaly"]
+    },
+    {
+      "label": "onguard_mobile_credential_decision",
+      "domain": "onguard",
+      "kind": "decision",
+      "statement": "Mobile credential rollout chose BLE-first tap with NFC fallback because dorm readers were already BLE-capable from a prior pilot.",
+      "authority": 7,
+      "tags": ["mobile", "credential", "ble", "nfc"]
+    },
+    {
+      "label": "nginx_reverse_proxy_pattern",
+      "domain": "nginx_apache",
+      "kind": "pattern",
+      "statement": "Nginx reverse-proxies local services on 443 with upstream blocks per app; health checks use /healthz before marking upstreams active.",
+      "authority": 7,
+      "tags": ["nginx", "reverse-proxy", "upstream", "tls"]
+    },
+    {
+      "label": "nginx_apache_auth_constraint",
+      "domain": "nginx_apache",
+      "kind": "constraint",
+      "statement": "Apache basic-auth protects legacy admin paths while Nginx terminates TLS; auth headers must not be stripped on proxy_pass to Apache backends.",
+      "authority": 7,
+      "tags": ["apache", "auth", "nginx", "proxy"]
+    },
+    {
+      "label": "nginx_local_routing_state",
+      "domain": "nginx_apache",
+      "kind": "state",
+      "statement": "Local routing sends /api to port 8080, /mcp to the control-plane sidecar, and static assets from /var/www with cache-bust query params in dev.",
+      "authority": 6,
+      "tags": ["routing", "local", "dev", "sidecar"]
+    },
+    {
+      "label": "nginx_ssl_termination_pattern",
+      "domain": "nginx_apache",
+      "kind": "pattern",
+      "statement": "SSL termination at Nginx uses certbot renewals with OCSP stapling; internal upstreams stay HTTP on loopback to simplify cert rotation.",
+      "authority": 6,
+      "tags": ["ssl", "certbot", "termination"]
+    },
+    {
+      "label": "homelab_proxmox_ceph_constraint",
+      "domain": "homelab",
+      "kind": "constraint",
+      "statement": "Proxmox VMs store disks on a three-node Ceph pool; never run single-replica pools for stateful services because host maintenance causes outages.",
+      "authority": 7,
+      "tags": ["proxmox", "ceph", "storage", "ha"]
+    },
+    {
+      "label": "homelab_docker_compose_ops_pattern",
+      "domain": "homelab",
+      "kind": "pattern",
+      "statement": "Docker Compose stacks use named volumes, healthcheck blocks, and restart unless-stopped; updates pull images on a weekly maintenance window.",
+      "authority": 6,
+      "tags": ["docker", "compose", "ops", "maintenance"]
+    },
+    {
+      "label": "homelab_gpu_ollama_state",
+      "domain": "homelab",
+      "kind": "state",
+      "statement": "GPU Ollama runs on a dedicated LXC with passthrough; default model is qwen2.5-coder with 8192 context for local agent experiments.",
+      "authority": 6,
+      "tags": ["gpu", "ollama", "lxc", "llm"]
+    },
+    {
+      "label": "homelab_network_segmentation_decision",
+      "domain": "homelab",
+      "kind": "decision",
+      "statement": "IoT VLAN is isolated from the services VLAN; only the reverse proxy VM has dual-homed access for homelab dashboards.",
+      "authority": 6,
+      "tags": ["network", "vlan", "segmentation"]
+    },
+    {
+      "label": "comfyui_ltx_video_pattern",
+      "domain": "comfyui",
+      "kind": "pattern",
+      "statement": "LTX video workflows in ComfyUI chain text encoder, latent diffusion, and frame interpolation nodes with fixed seed for reproducible clips.",
+      "authority": 6,
+      "tags": ["ltx", "video", "workflow", "comfyui"]
+    },
+    {
+      "label": "comfyui_lora_consistency_constraint",
+      "domain": "comfyui",
+      "kind": "constraint",
+      "statement": "LoRA consistency requires matching base checkpoint and trigger token across train and infer graphs; mixing SD1.5 LoRAs with SDXL bases breaks faces.",
+      "authority": 7,
+      "tags": ["lora", "consistency", "checkpoint"]
+    },
+    {
+      "label": "comfyui_animation_workflow_state",
+      "domain": "comfyui",
+      "kind": "state",
+      "statement": "Animation workflow uses AnimateDiff with motion LoRA at 16fps export; batch size capped at 2 on 12GB VRAM to avoid OOM.",
+      "authority": 5,
+      "tags": ["animation", "animatediff", "vram"]
+    },
+    {
+      "label": "comfyui_model_management_failure",
+      "domain": "comfyui",
+      "kind": "failure",
+      "statement": "Symlinking models into multiple ComfyUI roots caused duplicate loads and VRAM exhaustion; centralize models under one path with extra_model_paths.yaml.",
+      "authority": 5,
+      "tags": ["models", "vram", "failure", "paths"]
+    },
+    {
+      "label": "fitness_protein_intake_decision",
+      "domain": "fitness",
+      "kind": "decision",
+      "statement": "Daily protein target is 160g spread across four meals with 40g post-workout shake within 30 minutes of lifting sessions.",
+      "authority": 5,
+      "tags": ["protein", "nutrition", "post-workout"]
+    },
+    {
+      "label": "fitness_muscle_plan_pattern",
+      "domain": "fitness",
+      "kind": "pattern",
+      "statement": "Muscle plan alternates push/pull/legs with progressive overload logged in a spreadsheet; deload every fifth week at 60% working weight.",
+      "authority": 5,
+      "tags": ["muscle", "ppl", "progressive-overload"]
+    },
+    {
+      "label": "fitness_exercise_routine_state",
+      "domain": "fitness",
+      "kind": "state",
+      "statement": "Current exercise routine runs Mon/Wed/Fri gym and Tue/Thu zone-2 cardio; Saturday is optional mobility work only.",
+      "authority": 4,
+      "tags": ["routine", "cardio", "mobility"]
+    },
+    {
+      "label": "fitness_recovery_constraint",
+      "domain": "fitness",
+      "kind": "constraint",
+      "statement": "Minimum seven hours sleep is non-negotiable on lift days; skipping sleep voids heavy squat sessions to protect lower back.",
+      "authority": 5,
+      "tags": ["recovery", "sleep", "squat"]
+    },
+    {
+      "label": "finance_budgeting_pattern",
+      "domain": "finance",
+      "kind": "pattern",
+      "statement": "Monthly budgeting uses 50/30/20 with automated transfers on payday; discretionary spend tracked in a shared spreadsheet category.",
+      "authority": 5,
+      "tags": ["budgeting", "50-30-20", "transfers"]
+    },
+    {
+      "label": "finance_investment_preference_decision",
+      "domain": "finance",
+      "kind": "decision",
+      "statement": "Investment preference favors low-cost index funds with 70/30 stock-bond allocation; individual stock picks capped at 5% of portfolio.",
+      "authority": 6,
+      "tags": ["investment", "index-funds", "allocation"]
+    },
+    {
+      "label": "finance_emergency_fund_constraint",
+      "domain": "finance",
+      "kind": "constraint",
+      "statement": "Emergency fund must cover six months expenses in HYSA before increasing equity allocation above baseline.",
+      "authority": 6,
+      "tags": ["emergency-fund", "hysa", "risk"]
+    },
+    {
+      "label": "generic_interface_integration_noise",
+      "domain": "generic_noise",
+      "kind": "pattern",
+      "statement": "Systems should expose a clean interface for integration with external agents and services through standard binding layers.",
+      "authority": 3,
+      "tags": ["interface", "integration", "binding", "agent"]
+    },
+    {
+      "label": "generic_api_surface_pattern",
+      "domain": "generic_noise",
+      "kind": "pattern",
+      "statement": "API surfaces benefit from consistent error shapes and versioned endpoints so integrators can rely on stable contracts.",
+      "authority": 3,
+      "tags": ["api", "surface", "versioning"]
+    },
+    {
+      "label": "generic_system_binding_state",
+      "domain": "generic_noise",
+      "kind": "state",
+      "statement": "Binding system components through shared interfaces reduces coupling when teams integrate new modules.",
+      "authority": 2,
+      "tags": ["binding", "system", "modules"]
+    },
+    {
+      "label": "generic_data_pipeline_noise",
+      "domain": "generic_noise",
+      "kind": "pattern",
+      "statement": "Data pipelines should validate schema at ingress and emit metrics for downstream consumers.",
+      "authority": 2,
+      "tags": ["data", "pipeline", "schema"]
+    },
+    {
+      "label": "generic_agent_workflow_trap",
+      "domain": "generic_noise",
+      "kind": "pattern",
+      "statement": "Agent workflows improve when loops recall prior context before action and record outcomes after completion.",
+      "authority": 4,
+      "tags": ["agent", "workflow", "loop", "recall"]
+    },
+    {
+      "label": "generic_compliance_checklist_noise",
+      "domain": "generic_noise",
+      "kind": "constraint",
+      "statement": "Compliance checklists help teams gate releases when policy constraints must be verified before deployment.",
+      "authority": 3,
+      "tags": ["compliance", "checklist", "gate"]
+    }
+  ]
+}

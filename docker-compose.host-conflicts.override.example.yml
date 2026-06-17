@@ -1,0 +1,20 @@
+# Use when host ports 5432 and/or 6379 are already taken (common on homelab boxes running Supabase, etc.).
+# Copy to docker-compose.override.yml next to docker-compose.yml (Compose merges automatically).
+#
+#   cp docker-compose.host-conflicts.override.example.yml docker-compose.override.yml
+#   docker compose up -d
+#
+# Controlplane still reaches postgres/redis on the Compose network (postgres:5432, redis:6379).
+# Only host-published ports change.
+
+services:
+  postgres:
+    # !reset replaces merged ports (Compose otherwise keeps 5432:5432 AND adds more).
+    ports: !reset
+      - "5434:5432"   # host 5434 → container 5432 (avoid supabase-pooler on :5432)
+    # Or drop host publish entirely (API still reaches postgres:5432 on the compose network):
+    # ports: !reset []
+
+  redis:
+    ports: !reset
+      - "6380:6379"   # only if host :6379 is taken; delete this block if 6379 is free

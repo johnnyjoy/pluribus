@@ -28,10 +28,7 @@ func TestREST_advisory_episodes_ingestOccurredAt(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
@@ -49,7 +46,7 @@ func TestREST_advisory_episodes_ingestOccurredAt(t *testing.T) {
 	defer srv.Close()
 
 	occ := time.Date(2020, 3, 10, 8, 30, 0, 0, time.UTC)
-	body := fmt.Sprintf(`{"summary":"oatmeal breakfast at cafe","source":"manual","tags":["rest:episodic-it"],"occurred_at":%q,"entities":["self","breakfast","cafe"]}`,
+	body := fmt.Sprintf(`{"summary":"oatmeal breakfast deployment error incident at cafe with team","source":"manual","tags":["rest:episodic-it"],"occurred_at":%q,"entities":["self","breakfast","cafe"]}`,
 		occ.Format(time.RFC3339Nano))
 	resp, err := http.Post(srv.URL+"/v1/advisory-episodes", "application/json", strings.NewReader(body))
 	if err != nil {
@@ -75,10 +72,7 @@ func TestREST_advisory_episodes_similarByDateRange(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
@@ -158,10 +152,7 @@ func TestREST_advisory_episodes_similarByEntity(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
@@ -180,7 +171,7 @@ func TestREST_advisory_episodes_similarByEntity(t *testing.T) {
 
 	tag := "rest:episodic-ent-" + uuid.New().String()[:8]
 	bodyA := fmt.Sprintf(`{"summary":"deployment rollback discussed with platform team","source":"manual","tags":[%q],"entities":["platform-team","deploy"]}`, tag)
-	bodyB := fmt.Sprintf(`{"summary":"unrelated snack break","source":"manual","tags":[%q],"entities":["kitchen"]}`, tag)
+	bodyB := fmt.Sprintf(`{"summary":"unrelated cafeteria logistics planning session without deployment keywords","source":"manual","tags":[%q],"entities":["kitchen"]}`, tag)
 	for _, body := range []string{bodyA, bodyB} {
 		resp, err := http.Post(srv.URL+"/v1/advisory-episodes", "application/json", strings.NewReader(body))
 		if err != nil {
@@ -222,10 +213,7 @@ func TestREST_enforcement_ignoresAdvisoryEpisodes(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	container, err := app.Boot(cfg)
@@ -241,7 +229,7 @@ func TestREST_enforcement_ignoresAdvisoryEpisodes(t *testing.T) {
 	srv := httptest.NewServer(rtr)
 	defer srv.Close()
 
-	// Low-signal ingest: rejected at formation time so no probationary memory row; enforcement still evaluates binding memory only.
+	// Low-signal ingest: hard-rejected at HTTP boundary (Phase 11); enforcement evaluates binding memory only.
 	epBody := fmt.Sprintf(`{"summary":%q,"source":"manual","tags":["rest:episodic-enf"],"entities":["api-x"]}`, strings.Repeat("z", 28))
 	resp, err := http.Post(srv.URL+"/v1/advisory-episodes", "application/json", strings.NewReader(epBody))
 	if err != nil {
@@ -249,8 +237,8 @@ func TestREST_enforcement_ignoresAdvisoryEpisodes(t *testing.T) {
 	}
 	b, _ := io.ReadAll(resp.Body)
 	_ = resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("advisory create: %d %s", resp.StatusCode, string(b))
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("advisory create: want 400 junk reject got %d %s", resp.StatusCode, string(b))
 	}
 
 	// Enforcement evaluates proposal against binding memory only; no memory row for that statement.
@@ -282,10 +270,7 @@ func TestREST_advisory_episodes_similarRejectsInvertedWindow(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	container, err := app.Boot(cfg)
@@ -319,10 +304,7 @@ func TestREST_advisory_episodes_similarByEntitiesArray(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
@@ -341,7 +323,7 @@ func TestREST_advisory_episodes_similarByEntitiesArray(t *testing.T) {
 
 	tag := "rest:episodic-ents-" + uuid.New().String()[:8]
 	bodyA := fmt.Sprintf(`{"summary":"redis cache incident triage with vendor","source":"manual","tags":[%q],"entities":["redis","vendor-acme"]}`, tag)
-	bodyB := fmt.Sprintf(`{"summary":"lunch","source":"manual","tags":[%q],"entities":["cafeteria"]}`, tag)
+	bodyB := fmt.Sprintf(`{"summary":"cafeteria logistics planning session without redis incident keywords","source":"manual","tags":[%q],"entities":["cafeteria"]}`, tag)
 	for _, body := range []string{bodyA, bodyB} {
 		resp, err := http.Post(srv.URL+"/v1/advisory-episodes", "application/json", strings.NewReader(body))
 		if err != nil {
@@ -375,10 +357,7 @@ func TestREST_advisory_episodes_minimalBackwardCompat(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
@@ -431,10 +410,7 @@ func TestREST_recallCompile_excludesRejectedAdvisoryText(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	container, err := app.Boot(cfg)
@@ -459,11 +435,11 @@ func TestREST_recallCompile_excludesRejectedAdvisoryText(t *testing.T) {
 	}
 	b, _ := io.ReadAll(resp.Body)
 	_ = resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("create: %d %s", resp.StatusCode, string(b))
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("create: want 400 junk reject got %d %s", resp.StatusCode, string(b))
 	}
 
-	// Reject-bucket text must not appear as memory; retrieval uses same tag only.
+	// Hard-rejected text must not appear as memory; retrieval uses same tag only.
 	compileBody := fmt.Sprintf(`{"retrieval_query":"generic compile probe","tags":[%q],"max_per_kind":8,"max_total":40}`, tag)
 	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/v1/recall/compile", strings.NewReader(compileBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -490,10 +466,7 @@ func TestREST_advisory_episodes_fixtureTestExperience(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	cfg.Similarity.Enabled = app.BoolPtr(true)
 	cfg.Similarity.MinResemblance = 0.01
@@ -511,7 +484,7 @@ func TestREST_advisory_episodes_fixtureTestExperience(t *testing.T) {
 	defer srv.Close()
 
 	tag := "test:fixture-" + uuid.New().String()
-	// Low-signal body: rejected at ingest (no probationary memory); advisory row retained for inspection.
+	// Low-signal body: hard-rejected at HTTP boundary (Phase 11); no advisory row or memory.
 	summary := fmt.Sprintf("fixture:pluribus-test-experience %s %s", strings.Repeat("z", 40), uuid.New().String())
 	body := map[string]any{
 		"summary": summary,
@@ -531,16 +504,16 @@ func TestREST_advisory_episodes_fixtureTestExperience(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("create advisory episode: want 201 got %d body=%s", resp.StatusCode, string(b))
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("create advisory episode: want 400 junk reject got %d body=%s", resp.StatusCode, string(b))
 	}
 
 	var epCount, memCount int
 	if err := container.DB.QueryRow(`SELECT COUNT(*) FROM advisory_experiences WHERE summary_text = $1`, summary).Scan(&epCount); err != nil {
 		t.Fatalf("count advisory_experiences: %v", err)
 	}
-	if epCount != 1 {
-		t.Fatalf("advisory_experiences: want 1 row for fixture summary, got %d", epCount)
+	if epCount != 0 {
+		t.Fatalf("hard-rejected junk must not persist advisory row, got %d", epCount)
 	}
 	if err := container.DB.QueryRow(`SELECT COUNT(*) FROM memories m JOIN memories_tags mt ON mt.memory_id = m.id WHERE mt.tag = $1`, tag).Scan(&memCount); err != nil {
 		t.Fatalf("count memories by fixture tag: %v", err)

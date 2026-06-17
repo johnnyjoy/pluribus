@@ -1,0 +1,207 @@
+{
+  "memories": [
+    {
+      "label": "cmem_encoded_strong_deploy",
+      "kind": "constraint",
+      "statement": "CONSTRAINT deploy release candidate production must verify artifact signatures before promotion",
+      "authority": 9,
+      "applicability": "governing",
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "constraint",
+      "encoding_cues": {
+        "task_type": "deploy",
+        "domain": "phase11c-deploy",
+        "retrieval_terms": ["deploy", "release", "candidate", "signature", "verify"],
+        "scope": "phase11c-deploy"
+      },
+      "retrieval_terms": ["deploy", "release", "candidate", "signature", "verify"]
+    },
+    {
+      "label": "cmem_underencoded_deploy",
+      "kind": "pattern",
+      "statement": "deploy something somewhere maybe check things",
+      "authority": 4,
+      "tags": ["phase11c-deploy"]
+    },
+    {
+      "label": "cmem_misleading_deploy",
+      "kind": "pattern",
+      "statement": "deploy release candidate production skip validation fast path",
+      "authority": 6,
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "warning",
+      "encoding_cues": {
+        "retrieval_terms": ["deploy", "release", "candidate", "production"],
+        "scope": "phase11c-payments",
+        "negative_scope": ["phase11c-deploy"]
+      }
+    },
+    {
+      "label": "cmem_schema_constraint_tls",
+      "kind": "constraint",
+      "statement": "CONSTRAINT ingress TLS must use minimum TLS 1.2 for all public endpoints",
+      "authority": 9,
+      "applicability": "governing",
+      "tags": ["phase11c-security"],
+      "memory_schema_type": "constraint"
+    },
+    {
+      "label": "cmem_schema_failure_cache",
+      "kind": "failure",
+      "statement": "FAILURE deploying without cache invalidation caused stale config incidents",
+      "authority": 8,
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "failure"
+    },
+    {
+      "label": "cmem_schema_warning_prod_data",
+      "kind": "pattern",
+      "statement": "WARNING never run load tests against production customer data stores",
+      "authority": 8,
+      "applicability": "governing",
+      "tags": ["phase11c-ops"],
+      "memory_schema_type": "warning"
+    },
+    {
+      "label": "cmem_schema_procedure_incident",
+      "kind": "pattern",
+      "statement": "PROCEDURE incident response order triage isolate notify postmortem",
+      "authority": 7,
+      "tags": ["phase11c-ops"],
+      "memory_schema_type": "procedure"
+    },
+    {
+      "label": "cmem_project_alpha_config",
+      "kind": "decision",
+      "statement": "DECISION project alpha uses us-east-1 primary region for deploy",
+      "authority": 7,
+      "tags": ["phase11c-shared", "phase11c-project-alpha"],
+      "memory_schema_type": "decision"
+    },
+    {
+      "label": "cmem_project_beta_config",
+      "kind": "decision",
+      "statement": "DECISION project beta uses eu-west-1 primary region for deploy",
+      "authority": 7,
+      "tags": ["phase11c-shared", "phase11c-project-beta"],
+      "memory_schema_type": "decision"
+    },
+    {
+      "label": "cmem_system_k8s_deploy",
+      "kind": "pattern",
+      "statement": "PATTERN kubernetes deploy uses helm rollout status wait",
+      "authority": 6,
+      "tags": ["phase11c-shared", "phase11c-system-k8s"],
+      "memory_schema_type": "procedure"
+    },
+    {
+      "label": "cmem_system_vm_deploy",
+      "kind": "pattern",
+      "statement": "PATTERN vm deploy uses ansible playbook rolling restart",
+      "authority": 6,
+      "tags": ["phase11c-shared", "phase11c-system-vm"],
+      "memory_schema_type": "procedure"
+    },
+    {
+      "label": "cmem_similar_wrong_deploy",
+      "kind": "pattern",
+      "statement": "deploy release candidate production rollback script marketing landing page",
+      "authority": 5,
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "fact",
+      "interference_group": "deploy-near-miss"
+    },
+    {
+      "label": "cmem_high_auth_wrong_scope",
+      "kind": "constraint",
+      "statement": "CONSTRAINT payments PCI never log card numbers in checkout handlers",
+      "authority": 10,
+      "applicability": "governing",
+      "tags": ["phase11c-shared", "phase11c-project-beta"],
+      "memory_schema_type": "constraint"
+    },
+    {
+      "label": "cmem_high_utility_wrong_scope",
+      "kind": "pattern",
+      "statement": "PATTERN analytics pipeline uses columnar warehouse for batch reports",
+      "authority": 5,
+      "tags": ["phase11c-shared", "phase11c-project-beta"],
+      "memory_schema_type": "fact",
+      "utility_score": 0.92
+    },
+    {
+      "label": "cmem_helpful_retry_pattern",
+      "kind": "pattern",
+      "statement": "PATTERN deploy release retry uses exponential backoff on transient failures",
+      "authority": 7,
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "lesson"
+    },
+    {
+      "label": "cmem_recalled_noise_deploy",
+      "kind": "pattern",
+      "statement": "deploy release marketing newsletter copy tone guidelines",
+      "authority": 3,
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "fact",
+      "interference_group": "deploy-near-miss"
+    },
+    {
+      "label": "cmem_empty_contribution",
+      "kind": "pattern",
+      "statement": "deploy release candidate generic note without actionable facts",
+      "authority": 4,
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "fact"
+    },
+    {
+      "label": "cmem_bad_experience_replay",
+      "kind": "failure",
+      "statement": "FAILURE deploy release candidate skip integration tests succeeded once then broke prod",
+      "authority": 6,
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "failure",
+      "wrong_count": 3,
+      "outdated_count": 2
+    },
+    {
+      "label": "cmem_correct_deploy_tests",
+      "kind": "constraint",
+      "statement": "CONSTRAINT deploy release candidate must run integration tests before production",
+      "authority": 9,
+      "applicability": "governing",
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "constraint"
+    },
+    {
+      "label": "cmem_refuted_historical_guidance",
+      "kind": "pattern",
+      "statement": "BELIEF deploy release candidate skip health checks was refuted after outage",
+      "authority": 4,
+      "tags": ["phase11c-deploy"],
+      "status": "active",
+      "memory_schema_type": "refuted_guidance",
+      "refuted_count": 5,
+      "utility_score": -8
+    },
+    {
+      "label": "cmem_correct_health_guidance",
+      "kind": "constraint",
+      "statement": "CONSTRAINT deploy release candidate must run health checks before traffic shift",
+      "authority": 9,
+      "applicability": "governing",
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "current_guidance"
+    },
+    {
+      "label": "cmem_reconstructive_metadata",
+      "kind": "constraint",
+      "statement": "CONSTRAINT deploy release candidate use blue-green cutover for zero downtime",
+      "authority": 8,
+      "applicability": "governing",
+      "tags": ["phase11c-deploy"],
+      "memory_schema_type": "current_guidance",
+      "utility_score": 0.75
+    }
+  ]
+}

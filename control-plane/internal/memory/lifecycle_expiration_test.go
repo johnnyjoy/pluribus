@@ -101,12 +101,12 @@ func TestService_ExpireMemories(t *testing.T) {
 	id := uuid.MustParse("a0000000-0000-0000-0000-000000000001")
 	ttl := 60
 
-	mock.ExpectQuery(`SELECT id, kind, statement`).
-		WithArgs(2, sqlmock.AnyArg()).
+	mock.ExpectQuery(`SELECT m.id`).
+		WithArgs(2, sqlmock.AnyArg(), OccurredAtMaterialDeltaSeconds, sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
 			AddRow(id, api.MemoryKindDecision, "Low auth", memorynorm.StatementCanonical("Low auth"), memorynorm.StatementKey("Low auth"), 1, "governing", "active", nil, ttl, nil, time.Now().Add(-2*time.Hour), time.Now(), nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).WillReturnRows(
-		sqlmock.NewRows([]string{"tag"}).AddRow("archive"))
+		sqlmock.NewRows([]string{"tag"}).AddRow("ephemeral"))
 	mock.ExpectExec(`UPDATE memories SET status`).WithArgs(api.StatusArchived, id).WillReturnResult(sqlmock.NewResult(0, 1))
 
 	svc := &Service{Repo: &Repo{DB: db}, Lifecycle: &LifecycleConfig{ExpirationAuthorityThreshold: 2}}

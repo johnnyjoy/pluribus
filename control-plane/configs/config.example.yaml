@@ -85,11 +85,12 @@ recall:
     # weight_cross_agent_salience_k: 0
     # Omitted (nil) defaults to 0.4. Explicit 0 disables the semantic term and logs a warning.
     weight_semantic_similarity: 0.4
-  # Semantic candidate retrieval (pgvector + OpenAI-compatible embeddings): default on for situation-shaped recall.
+    weight_situational_affinity: 0.35  # additive query/repo/tag coverage boost (ranking only; not a partition filter)
+  # Semantic candidate retrieval
   # Set enabled: false to skip embedding API calls. Missing/misaligned embedder → lexical recall; logs [SEMANTIC FALLBACK] and sets semantic_retrieval on compile. [SEMANTIC ERROR] = failed HTTP/embed or vector search on hybrid path.
   # Requires Postgres with pgvector (see docker-compose.yml) and migrations applied.
   semantic_retrieval:
-    enabled: true
+    enabled: false
     # embedding_endpoint: "https://api.openai.com/v1"
     # embedding_model: "text-embedding-3-small"
     # embedding_dimensions: 1536
@@ -129,6 +130,18 @@ recall:
   #   large_change_files_threshold: 25
 
 memory:
+  # Phase 5: memory formation quality gate (direct create + record_experience). Omitted = safe defaults.
+  # formation:
+  #   direct_create:
+  #     enabled: true
+  #     max_client_authority: 4
+  #     governing_default_status: pending
+  #     require_provenance_for_governing: true
+  #     reject_junk: true
+  #   record_experience:
+  #     reject_junk: true
+  #     risky_constraint_pending: true
+  #   contradiction_on_write: true
   # Optional: cap authority delta per reinforce call; cross-context salience in payload (default on when omitted).
   # recall_reinforcement:
   #   max_authority_delta_per_compile: 1
@@ -138,6 +151,11 @@ memory:
     authority_negative_delta: 0.2   # on contradiction or failure event
     expiration_authority_threshold: 2   # 0-10 scale; memories with authority < this and TTL expired get archived
   # Phase C: reject duplicate canonical rows (same project, kind, normalized scope, statement key) with HTTP 409 + existing memory_id.
+  # Phase 7: memory utility / reputation foundations (feedback ledger, bounded utility score).
+  # utility:
+  #   reinforce_on_recall: false           # default: recall alone does not bump authority
+  #   reinforce_duplicate_authority: false # default: duplicate write does not bump authority
+  #   ranking_weight: 0.12               # bounded recall ranking influence from utility_score
   dedup:
     enabled: true   # omit = on; set false to allow duplicate statements (not recommended)
     near_dup_jaccard_threshold: 0.92   # Phase F: recall collapse; 0 = off; typical 0.92 (creative C2)

@@ -55,6 +55,7 @@
 |--------|------|--------------|----------|--------|
 | `GET` | `/v1/recall/` | Query → `CompileRequest` fields (see `handlers_getbundle.go`) | `recall_get` | core |
 | `POST` | `/v1/recall/preflight` | `internal/recall/types.go` — `PreflightRequest` | `memory_preflight_check` | core |
+| `POST` | `/v1/recall/wakeup` | `WakeupRequest` in `internal/recall/wakeup.go` | `wakeup_context` | core |
 | `POST` | `/v1/recall/compile` | `CompileRequest` | `recall_context`, `memory_context_resolve`, `recall_compile` | core |
 | `POST` | `/v1/recall/compile-multi` | `CompileMultiRequest` | — | core |
 | `POST` | `/v1/recall/run-multi` | `RunMultiRequest` | `recall_run_multi` | core |
@@ -157,6 +158,41 @@ Advisory rows alone are not governing recall authority per [episodic-similarity.
 
 ---
 
+## Agent memory-use telemetry (Phase 11I–11J)
+
+Types: `internal/agenttelemetry/types.go`. Automatic recall exposure hooks persist when `session_id` is supplied on recall surfaces (see [automatic-recall-telemetry.md](automatic-recall-telemetry.md)).
+
+| Method | Path | MCP tool | Class |
+|--------|------|----------|--------|
+| `POST` | `/v1/agent/telemetry/session/start` | `agent_telemetry_start_session` | support |
+| `POST` | `/v1/agent/telemetry/recall` | `agent_telemetry_record_recall` | support |
+| `POST` | `/v1/agent/telemetry/decision` | `agent_telemetry_record_decision` | support |
+| `POST` | `/v1/agent/telemetry/output` | `agent_telemetry_record_output` | support |
+| `POST` | `/v1/agent/telemetry/evaluate` | `agent_telemetry_evaluate` | support |
+| `GET` | `/v1/agent/telemetry/session/{session_id}` | `agent_telemetry_get_session` | support |
+| `GET` | `/v1/agent/telemetry/memory/{memory_id}` | `agent_telemetry_get_memory` | support |
+| `GET` | `/v1/agent/telemetry/violations` | `agent_telemetry_get_violations` | support |
+| `GET` | `/v1/agent/telemetry/utility-candidates` | `agent_telemetry_get_utility_candidates` | support |
+
+---
+
+## Guarded utility application policy (Phase 11K)
+
+Types: `internal/utilitypolicy/types.go`. Policy applies bounded utility mutations only for evaluator-validated candidates (see [guarded-utility-policy.md](guarded-utility-policy.md)).
+
+| Method | Path | MCP tool | Class |
+|--------|------|----------|--------|
+| `POST` | `/v1/agent/utility/policy/evaluate-candidate` | `agent_utility_evaluate_candidate` | support |
+| `POST` | `/v1/agent/utility/policy/apply-candidate` | `agent_utility_apply_candidate` | support |
+| `POST` | `/v1/agent/utility/policy/apply-batch` | `agent_utility_apply_batch` | support |
+| `POST` | `/v1/agent/utility/policy/revert-application` | `agent_utility_revert_application` | support |
+| `GET` | `/v1/agent/utility/policy/candidate/{candidate_id}` | `agent_utility_get_candidate` | support |
+| `GET` | `/v1/agent/utility/policy/memory/{memory_id}` | `agent_utility_get_memory_history` | support |
+| `GET` | `/v1/agent/utility/policy/applications` | `agent_utility_get_applications` | support |
+| `GET` | `/v1/agent/utility/policy/summary` | `agent_utility_get_policy_summary` | support |
+
+---
+
 ## Operator / CI (not HTTP routes)
 
 | Entry | Purpose |
@@ -174,7 +210,7 @@ Fields on **`POST /v1/curation/digest`**: `work_summary` (required), `signals`, 
 
 ## Database baseline
 
-Embedded SQL: `control-plane/migrations/0001_memory_baseline.sql`, `0002_advisory_episodes_episodic.sql`, `0003_memories_occurred_at.sql`, **`0006_advisory_experiences_formation.sql`** (rename + formation columns; applied on server boot). Canonical **`memories.occurred_at`** is optional event time; see [api-contract.md](api-contract.md). **`candidate_events`** columns: `id`, `raw_text`, `salience_score`, `promotion_status`, `proposal_json`, `created_at` — no separate migration file per table in-repo.
+Embedded SQL: `control-plane/migrations/0001_memory_baseline.sql` through **`0013_agent_utility_applications.sql`** (applied on server boot). Notable later migrations: **`0006_advisory_experiences_formation.sql`** (rename + formation columns), **`0010_memory_utility.sql`** (utility ledger), **`0012_agent_memory_use_telemetry.sql`** (telemetry tables), **`0013_agent_utility_applications.sql`** (policy application audit). Canonical **`memories.occurred_at`** is optional event time; see [api-contract.md](api-contract.md). **`candidate_events`** columns: `id`, `raw_text`, `salience_score`, `promotion_status`, `proposal_json`, `created_at` — no separate migration file per table in-repo.
 
 ---
 

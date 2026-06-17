@@ -16,6 +16,7 @@ func TestToolDefinitions_includeCurationTools(t *testing.T) {
 	tools := mcp.ToolDefinitions()
 	want := map[string]bool{
 		"recall_context":                 false,
+		"wakeup_context":                 false,
 		"record_experience":              false,
 		"mcp_episode_ingest":             false,
 		"curation_digest":                false,
@@ -74,7 +75,7 @@ func TestHandleToolsCall_curationDigest(t *testing.T) {
 	base := strings.TrimSuffix(ts.URL, "/")
 	params := json.RawMessage(`{"name":"curation_digest","arguments":{"work_summary":"Enough text for validation and digest."}}`)
 
-	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil)
+	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +109,7 @@ func TestHandleToolsCall_enforcementEvaluate(t *testing.T) {
 	base := strings.TrimSuffix(ts.URL, "/")
 	params := json.RawMessage(`{"name":"enforcement_evaluate","arguments":{"proposal_text":"We will add logging."}}`)
 
-	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil)
+	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +146,7 @@ func TestValidateEnforcementArguments(t *testing.T) {
 
 func TestHandleToolsCall_enforcementEvaluate_requiresArguments(t *testing.T) {
 	params := json.RawMessage(`{"name":"enforcement_evaluate","arguments":{}}`)
-	_, err := mcp.HandleToolsCall(http.DefaultClient, "http://127.0.0.1:9", "", params, nil)
+	_, err := mcp.HandleToolsCall(http.DefaultClient, "http://127.0.0.1:9", "", params, nil, nil)
 	if err == nil {
 		t.Fatal("expected validation error")
 	}
@@ -156,7 +157,7 @@ func TestHandleToolsCall_enforcementEvaluate_requiresArguments(t *testing.T) {
 
 func TestHandleToolsCall_curationDigest_requiresArguments(t *testing.T) {
 	params := json.RawMessage(`{"name":"curation_digest","arguments":{}}`)
-	_, err := mcp.HandleToolsCall(http.DefaultClient, "http://127.0.0.1:9", "", params, nil)
+	_, err := mcp.HandleToolsCall(http.DefaultClient, "http://127.0.0.1:9", "", params, nil, nil)
 	if err == nil {
 		t.Fatal("expected validation error")
 	}
@@ -188,7 +189,7 @@ func TestHandleToolsCall_curationMaterialize(t *testing.T) {
 	base := strings.TrimSuffix(ts.URL, "/")
 	params := json.RawMessage(`{"name":"curation_materialize","arguments":{"candidate_id":"` + cand + `"}}`)
 
-	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil)
+	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +213,7 @@ func TestHandleToolsCall_curationMaterialize_http404(t *testing.T) {
 	base := strings.TrimSuffix(ts.URL, "/")
 	params := json.RawMessage(`{"name":"curation_materialize","arguments":{"candidate_id":"11111111-1111-1111-1111-111111111111"}}`)
 
-	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil)
+	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +236,7 @@ func TestHandleToolsCall_curationMaterialize_http404(t *testing.T) {
 
 func TestHandleToolsCall_curationMaterialize_validationError(t *testing.T) {
 	params := json.RawMessage(`{"name":"curation_materialize","arguments":{}}`)
-	_, err := mcp.HandleToolsCall(http.DefaultClient, "http://127.0.0.1:9", "", params, nil)
+	_, err := mcp.HandleToolsCall(http.DefaultClient, "http://127.0.0.1:9", "", params, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "candidate_id") {
 		t.Fatalf("expected validation error, got %v", err)
 	}
@@ -243,7 +244,7 @@ func TestHandleToolsCall_curationMaterialize_validationError(t *testing.T) {
 
 func TestHandleToolsCall_mcpEpisodeIngest_validationError(t *testing.T) {
 	params := json.RawMessage(`{"name":"mcp_episode_ingest","arguments":{"summary":"short"}}`)
-	res, err := mcp.HandleToolsCall(http.DefaultClient, "http://127.0.0.1:9", "", params, nil)
+	res, err := mcp.HandleToolsCall(http.DefaultClient, "http://127.0.0.1:9", "", params, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -268,7 +269,7 @@ func TestHandleToolsCall_mcpEpisodeIngest_postsAdvisory(t *testing.T) {
 	sum := "This deployment failed after we chose a rollback; learned to gate releases."
 	params := json.RawMessage(`{"name":"mcp_episode_ingest","arguments":{"summary":` + jsonEscape(sum) + `,"event_kind":"failure","correlation_id":"sess-1"}}`)
 
-	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil)
+	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -323,7 +324,7 @@ func TestHandleToolsCall_recordExperience_alias(t *testing.T) {
 	sum := "This deployment failed after we chose a rollback; learned to gate releases with enough signal tokens here."
 	params := json.RawMessage(`{"name":"record_experience","arguments":{"summary":` + jsonEscape(sum) + `}}`)
 
-	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil)
+	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -348,7 +349,7 @@ func TestHandleToolsCall_recallContext_alias(t *testing.T) {
 	base := strings.TrimSuffix(ts.URL, "/")
 	params := json.RawMessage(`{"name":"recall_context","arguments":{"task_description":"ship the API with constraints"}}`)
 
-	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil)
+	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -387,7 +388,7 @@ func TestHandleToolsCall_recallContext_strongPoolHints(t *testing.T) {
 	base := strings.TrimSuffix(ts.URL, "/")
 	params := json.RawMessage(`{"name":"recall_context","arguments":{"task":"secure the edge API"}}`)
 
-	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil)
+	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -427,7 +428,7 @@ func TestHandleToolsCall_curationPending_get(t *testing.T) {
 	defer ts.Close()
 	base := strings.TrimSuffix(ts.URL, "/")
 	params := json.RawMessage(`{"name":"curation_pending","arguments":{}}`)
-	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil)
+	res, err := mcp.HandleToolsCall(ts.Client(), base, "", params, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

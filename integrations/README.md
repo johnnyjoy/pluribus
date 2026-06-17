@@ -21,6 +21,7 @@ integrations/
   continue/          rules/pluribus.md  → .continue/rules/pluribus.md
   zed/               agent-context.template.md
   vscode/            extension/ (TypeScript VS Code extension), github-copilot-instructions.template.md
+  .claude-plugin/    marketplace.json (Claude Code catalog → claude-code-plugin)
   generic-mcp/       (+ examples.json, skills/pluribus/SKILL.md)
   */snippets/context-prime.txt
 ```

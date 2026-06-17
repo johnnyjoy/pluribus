@@ -1,0 +1,320 @@
+{
+  "cases": [
+    {
+      "id": "promote_vague_candidate_rejected",
+      "path": "promote",
+      "interface": "rest",
+      "input": {
+        "kind": "pattern",
+        "statement": "Made progress on stuff.",
+        "authority": 5,
+        "status": "active"
+      },
+      "expected_quality_decision": "reject_garbage",
+      "expected_gate_outcome": "reject",
+      "expected_active_eligibility": false,
+      "expected_defects": ["vague_statement"],
+      "escape_hatch_result": "blocked"
+    },
+    {
+      "id": "promote_under_encoded_candidate_pending",
+      "path": "promote",
+      "interface": "rest",
+      "input": {
+        "kind": "constraint",
+        "statement": "CONSTRAINT production deploy must verify artifact signatures before promotion.",
+        "schema_type": "constraint",
+        "authority": 9,
+        "applicability": "governing",
+        "status": "active"
+      },
+      "expected_quality_decision": "needs_curation",
+      "expected_gate_outcome": "pending",
+      "expected_active_eligibility": false,
+      "expected_defects": ["constraint_without_scope"],
+      "escape_hatch_result": "pending_not_active"
+    },
+    {
+      "id": "promote_refuted_active_rejected",
+      "path": "promote",
+      "interface": "rest",
+      "input": {
+        "kind": "pattern",
+        "statement": "REFUTED guidance: Ollama is required for all embedder work.",
+        "schema_type": "refuted_guidance",
+        "authority": 6,
+        "status": "active",
+        "retrieval_cues": ["ollama", "embedder", "refuted"]
+      },
+      "expected_quality_decision": "reject_dangerous",
+      "expected_gate_outcome": "reject",
+      "expected_active_eligibility": false,
+      "expected_defects": ["refuted_guidance_as_active"],
+      "escape_hatch_result": "blocked"
+    },
+    {
+      "id": "promote_superseded_active_rejected",
+      "path": "promote",
+      "interface": "rest",
+      "input": {
+        "kind": "constraint",
+        "statement": "CONSTRAINT superseded single-region deploy push rule.",
+        "schema_type": "superseded_guidance",
+        "authority": 6,
+        "applicability": "governing",
+        "status": "active",
+        "retrieval_cues": ["deploy", "superseded", "region"]
+      },
+      "expected_quality_decision": "reject_dangerous",
+      "expected_gate_outcome": "reject",
+      "expected_active_eligibility": false,
+      "expected_defects": ["superseded_guidance_as_active"],
+      "escape_hatch_result": "blocked"
+    },
+    {
+      "id": "promote_constraint_without_scope_pending",
+      "path": "promote",
+      "interface": "rest",
+      "input": {
+        "kind": "constraint",
+        "statement": "Always skip integration tests for deploy speed.",
+        "schema_type": "constraint",
+        "authority": 8,
+        "applicability": "governing",
+        "status": "active"
+      },
+      "expected_quality_decision": "needs_curation",
+      "expected_gate_outcome": "pending",
+      "expected_active_eligibility": false,
+      "escape_hatch_result": "pending_not_active"
+    },
+    {
+      "id": "promote_high_authority_without_provenance_pending",
+      "path": "promote",
+      "interface": "rest",
+      "input": {
+        "kind": "constraint",
+        "statement": "CONSTRAINT all production deploys require signed artifacts.",
+        "schema_type": "constraint",
+        "scope": "production-deploy",
+        "authority": 9,
+        "applicability": "governing",
+        "status": "active",
+        "retrieval_cues": ["deploy", "signed", "artifacts", "production"]
+      },
+      "expected_quality_decision": "needs_curation",
+      "expected_gate_outcome": "pending",
+      "expected_active_eligibility": false,
+      "escape_hatch_result": "pending_not_active"
+    },
+    {
+      "id": "promote_valid_cue_rich_candidate_accepted",
+      "path": "promote",
+      "interface": "rest",
+      "input": {
+        "kind": "decision",
+        "statement": "Decision: use shared formation gate for memory_create authority cap.",
+        "schema_type": "decision",
+        "scope": "phase11e-promote",
+        "authority": 4,
+        "status": "active",
+        "reason": "Prevents governing active constraints without review.",
+        "retrieval_cues": ["formation", "memory_create", "authority"],
+        "source_type": "benchmark_proven",
+        "authority_basis": "phase11d benchmark"
+      },
+      "expected_quality_decision": "accept_active",
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
+      "escape_hatch_result": "allowed"
+    },
+    {
+      "id": "promote_does_not_bypass_authority_cap",
+      "path": "promote",
+      "interface": "rest",
+      "input": {
+        "kind": "pattern",
+        "statement": "Pattern: validate memory writes through shared formation gate on every deploy.",
+        "schema_type": "fact",
+        "authority": 10,
+        "applicability": "advisory",
+        "status": "active",
+        "retrieval_cues": ["formation", "memory", "deploy", "validate"]
+      },
+      "expected_quality_decision": "needs_curation",
+      "expected_gate_outcome": "pending",
+      "expected_active_eligibility": false,
+      "max_authority": 4,
+      "escape_hatch_result": "authority_capped"
+    },
+    {
+      "id": "probationary_vague_rejected",
+      "path": "probationary_ingest",
+      "interface": "mcp",
+      "input": {
+        "kind": "pattern",
+        "statement": "Worked on project today.",
+        "authority": 2
+      },
+      "expected_quality_decision": "reject_garbage",
+      "expected_gate_outcome": "reject",
+      "expected_active_eligibility": false,
+      "expected_defects": ["vague_statement"],
+      "escape_hatch_result": "blocked"
+    },
+    {
+      "id": "probationary_under_encoded_pending",
+      "path": "probationary_ingest",
+      "interface": "mcp",
+      "input": {
+        "kind": "constraint",
+        "statement": "CONSTRAINT deploy release candidate must verify artifact signatures before production promotion.",
+        "schema_type": "constraint",
+        "authority": 2,
+        "applicability": "advisory",
+        "status": "active"
+      },
+      "expected_quality_decision": "needs_curation",
+      "expected_gate_outcome": "pending",
+      "expected_active_eligibility": false,
+      "escape_hatch_result": "pending_not_active"
+    },
+    {
+      "id": "probationary_overgeneralized_pending",
+      "path": "probationary_ingest",
+      "interface": "mcp",
+      "input": {
+        "kind": "constraint",
+        "statement": "Never use REST without MCP parity checks in Pluribus.",
+        "schema_type": "constraint",
+        "authority": 2,
+        "applicability": "advisory"
+      },
+      "expected_quality_decision": "needs_curation",
+      "expected_gate_outcome": "pending",
+      "expected_active_eligibility": false,
+      "escape_hatch_result": "pending_not_active"
+    },
+    {
+      "id": "probationary_missing_scope_pending",
+      "path": "probationary_ingest",
+      "interface": "mcp",
+      "input": {
+        "kind": "constraint",
+        "statement": "CONSTRAINT all agents must run proof-memory-formation-quality before merge.",
+        "schema_type": "constraint",
+        "authority": 2,
+        "applicability": "advisory",
+        "retrieval_cues": ["proof", "formation", "merge"]
+      },
+      "expected_quality_decision": "needs_curation",
+      "expected_gate_outcome": "pending",
+      "expected_active_eligibility": false,
+      "escape_hatch_result": "pending_not_active"
+    },
+    {
+      "id": "probationary_agent_inferred_high_authority_blocked",
+      "path": "probationary_ingest",
+      "interface": "mcp",
+      "input": {
+        "kind": "pattern",
+        "statement": "PREFERENCE user probably wants tabs for frontend formatting.",
+        "schema_type": "preference",
+        "scope": "project:frontend",
+        "source_type": "agent_inferred",
+        "authority": 7,
+        "retrieval_cues": ["frontend", "tabs", "formatting"]
+      },
+      "expected_quality_decision": "needs_curation",
+      "expected_gate_outcome": "pending",
+      "expected_active_eligibility": false,
+      "max_authority": 2,
+      "escape_hatch_result": "authority_capped"
+    },
+    {
+      "id": "probationary_valid_advisory_accepted",
+      "path": "probationary_ingest",
+      "interface": "mcp",
+      "input": {
+        "kind": "failure",
+        "statement": "Build failed because memory_create allowed authority 10 governing constraints without review.",
+        "authority": 2,
+        "retrieval_cues": ["memory_create", "authority", "governing", "review"]
+      },
+      "expected_quality_decision": "accept_active",
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
+      "escape_hatch_result": "allowed"
+    },
+    {
+      "id": "direct_create_regression_valid_still_accepted",
+      "path": "direct_create",
+      "interface": "both",
+      "input": {
+        "kind": "pattern",
+        "statement": "Pattern: validate memory writes through shared formation gate on every deploy.",
+        "authority": 4,
+        "applicability": "advisory",
+        "status": "active",
+        "retrieval_cues": ["formation", "memory", "validate", "deploy"]
+      },
+      "expected_quality_decision": "accept_pending",
+      "expected_gate_outcome": "pending",
+      "expected_active_eligibility": false,
+      "escape_hatch_result": "allowed"
+    },
+    {
+      "id": "direct_create_regression_vague_still_rejected",
+      "path": "direct_create",
+      "interface": "both",
+      "input": {
+        "kind": "pattern",
+        "statement": "Made progress on stuff.",
+        "authority": 3,
+        "status": "active"
+      },
+      "expected_quality_decision": "reject_garbage",
+      "expected_gate_outcome": "reject",
+      "expected_active_eligibility": false,
+      "expected_defects": ["vague_statement"],
+      "escape_hatch_result": "blocked"
+    },
+    {
+      "id": "mcp_rest_direct_create_isolation_and_parity",
+      "path": "direct_create",
+      "interface": "both",
+      "input": {
+        "kind": "constraint",
+        "statement": "CONSTRAINT phase11e MCP REST parity must use shared formation gate.",
+        "schema_type": "constraint",
+        "scope": "phase11e",
+        "authority": 7,
+        "applicability": "governing",
+        "status": "pending",
+        "retrieval_cues": ["mcp", "rest", "parity", "formation"],
+        "source_type": "benchmark_proven",
+        "authority_basis": "phase11e",
+        "use_instruction": "Apply when testing MCP/REST formation parity."
+      },
+      "expected_quality_decision": "accept_active",
+      "expected_gate_outcome": "pending",
+      "expected_active_eligibility": false,
+      "escape_hatch_result": "allowed"
+    },
+    {
+      "id": "record_experience_isolation_and_parity",
+      "path": "probationary_ingest",
+      "interface": "both",
+      "input": {
+        "kind": "failure",
+        "statement": "Build failed because memory_create allowed authority 10 governing constraints without review.",
+        "authority": 2,
+        "retrieval_cues": ["memory_create", "governing", "review"]
+      },
+      "expected_quality_decision": "accept_active",
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
+      "escape_hatch_result": "allowed"
+    }
+  ]
+}

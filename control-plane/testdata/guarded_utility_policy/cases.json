@@ -1,0 +1,769 @@
+{
+  "cases": [
+    {
+      "case_id": "positive_evaluated_helped_output_applies_small_delta",
+      "candidate_input": {
+        "candidate_id": "ce84c79b-3994-47a4-92ee-3011f45fc763",
+        "evaluation_id": "2a981d40-c6f5-4982-b422-a11981225950",
+        "session_id": "eb0e9ab1-85df-47aa-86c7-c6de4ae99202",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.4,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.421738Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_positive",
+      "expected_delta": 0.2,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "negative_misuse_applies_demote_delta",
+      "candidate_input": {
+        "candidate_id": "f53bf933-9a10-4f0d-8b26-06d3d654b72b",
+        "evaluation_id": "564e5915-bf73-4e8f-ae7f-10b41ba37c86",
+        "session_id": "5c16a67e-f7e0-467c-bb68-82a21fca34ee",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": -0.7,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.421782Z",
+        "signal_type": "misused"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -0.7,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "unsafe_use_applies_demote_or_review",
+      "candidate_input": {
+        "candidate_id": "df809b81-815f-483d-9721-7daeb27d3329",
+        "evaluation_id": "63e88469-cb5e-41aa-9da1-a6cb8ecf3346",
+        "session_id": "1dc17023-e31e-43fe-96de-8a4ebc4edf4c",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": -1.0,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.421801Z",
+        "signal_type": "unsafe_use"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -1.0,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "unsupported_claim_applies_demote_or_review",
+      "candidate_input": {
+        "candidate_id": "909d287b-76bb-4eed-bb88-abdcbc9e7be3",
+        "evaluation_id": "782cacfd-1fce-4afb-9003-0ccbee2f3529",
+        "session_id": "55a349ff-7c59-49ab-8f9f-d6e7cb47a800",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": -0.8,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.421817Z",
+        "signal_type": "unsupported_claim"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -0.8,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "ignored_correctly_record_only",
+      "candidate_input": {
+        "candidate_id": "c406acef-935a-4c55-b21d-55ef9d617d4c",
+        "evaluation_id": "9121dace-51be-4c86-ba47-d75de4cdcf7b",
+        "session_id": "4254ac2b-d775-4a30-8852-aa42db785a23",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.3,
+        "safe_to_apply": false,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.421838Z",
+        "signal_type": "ignored_correctly"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "record_only",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "historical_only_correctly_record_only",
+      "candidate_input": {
+        "candidate_id": "bd6e46c2-06df-489d-a51e-3846010e2a6e",
+        "evaluation_id": "bfc0133c-88e4-4eac-a839-d481d60d5c45",
+        "session_id": "1edb8002-edcb-4d88-a7c7-643749fded18",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.3,
+        "safe_to_apply": false,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.421854Z",
+        "signal_type": "historical_only_correctly"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "record_only",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "recall_only_rejected",
+      "candidate_input": {
+        "candidate_id": "1b45a410-10c7-4fc7-a420-51b2b74bd48a",
+        "evaluation_id": "8f1ead2b-0c12-4380-85b5-60902eebfdb6",
+        "session_id": "e9a66cc0-e446-44cf-b829-51a411efbd8c",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.421870Z",
+        "signal_type": "recall_only"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "reject",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "self_report_only_rejected",
+      "candidate_input": {
+        "candidate_id": "a2d3cc21-1b70-4d1c-bc6a-c5966e3210e5",
+        "evaluation_id": "4b08b185-7c1e-4b01-8b5f-0b337a10da52",
+        "session_id": "b5bbbe60-1c65-4439-b757-20cc72d1ad6c",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.421890Z",
+        "signal_type": "self_report_only"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "reject",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "missing_evaluation_rejected",
+      "candidate_input": {
+        "candidate_id": "693bf2c2-6856-44e2-99e2-9343005066e5",
+        "evaluation_id": "00000000-0000-0000-0000-000000000000",
+        "session_id": "1a892aa3-bad2-42bb-877f-d0337a563dfd",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.421905Z",
+        "signal_type": "used_correctly"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "reject",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "failed_evaluation_not_positive",
+      "candidate_input": {
+        "candidate_id": "5cb08f99-5b67-4773-a6dd-70a3f8909317",
+        "evaluation_id": "fb3d526a-2009-4287-bd70-f3228a4f6da0",
+        "session_id": "f7358e15-b0d1-434d-83fa-91faf6e26b91",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.421920Z",
+        "signal_type": "failed_evaluation"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -0.5,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "refuted_used_negative",
+      "candidate_input": {
+        "candidate_id": "5951b483-76a5-4887-81df-030b3d3879db",
+        "evaluation_id": "81cc0fb8-f5c8-4bc4-8a1c-9c1e24809c8f",
+        "session_id": "46d073b4-c103-4e1f-811d-08ddf9680eec",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.421935Z",
+        "signal_type": "refuted_used",
+        "violation_codes": [
+          "refuted_used"
+        ]
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -0.5,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "superseded_used_negative",
+      "candidate_input": {
+        "candidate_id": "e6fcaac6-878e-40bd-bbf6-7061103b996a",
+        "evaluation_id": "a19634cb-e543-4fef-8973-0edb0fb9da97",
+        "session_id": "194a7897-ede9-4cba-a335-95e186bd21f0",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.421949Z",
+        "signal_type": "superseded_used",
+        "violation_codes": [
+          "superseded_used"
+        ]
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -0.5,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "wrong_scope_used_negative",
+      "candidate_input": {
+        "candidate_id": "a1d19c38-74e0-43c9-8e33-d56db64fe2a7",
+        "evaluation_id": "7731ca14-a59f-4bdf-a4c7-d39aa116f05e",
+        "session_id": "1daa0b1e-b3d5-487e-bc7c-08d5395f4bb0",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.421960Z",
+        "signal_type": "wrong_scope_used",
+        "violation_codes": [
+          "wrong_scope_used"
+        ]
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -0.5,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "negative_scope_used_negative",
+      "candidate_input": {
+        "candidate_id": "3e686663-bbec-4638-abec-d35b77b5aa7d",
+        "evaluation_id": "ed275bc9-a232-4c03-a201-c8618c8a81fb",
+        "session_id": "84cc1ac1-f2e7-485c-8cbd-3b0039d40de4",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.421972Z",
+        "signal_type": "negative_scope_used",
+        "violation_codes": [
+          "negative_scope_used"
+        ]
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -0.5,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "duplicate_candidate_apply_rejected",
+      "candidate_input": {
+        "candidate_id": "ae114ceb-2539-4e78-a602-aa2e82e213da",
+        "evaluation_id": "ccb4a4a1-4585-460e-9f74-a7c22aa65b20",
+        "session_id": "79fd0810-c59f-429a-a0d8-a393f85332b3",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.421987Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_positive",
+      "expected_delta": 0.2,
+      "expected_score_change": true,
+      "expected_application_record": true,
+      "duplicate_apply": true
+    },
+    {
+      "case_id": "same_session_positive_cap_enforced",
+      "candidate_input": {
+        "candidate_id": "ffa53971-18fd-42e9-b878-538823ec92d0",
+        "evaluation_id": "3822ca88-72aa-46e9-8bb5-45af9db0ff06",
+        "session_id": "438b54c6-35d0-419e-9ba4-cb15970db7e4",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422010Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": {
+        "max_positive_delta": 0.5,
+        "max_negative_delta": 1.0,
+        "max_positive_per_session_per_memory": 1,
+        "max_positive_per_agent_per_memory": 3,
+        "stale_candidate_window": 604800000000000
+      },
+      "expected_policy_decision": "reject",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true,
+      "pre_seed_positive_count": 1
+    },
+    {
+      "case_id": "same_agent_positive_cap_enforced",
+      "candidate_input": {
+        "candidate_id": "4b213771-1fd8-4f8b-bab0-22472d6ce499",
+        "evaluation_id": "efc35f20-e2c0-42bc-a594-f72003d45fac",
+        "session_id": "a5972255-e0cf-43ac-ba6a-6efec37c72c3",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422026Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": {
+        "max_positive_delta": 0.5,
+        "max_negative_delta": 1.0,
+        "max_positive_per_session_per_memory": 5,
+        "max_positive_per_agent_per_memory": 1,
+        "stale_candidate_window": 604800000000000
+      },
+      "expected_policy_decision": "reject",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true,
+      "pre_seed_positive_count": 1
+    },
+    {
+      "case_id": "single_event_positive_delta_capped",
+      "candidate_input": {
+        "candidate_id": "580f6932-bafd-46df-a473-8947167d6d08",
+        "evaluation_id": "ad42e52a-a8e2-442a-b4e8-91ead9e72b09",
+        "session_id": "99e27029-a02c-49f1-b5b7-1d88a2e69def",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 5.0,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422044Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_positive",
+      "expected_delta": 0.5,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "negative_delta_capped",
+      "candidate_input": {
+        "candidate_id": "6990e9a9-e968-4b4e-9ca7-f944180c2063",
+        "evaluation_id": "40497998-3108-4aa3-82d6-ddcae38537a2",
+        "session_id": "14aa2563-de3e-446d-bf8f-a40fddf14f6a",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": -5.0,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.422059Z",
+        "signal_type": "misused"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -1.0,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "score_floor_respected",
+      "candidate_input": {
+        "candidate_id": "77ff51cc-e0da-4579-bf09-569fe6422d08",
+        "evaluation_id": "42a39b44-1a38-4dfe-91c8-8b9d180caa93",
+        "session_id": "ffc17f45-ef3b-42fc-834d-e1d4d6c1e0b2",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": -2.0,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.422073Z",
+        "signal_type": "misused"
+      },
+      "existing_memory_utility": -9.5,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -1.0,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "score_ceiling_respected",
+      "candidate_input": {
+        "candidate_id": "c90b9cc3-fb0d-49f7-9c0e-6e82562ef3a3",
+        "evaluation_id": "07441336-8fb6-4a92-855b-0e7c64b268cc",
+        "session_id": "734680c1-e107-4dd5-905a-657b919fa342",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 2.0,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422092Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 9.8,
+      "policy_config": null,
+      "expected_policy_decision": "apply_positive",
+      "expected_delta": 0.5,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "record_only_no_mutation",
+      "candidate_input": {
+        "candidate_id": "1ef16439-220d-421d-b7c8-3393f143ab67",
+        "evaluation_id": "26378adf-bc4d-432d-854d-8d6a391b1aab",
+        "session_id": "5c22180b-dd6d-44d0-8d03-15d57bd01e98",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422106Z",
+        "signal_type": "ignored_correctly"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "record_only",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "review_required_no_mutation",
+      "candidate_input": {
+        "candidate_id": "d171080e-b879-49e4-bafe-0f73806949a1",
+        "evaluation_id": "4b662c01-5ea9-436d-98e8-5f32afe05403",
+        "session_id": "b788199b-3500-4e05-a0b2-5ea63c177918",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422120Z",
+        "signal_type": "used_correctly"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "review_required",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "rejected_no_mutation",
+      "candidate_input": {
+        "candidate_id": "b3cad9da-e4b8-4590-bde0-60a05317e149",
+        "evaluation_id": "1abb9ad5-911a-4fc3-81fe-e4a5a12c346d",
+        "session_id": "c9395aea-d992-448c-9e9c-827e8252479c",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.422134Z",
+        "signal_type": "recall_only"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "reject",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "rollback_restores_or_compensates",
+      "candidate_input": {
+        "candidate_id": "65231dbc-37d5-48c0-8e3b-f57f37d3860b",
+        "evaluation_id": "272bfb3d-08a9-4e86-a4e4-1cc01dbcd115",
+        "session_id": "37c669e2-eb0d-41c5-9738-a2b1b0058310",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422147Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_positive",
+      "expected_delta": 0.2,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "audit_record_created_for_apply",
+      "candidate_input": {
+        "candidate_id": "e385eac9-90e5-4b35-a524-8ce8852fc0f7",
+        "evaluation_id": "0db6faca-bbf9-48e1-b25e-25bc16a4c608",
+        "session_id": "2ec81563-0b82-4f27-93f5-797836aaea58",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422164Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_positive",
+      "expected_delta": 0.2,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "audit_record_created_for_reject",
+      "candidate_input": {
+        "candidate_id": "3e897de5-dce0-487e-942e-511146ec4174",
+        "evaluation_id": "a89626ad-cc1d-4a0c-9af7-a51082ef83ef",
+        "session_id": "190a5038-23cb-4dbe-a3d0-a83aa84ec5fb",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.422177Z",
+        "signal_type": "recall_only"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "reject",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "batch_apply_respects_caps",
+      "candidate_input": {
+        "candidate_id": "0e1cbc1b-e5b7-4402-a66b-dff1dbd9f268",
+        "evaluation_id": "890abf6c-6de8-46ea-828e-b81d9d7a37c9",
+        "session_id": "489c03f6-c5df-472d-ad12-a34ca78c907e",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422191Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_positive",
+      "expected_delta": 0.2,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "stale_candidate_rejected_or_review",
+      "candidate_input": {
+        "candidate_id": "246fca58-dbf1-412c-90cb-ccc7b36c0a02",
+        "evaluation_id": "8cfa2d1c-8891-4e86-9170-e74d5b30d4ae",
+        "session_id": "4a56eb01-ec3f-4200-883a-8a8d5b95dc7c",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-05-17T16:24:18.422208Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "review_required",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "tampered_candidate_rejected",
+      "candidate_input": {
+        "candidate_id": "c9fb99a5-ec89-4b09-92c4-4795424dec22",
+        "evaluation_id": "bf1bacfa-260d-4428-bb99-f557073162c6",
+        "session_id": "d9e84249-9a9f-4d8e-9472-5aeb0ecb07a0",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422226Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "reject",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true,
+      "tampered": true
+    },
+    {
+      "case_id": "mcp_rest_policy_parity_same_candidate",
+      "candidate_input": {
+        "candidate_id": "3d7d8f18-0a77-4170-bae7-134a687de0c6",
+        "evaluation_id": "dc74ab13-8619-491c-b1e3-cbb53e12340f",
+        "session_id": "1840637b-6d53-46f1-92d1-16e887a654cd",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422241Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_positive",
+      "expected_delta": 0.2,
+      "expected_score_change": true,
+      "expected_application_record": true,
+      "expected_mcp_rest_parity": true
+    },
+    {
+      "case_id": "postgres_application_roundtrip",
+      "candidate_input": {
+        "candidate_id": "9c613c35-a4c2-48cb-8120-cfe443380f49",
+        "evaluation_id": "ab13f0f8-dc56-42b7-a014-b16245d83e6b",
+        "session_id": "3f4759e7-aec4-4b8e-9a35-2050964c9e0c",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422255Z",
+        "signal_type": "helped_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_positive",
+      "expected_delta": 0.2,
+      "expected_score_change": true,
+      "expected_application_record": true,
+      "expected_postgres_behavior": true
+    },
+    {
+      "case_id": "citation_only_rejected",
+      "candidate_input": {
+        "candidate_id": "59b5847d-260f-4200-a3d2-e0576408b93e",
+        "evaluation_id": "e433a2ad-bde6-4f3c-b663-51ad02ae4327",
+        "session_id": "724bc69a-a1ea-49e4-aee9-414075a4e027",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.422272Z",
+        "signal_type": "citation_only"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "reject",
+      "expected_delta": 0,
+      "expected_score_change": false,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "used_correctly_positive_when_safe",
+      "candidate_input": {
+        "candidate_id": "b928c620-60b3-4446-b3a6-1980b9cb2832",
+        "evaluation_id": "8f055c66-810b-4935-856d-ae08b8d72039",
+        "session_id": "33af7a6a-5c4a-4443-9406-fe9b5003679d",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": 0.5,
+        "safe_to_apply": true,
+        "evaluator_passed": true,
+        "created_at": "2026-06-16T16:24:18.422286Z",
+        "signal_type": "used_correctly"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_positive",
+      "expected_delta": 0.25,
+      "expected_score_change": true,
+      "expected_application_record": true
+    },
+    {
+      "case_id": "harmed_output_negative",
+      "candidate_input": {
+        "candidate_id": "12af636a-d1ec-41e2-8a29-5093dc19d877",
+        "evaluation_id": "69bc3c5e-df07-4059-bfbc-b520f3264018",
+        "session_id": "365defe7-13da-4f35-aa5f-c8b517f14a0b",
+        "memory_id": "test:mem-policy",
+        "agent_id": "agent-test",
+        "signal_strength": -0.6,
+        "safe_to_apply": false,
+        "evaluator_passed": false,
+        "created_at": "2026-06-16T16:24:18.422300Z",
+        "signal_type": "harmed_output"
+      },
+      "existing_memory_utility": 0,
+      "policy_config": null,
+      "expected_policy_decision": "apply_negative",
+      "expected_delta": -0.6,
+      "expected_score_change": true,
+      "expected_application_record": true
+    }
+  ]
+}

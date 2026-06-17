@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"control-plane/internal/app"
+	"control-plane/internal/formation"
 )
 
 // MemoryFormationPolicy gates mcp_episode_ingest (low-noise episodic capture). Nil uses defaults.
@@ -50,13 +51,22 @@ var distillSignalTokens = []string{
 
 // ValidateMcpEpisodeSummary enforces low-noise rules before POST /v1/advisory-episodes.
 func ValidateMcpEpisodeSummary(summary string, p *MemoryFormationPolicy) error {
+	return ValidateMcpEpisodeSummaryWithGate(summary, p, nil)
+}
+
+// ValidateMcpEpisodeSummaryWithGate enforces MCP and shared formation junk rules (Phase 5 parity).
+func ValidateMcpEpisodeSummaryWithGate(summary string, p *MemoryFormationPolicy, gate *formation.Gate) error {
 	pol := NormalizeMemoryFormation(p)
 	if !pol.EpisodeIngestEnabled {
 		return fmt.Errorf("MCP episodic ingest is disabled in server config (mcp.memory_formation.episode_ingest_enabled)")
 	}
 	s := strings.TrimSpace(summary)
-	if len([]rune(s)) < pol.MinSummaryChars {
-		return fmt.Errorf("summary must be at least %d characters (low-noise episodic capture)", pol.MinSummaryChars)
+	minRunes := pol.MinSummaryChars
+	if minRunes <= 0 {
+		minRunes = 12
+	}
+	if err := formation.ValidateAdvisorySummaryShared(s, minRunes, gate); err != nil {
+		return err
 	}
 	if !pol.RequireSignalKeyword {
 		return nil

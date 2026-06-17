@@ -22,6 +22,13 @@ type MemoryForConflict interface {
 type Service struct {
 	Repo       *Repo
 	MemoryRepo MemoryForConflict // for GetByID and GetAttributes (conflict detection); can be *memory.Repo
+	// Utility optional: records refuted demotion on contradiction create (Phase 7).
+	Utility UtilityDemoter
+}
+
+// UtilityDemoter records bounded utility demotion when contradictions are created.
+type UtilityDemoter interface {
+	RecordContradictionDemotion(ctx context.Context, memoryID, conflictWithID uuid.UUID) error
 }
 
 // Create creates a contradiction record.
@@ -29,7 +36,14 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Record, error
 	if req.MemoryID == req.ConflictWithID {
 		return nil, ErrSelfContradiction
 	}
-	return s.Repo.Create(ctx, req)
+	rec, err := s.Repo.Create(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if s.Utility != nil {
+		_ = s.Utility.RecordContradictionDemotion(ctx, req.MemoryID, req.ConflictWithID)
+	}
+	return rec, nil
 }
 
 // GetByID returns a contradiction record by ID.
@@ -97,7 +111,7 @@ func (s *Service) DetectAndRecord(ctx context.Context, memoryID, conflictWithID 
 	if err != nil || !ok {
 		return nil, err
 	}
-	return s.Repo.Create(ctx, CreateRequest{
+	return s.Create(ctx, CreateRequest{
 		MemoryID:        memoryID,
 		ConflictWithID:  conflictWithID,
 		ResolutionState: ResolutionUnresolved,

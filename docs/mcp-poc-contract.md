@@ -84,6 +84,7 @@ Shipped **`tools/list`** is defined in [`control-plane/internal/mcp/tools.go`](.
 | `memory_log_if_relevant` | `POST /v1/advisory-episodes` *(conditional)* | **`text_block`**; if deterministic signals match, same as **`record_experience`** / **`mcp_episode_ingest`**; else JSON **`skipped`: true**. |
 | `recall_compile` | `POST /v1/recall/compile` | Body = **`arguments`** (`CompileRequest`). Fields: `internal/recall/types.go`; narrative examples in [api-contract.md](api-contract.md) (subset). |
 | `recall_get` | `GET /v1/recall/` | Query from **`arguments`** — see [http-api-index.md](http-api-index.md) and `handlers_getbundle.go`. |
+| `wakeup_context` | `POST /v1/recall/wakeup` | Session-start L0/L1: optional **`max_state`**, **`max_per_kind`**, **`max_governing_total`** only (`additionalProperties: false`). Omitted arguments → **`{}`** (server defaults). Thin proxy — same compiler and pool as compile. |
 | `recall_run_multi` | `POST /v1/recall/run-multi` | Body = **`arguments`** (`RunMultiRequest`) |
 | `memory_create` | `POST /v1/memory` | Body = **`arguments`** (`CreateRequest` — see `internal/memory/types.go`) |
 | `memory_promote` | `POST /v1/memory/promote` | Body = **`arguments`** (`PromoteRequest`) |
@@ -118,7 +119,7 @@ Shipped **`tools/list`** is defined in [`control-plane/internal/mcp/tools.go`](.
 
 ## Lifecycle quick map (operator mental model)
 
-1. **Ground / recall (Layer 1 default):** **`recall_context`** (or **`memory_context_resolve`**) with **`task_description`** / **`task`**. For raw control, **`recall_get`** / **`recall_compile`** remain available ([http-api-index.md](http-api-index.md)).
+1. **Ground / recall (Layer 1 default):** Optional at session start: **`wakeup_context`** → **`POST /v1/recall/wakeup`** (compact L0/L1). For task-shaped recall, **`recall_context`** (or **`memory_context_resolve`**) with **`task_description`** / **`task`**. For raw control, **`recall_get`** / **`recall_compile`** remain available ([http-api-index.md](http-api-index.md)).
 2. **Capture experience (Layer 1 default):** **`record_experience`** (or **`mcp_episode_ingest`**) or **`memory_log_if_relevant`** — auto-distill when configured; no explicit distill required for the default loop.
 3. **Before risky proposal:** **`enforcement_evaluate`** (deterministic gate).
 4. **Optional deeper promotion (Layer 2):** **`curation_digest`** → inspect **`curation_pending`** / **`curation_review_candidate`** → **`curation_materialize`** when governance requires explicit promotion.

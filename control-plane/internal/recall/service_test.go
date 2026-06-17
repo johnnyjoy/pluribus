@@ -64,7 +64,28 @@ func TestService_Compile_tagsAndRetrievalOnlyNoCorrelationUUIDs(t *testing.T) {
 	}
 }
 
-func TestService_Compile_reinforcesBundleMemoryUsage(t *testing.T) {
+func TestService_Compile_doesNotReinforceByDefault(t *testing.T) {
+	memID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+	objs := []memory.MemoryObject{
+		{ID: memID, Kind: api.MemoryKindPattern, Statement: "p", Authority: 6, UpdatedAt: time.Now()},
+	}
+	compiler := &Compiler{Memory: &fakeMemorySearcher{objs: objs}}
+	r := &fakeUsageReinforcer{}
+	svc := &Service{Compiler: compiler, UsageReinforcer: r, ReinforceOnRecall: false}
+
+	_, err := svc.Compile(context.Background(), CompileRequest{
+		RetrievalQuery: "test situation",
+		MaxPerKind:     5,
+	})
+	if err != nil {
+		t.Fatalf("Compile: %v", err)
+	}
+	if r.called {
+		t.Fatal("expected no usage reinforcement when ReinforceOnRecall is false")
+	}
+}
+
+func TestService_Compile_reinforcesBundleMemoryUsageWhenLegacyEnabled(t *testing.T) {
 	memID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	objs := []memory.MemoryObject{
 		{ID: memID, Kind: api.MemoryKindPattern, Statement: "p", Authority: 6, UpdatedAt: time.Now()},
@@ -73,7 +94,7 @@ func TestService_Compile_reinforcesBundleMemoryUsage(t *testing.T) {
 		Memory: &fakeMemorySearcher{objs: objs},
 	}
 	r := &fakeUsageReinforcer{}
-	svc := &Service{Compiler: compiler, UsageReinforcer: r}
+	svc := &Service{Compiler: compiler, UsageReinforcer: r, ReinforceOnRecall: true}
 
 	_, err := svc.Compile(context.Background(), CompileRequest{
 		RetrievalQuery: "test situation",

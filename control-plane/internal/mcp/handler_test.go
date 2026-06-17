@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"control-plane/internal/formation"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -25,7 +26,7 @@ func testInnerRouter(t *testing.T) http.Handler {
 }
 
 func TestHTTPHandler_initialize(t *testing.T) {
-	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy())
+	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy(), nil, formation.NewGate(nil))
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 
@@ -56,13 +57,13 @@ func TestHTTPHandler_initialize(t *testing.T) {
 		t.Fatalf("serverInfo.version = %v", si["version"])
 	}
 	inst, _ := out.Result["instructions"].(string)
-	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") {
+	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") {
 		t.Fatalf("initialize instructions should bias the memory loop, got %q", inst)
 	}
 }
 
 func TestHTTPHandler_toolsCall_health_loopback(t *testing.T) {
-	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy())
+	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy(), nil, formation.NewGate(nil))
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 
@@ -96,7 +97,7 @@ func TestHTTPHandler_toolsCall_health_loopback(t *testing.T) {
 }
 
 func TestHTTPHandler_promptsGet(t *testing.T) {
-	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy())
+	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy(), nil, formation.NewGate(nil))
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 	body := `{"jsonrpc":"2.0","id":3,"method":"prompts/get","params":{"name":"` + PromptMemoryGrounding + `"}}`
@@ -122,7 +123,7 @@ func TestHTTPHandler_promptsGet(t *testing.T) {
 }
 
 func TestHTTPHandler_resourcesRead(t *testing.T) {
-	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy())
+	h := NewHTTPHandler(testInnerRouter(t), DefaultMemoryFormationPolicy(), nil, formation.NewGate(nil))
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 	body := `{"jsonrpc":"2.0","id":4,"method":"resources/read","params":{"uri":"` + URIDisciplineDoctrine + `"}}`
@@ -150,7 +151,7 @@ func TestHTTPHandler_resourcesRead(t *testing.T) {
 func TestWrapHandler_disabled(t *testing.T) {
 	inner := testInnerRouter(t)
 	cfg := &app.Config{MCP: &app.MCPConfig{Disabled: true}}
-	wrapped := WrapHandler(inner, cfg)
+	wrapped := WrapHandler(inner, cfg, nil)
 
 	t.Run("mcp bypassed", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/v1/mcp", strings.NewReader(`{}`))
@@ -164,7 +165,7 @@ func TestWrapHandler_disabled(t *testing.T) {
 
 func TestWrapHandler_integrationPath(t *testing.T) {
 	inner := testInnerRouter(t)
-	wrapped := WrapHandler(inner, &app.Config{})
+	wrapped := WrapHandler(inner, &app.Config{}, nil)
 	req := httptest.NewRequest(http.MethodPost, "/v1/mcp", bytes.NewBufferString(
 		`{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}`,
 	))

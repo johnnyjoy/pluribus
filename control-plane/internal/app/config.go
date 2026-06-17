@@ -7,6 +7,8 @@ import (
 	"control-plane/internal/memory"
 	"control-plane/internal/recall"
 	"control-plane/internal/synthesis"
+	"control-plane/internal/formation"
+	"control-plane/internal/utility"
 
 	"gopkg.in/yaml.v3"
 )
@@ -230,6 +232,10 @@ type MemoryConfig struct {
 	PatternElevation *memory.PatternElevationConfig `yaml:"pattern_elevation,omitempty"`
 	// RecallReinforcement caps authority bumps from recall/success hooks (optional).
 	RecallReinforcement *memory.RecallReinforcementConfig `yaml:"recall_reinforcement,omitempty"`
+	// Formation gates direct create and record_experience memory quality (Phase 5). Omitted → safe defaults.
+	Formation *formation.Config `yaml:"formation,omitempty"`
+	// Utility: memory feedback and reputation foundation (Phase 7). Safe defaults when omitted.
+	Utility *utility.Config `yaml:"utility,omitempty"`
 }
 
 // MemoryDedupConfig toggles statement_key duplicate detection before insert.
@@ -288,7 +294,7 @@ type RecallConfig struct {
 	EvidenceInBundle *recall.EvidenceInBundleConfig `yaml:"evidence_in_bundle,omitempty"`
 	// TriggeredRecall enables heuristic triggered recall (opt-in per request via enable_triggered_recall).
 	TriggeredRecall *recall.TriggerRecallConfig `yaml:"triggered_recall,omitempty"`
-	// SemanticRetrieval pgvector + embedding API for semantic candidates (default on after LoadConfig; set enabled: false to disable).
+	// SemanticRetrieval pgvector + embedding API for semantic candidates (default off; set enabled: true only after hybrid gates pass).
 	SemanticRetrieval *memory.SemanticRetrievalConfig `yaml:"semantic_retrieval,omitempty"`
 	// BehaviorValidation configures run-multi overlap validation (constraint / failure / decision). Omit for defaults.
 	BehaviorValidation *recall.BehaviorValidationConfig `yaml:"behavior_validation,omitempty"`
@@ -323,6 +329,8 @@ type RecallRankingConfig struct {
 	WeightSemanticSimilarity *float64 `yaml:"weight_semantic_similarity,omitempty"`
 	// WeightElevationSuppression penalizes superseded patterns when the elevated row is in the same candidate set (default 0 = off).
 	WeightElevationSuppression float64 `yaml:"weight_elevation_suppression"`
+	// WeightSituationalAffinity boosts query-coverage overlap between situation/repo/tags and memory (default 0.35; ranking only).
+	WeightSituationalAffinity float64 `yaml:"weight_situational_affinity"`
 }
 
 // RecallRIUConfig configures Recall Intelligence Upgrade (RIU). Omit or enabled=false for ranking-only recall.
@@ -407,7 +415,20 @@ func LoadConfig(path string) (*Config, error) {
 	applyCurationDefaults(&cfg.Curation)
 	applySimilarityDefaults(&cfg.Similarity)
 	applyEnforcementDefaults(&cfg.Enforcement)
+	applyMemoryFormationDefaults(&cfg.Memory)
 	return &cfg, nil
+}
+
+func applyMemoryFormationDefaults(m *MemoryConfig) {
+	if m == nil {
+		return
+	}
+	if m.Formation == nil {
+		d := formation.DefaultConfig()
+		m.Formation = &d
+		return
+	}
+	m.Formation.Normalize()
 }
 
 func applyEnforcementDefaults(e *EnforcementConfig) {

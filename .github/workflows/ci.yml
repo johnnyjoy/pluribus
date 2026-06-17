@@ -23,12 +23,80 @@ jobs:
       - name: Control-plane unit tests
         run: cd control-plane && go test ./...
 
+      - name: MCP schema and behavior tests
+        run: make test-mcp
+
+      - name: Recall benchmark (fixture + regression gate)
+        run: make recall-benchmark-baseline && make test-recall-benchmark
+
+      - name: Recall benchmark threshold gate (lexical)
+        run: make recall-benchmark-gate
+
+      - name: Recall benchmark hybrid gate (deterministic embeddings)
+        run: make recall-benchmark-hybrid-gate
+
+      - name: Memory formation quality gate
+        run: make test-memory-formation
+
+      - name: Memory utility and reputation gate
+        run: make test-memory-utility
+
+      - name: Lifecycle recall gate (Phase 8)
+        run: make test-lifecycle-recall
+
+      - name: Memory preservation gate (Phase 9B)
+        run: make test-memory-preservation
+
+      - name: Agent memory usefulness harness (Phase 11B)
+        run: make proof-agent-memory-effectiveness
+
+      - name: Cognitive memory usefulness harness (Phase 11C)
+        run: make proof-cognitive-memory-benefit
+
+      - name: Memory formation quality gate (Phase 11D)
+        run: make proof-memory-formation-quality
+
+      - name: Formation escape hatches gate (Phase 11E)
+        run: make proof-formation-escape-hatches
+
+      - name: Codebase test isolation gate (Phase 11E)
+        run: make proof-codebase-isolation
+
+      - name: Agent-facing memory contract gate (Phase 11F)
+        run: make test-agent-memory-contract && make agent-memory-contract-benchmark && make proof-agent-memory-contract
+
+      - name: Agent memory contract parity and endpoint coverage gate (Phase 11G)
+        run: make proof-agent-memory-contract-parity && make proof-agent-memory-endpoint-coverage
+
+      - name: Agent contract obedience and telemetry gate (Phase 11H)
+        run: make proof-agent-contract-obedience
+
+      - name: Agent telemetry persistence and live loop gate (Phase 11I)
+        run: make proof-agent-telemetry-persistence
+
+      - name: Automatic recall telemetry gate (Phase 11J)
+        run: make proof-automatic-recall-telemetry
+
+      - name: Guarded utility application policy gate (Phase 11K)
+        run: make proof-guarded-utility-policy
+
+  mcp-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker HTTP MCP proof
+        run: |
+          chmod +x scripts/proof-mcp-docker.sh scripts/proof-mcp-docker-auth.sh scripts/proof-mcp-stdio.sh
+          make proof-mcp
+          make proof-mcp-auth
+          make proof-mcp-stdio
+
   controlplane-regression:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Control-plane regression (ephemeral Postgres + integration tests)
+      - name: Control-plane regression (ephemeral Postgres + integration tests + Phase 11J Postgres proof)
         run: make regression
 
   # Fast smoke: Dockerfile must produce a runnable image (single-arch); blocks broken Docker packaging on PRs.

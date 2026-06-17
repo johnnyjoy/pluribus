@@ -15,7 +15,7 @@ go run ./cmd/pluribus-mcp
 
 ## Tools
 
-Same tool list as **[mcp-poc-contract.md](../../docs/mcp-poc-contract.md)** and **`internal/mcp/tools.go`**: `health`, `recall_compile`, `recall_get`, `recall_run_multi`, `memory_create`, `memory_promote`, `curation_digest`, `curation_materialize`, `enforcement_evaluate`. **Project** routes are **HTTP only** (not separate MCP tools in this surface).
+Same tool list as **[mcp-poc-contract.md](../../docs/mcp-poc-contract.md)** and **`internal/mcp/tools.go`**: `health`, `recall_context`, `wakeup_context`, `recall_compile`, `recall_get`, `recall_run_multi`, `memory_create`, `memory_promote`, `curation_digest`, `curation_materialize`, `enforcement_evaluate`, … **Project** routes are **HTTP only** (not separate MCP tools in this surface).
 
 **Note:** This binary exposes **tools only** (no `prompts/*` or `resources/*`); use HTTP MCP for those.
 

@@ -141,7 +141,7 @@ curl -s -X POST http://localhost:8123/v1/recall/run-multi -H 'Content-Type: appl
   -d '{"query":"Implement feature safely","repo_root":"/abs/path/to/repo","lsp_focus_path":"internal/foo.go"}' | jq .
 ```
 
-See [docs/ai-recall-cursor-focus.md](../docs/ai-recall-cursor-focus.md) for Cursor integration and focus-layer context (POC verify flow: [docs/cursor-verify-recall.md](../docs/cursor-verify-recall.md)).
+See [docs/integrations/cursor.md](../docs/integrations/cursor.md) for Cursor integration (MCP, rules, skills). In-session verify protocol is **local-only** — [docs/public-documentation-policy.md](../docs/public-documentation-policy.md).
 
 ### Cognitive ingest (MCL — audit + normalized facts; M3 reinforces duplicates)
 

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"unicode"
 
+	"control-plane/internal/formation"
+
 	"github.com/google/uuid"
 )
 
@@ -19,7 +21,7 @@ const EnforcementMaxProposalBytes = 32768
 
 // HandleToolsCall forwards an MCP tools/call to control-plane HTTP (same mapping as the stdio MCP adapter).
 // policy gates record_experience / mcp_episode_ingest (nil uses DefaultMemoryFormationPolicy).
-func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMessage, policy *MemoryFormationPolicy) (any, error) {
+func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMessage, policy *MemoryFormationPolicy, gate *formation.Gate) (any, error) {
 	pol := NormalizeMemoryFormation(policy)
 	var p toolsCallParams
 	if err := json.Unmarshal(params, &p); err != nil {
@@ -41,9 +43,9 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 	case "recall_context", "memory_context_resolve":
 		return execMemoryContextResolve(client, base, apiKey, p.Arguments), nil
 	case "memory_log_if_relevant", "auto_log_episode_if_relevant":
-		return execMemoryLogIfRelevant(client, base, apiKey, p.Arguments, pol), nil
+		return execMemoryLogIfRelevant(client, base, apiKey, p.Arguments, pol, gate), nil
 	case "record_experience", "mcp_episode_ingest":
-		payload, vErr := buildAdvisoryEpisodeMCPBody(p.Arguments, pol)
+		payload, vErr := buildAdvisoryEpisodeMCPBody(p.Arguments, pol, gate)
 		if vErr != nil {
 			return ToolResultErr(vErr.Error()), nil
 		}
@@ -70,6 +72,14 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 		if err != nil {
 			return nil, err
 		}
+	case "wakeup_context":
+		method = http.MethodPost
+		fullURL = base + "/v1/recall/wakeup"
+		b, wErr := buildWakeupContextBody(p.Arguments)
+		if wErr != nil {
+			return nil, wErr
+		}
+		body = bytes.NewReader(b)
 	case "recall_run_multi":
 		method = http.MethodPost
 		fullURL = base + "/v1/recall/run-multi"
@@ -185,6 +195,8 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 		}
 	case "evidence_attach":
 		return evidenceAttach(client, base, apiKey, p.Arguments), nil
+	case "memory_feedback":
+		return memoryFeedback(client, base, apiKey, p.Arguments), nil
 	case "evidence_list":
 		method = http.MethodGet
 		fullURL, err = buildEvidenceListURL(base, p.Arguments)
@@ -212,6 +224,131 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 			return nil, err
 		}
 		body = bytes.NewReader(p.Arguments)
+	case "compliance_summary":
+		method = http.MethodGet
+		fullURL = base + "/v1/compliance/summary"
+	case "compliance_session_get":
+		method = http.MethodGet
+		sid, err := parseRequiredUUIDArg(p.Arguments, "session_id")
+		if err != nil {
+			return nil, err
+		}
+		fullURL = base + "/v1/compliance/sessions/" + url.PathEscape(sid)
+	case "compliance_session_events":
+		method = http.MethodGet
+		sid, err := parseRequiredUUIDArg(p.Arguments, "session_id")
+		if err != nil {
+			return nil, err
+		}
+		fullURL = base + "/v1/compliance/sessions/" + url.PathEscape(sid) + "/events"
+	case "compliance_evaluate":
+		method = http.MethodPost
+		fullURL = base + "/v1/compliance/evaluate"
+		if len(bytes.TrimSpace(p.Arguments)) == 0 {
+			return nil, fmt.Errorf("compliance_evaluate requires arguments (session_id)")
+		}
+		body = bytes.NewReader(p.Arguments)
+	case "agent_telemetry_start_session":
+		method = http.MethodPost
+		fullURL = base + "/v1/agent/telemetry/session/start"
+		body = bytes.NewReader(p.Arguments)
+	case "agent_telemetry_record_recall":
+		method = http.MethodPost
+		fullURL = base + "/v1/agent/telemetry/recall"
+		body = bytes.NewReader(p.Arguments)
+	case "agent_telemetry_record_decision":
+		method = http.MethodPost
+		fullURL = base + "/v1/agent/telemetry/decision"
+		body = bytes.NewReader(p.Arguments)
+	case "agent_telemetry_record_output":
+		method = http.MethodPost
+		fullURL = base + "/v1/agent/telemetry/output"
+		body = bytes.NewReader(p.Arguments)
+	case "agent_telemetry_evaluate":
+		method = http.MethodPost
+		fullURL = base + "/v1/agent/telemetry/evaluate"
+		body = bytes.NewReader(p.Arguments)
+	case "agent_telemetry_get_session":
+		method = http.MethodGet
+		sid, err := parseRequiredUUIDArg(p.Arguments, "session_id")
+		if err != nil {
+			return nil, err
+		}
+		fullURL = base + "/v1/agent/telemetry/session/" + url.PathEscape(sid)
+	case "agent_telemetry_get_memory":
+		method = http.MethodGet
+		var args map[string]string
+		_ = json.Unmarshal(p.Arguments, &args)
+		mid := strings.TrimSpace(args["memory_id"])
+		if mid == "" {
+			return nil, fmt.Errorf("agent_telemetry_get_memory requires memory_id")
+		}
+		fullURL = base + "/v1/agent/telemetry/memory/" + url.PathEscape(mid)
+	case "agent_telemetry_get_violations":
+		method = http.MethodGet
+		fullURL = base + "/v1/agent/telemetry/violations"
+		if len(bytes.TrimSpace(p.Arguments)) > 0 {
+			var args map[string]string
+			_ = json.Unmarshal(p.Arguments, &args)
+			q := url.Values{}
+			if v := strings.TrimSpace(args["memory_id"]); v != "" {
+				q.Set("memory_id", v)
+			}
+			if v := strings.TrimSpace(args["violation_code"]); v != "" {
+				q.Set("violation_code", v)
+			}
+			if enc := q.Encode(); enc != "" {
+				fullURL += "?" + enc
+			}
+		}
+	case "agent_telemetry_get_utility_candidates":
+		method = http.MethodGet
+		fullURL = base + "/v1/agent/telemetry/utility-candidates"
+		if len(bytes.TrimSpace(p.Arguments)) > 0 {
+			var args map[string]string
+			_ = json.Unmarshal(p.Arguments, &args)
+			if v := strings.TrimSpace(args["memory_id"]); v != "" {
+				fullURL += "?memory_id=" + url.QueryEscape(v)
+			}
+		}
+	case "agent_utility_evaluate_candidate":
+		method = http.MethodPost
+		fullURL = base + "/v1/agent/utility/policy/evaluate-candidate"
+		body = bytes.NewReader(p.Arguments)
+	case "agent_utility_apply_candidate":
+		method = http.MethodPost
+		fullURL = base + "/v1/agent/utility/policy/apply-candidate"
+		body = bytes.NewReader(p.Arguments)
+	case "agent_utility_apply_batch":
+		method = http.MethodPost
+		fullURL = base + "/v1/agent/utility/policy/apply-batch"
+		body = bytes.NewReader(p.Arguments)
+	case "agent_utility_revert_application":
+		method = http.MethodPost
+		fullURL = base + "/v1/agent/utility/policy/revert-application"
+		body = bytes.NewReader(p.Arguments)
+	case "agent_utility_get_candidate":
+		method = http.MethodGet
+		cid, err := parseRequiredUUIDArg(p.Arguments, "candidate_id")
+		if err != nil {
+			return nil, err
+		}
+		fullURL = base + "/v1/agent/utility/policy/candidate/" + url.PathEscape(cid)
+	case "agent_utility_get_memory_history":
+		method = http.MethodGet
+		var args map[string]string
+		_ = json.Unmarshal(p.Arguments, &args)
+		mid := strings.TrimSpace(args["memory_id"])
+		if mid == "" {
+			return nil, fmt.Errorf("agent_utility_get_memory_history requires memory_id")
+		}
+		fullURL = base + "/v1/agent/utility/policy/memory/" + url.PathEscape(mid)
+	case "agent_utility_get_applications":
+		method = http.MethodGet
+		fullURL = base + "/v1/agent/utility/policy/applications"
+	case "agent_utility_get_policy_summary":
+		method = http.MethodGet
+		fullURL = base + "/v1/agent/utility/policy/summary"
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", p.Name)
 	}
@@ -244,12 +381,43 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 		statusErr = true
 		text = fmt.Sprintf("HTTP %s\n%s", resp.Status, text)
 	}
+	if isStructuredRecallTool(p.Name) {
+		if structured := toolResultStructuredRecall(p.Name, rawBody, statusErr, text); structured != nil {
+			return structured, nil
+		}
+	}
+	if isStructuredTelemetryTool(p.Name) {
+		if structured := toolResultStructuredTelemetry(p.Name, rawBody, statusErr, text); structured != nil {
+			return structured, nil
+		}
+	}
 	return map[string]any{
 		"content": []map[string]any{
 			{"type": "text", "text": text},
 		},
 		"isError": statusErr,
 	}, nil
+}
+
+// wakeupContextArgs is the MCP arguments subset forwarded as JSON to POST /v1/recall/wakeup.
+type wakeupContextArgs struct {
+	MaxState          int `json:"max_state,omitempty"`
+	MaxPerKind        int `json:"max_per_kind,omitempty"`
+	MaxGoverningTotal int `json:"max_governing_total,omitempty"`
+}
+
+func buildWakeupContextBody(arguments json.RawMessage) ([]byte, error) {
+	if len(bytes.TrimSpace(arguments)) == 0 {
+		return []byte("{}"), nil
+	}
+	if string(bytes.TrimSpace(arguments)) == "null" {
+		return []byte("{}"), nil
+	}
+	var a wakeupContextArgs
+	if err := json.Unmarshal(arguments, &a); err != nil {
+		return nil, fmt.Errorf("wakeup_context: invalid arguments: %w", err)
+	}
+	return json.Marshal(a)
 }
 
 type toolsCallParams struct {
@@ -292,7 +460,7 @@ func augmentAdvisoryEpisodeSuccessJSON(raw []byte) []byte {
 	return b
 }
 
-func buildAdvisoryEpisodeMCPBody(arguments json.RawMessage, pol *MemoryFormationPolicy) (map[string]any, error) {
+func buildAdvisoryEpisodeMCPBody(arguments json.RawMessage, pol *MemoryFormationPolicy, gate *formation.Gate) (map[string]any, error) {
 	if len(bytes.TrimSpace(arguments)) == 0 {
 		return nil, fmt.Errorf("record_experience/mcp_episode_ingest requires arguments with summary")
 	}
@@ -301,7 +469,7 @@ func buildAdvisoryEpisodeMCPBody(arguments json.RawMessage, pol *MemoryFormation
 		return nil, fmt.Errorf("record_experience/mcp_episode_ingest: %w", err)
 	}
 	summary, _ := m["summary"].(string)
-	if err := ValidateMcpEpisodeSummary(summary, pol); err != nil {
+	if err := ValidateMcpEpisodeSummaryWithGate(summary, pol, gate); err != nil {
 		return nil, err
 	}
 	tags := parseStringSliceField(m, "tags")
@@ -483,6 +651,11 @@ func BuildRecallGetURL(base string, arguments json.RawMessage) (string, error) {
 					q.Set(key, n)
 				}
 			}
+		}
+	}
+	for _, key := range []string{"telemetry_session_id", "session_id", "task_id", "telemetry"} {
+		if s, ok := m[key].(string); ok && strings.TrimSpace(s) != "" {
+			q.Set(key, strings.TrimSpace(s))
 		}
 	}
 	return base + "/v1/recall/?" + q.Encode(), nil

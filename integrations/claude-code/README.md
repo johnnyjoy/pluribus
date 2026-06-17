@@ -1,6 +1,6 @@
 # Claude Code
 
-**First-party plugin (recommended):** [`../claude-code-plugin/README.md`](../claude-code-plugin/README.md) — install with `claude --plugin-dir ./integrations/claude-code-plugin` for skills, hooks, MCP template, and the `memory-first-investigator` agent.
+**First-party plugin (recommended):** [`../claude-code-plugin/README.md`](../claude-code-plugin/README.md) — register marketplace `claude plugin marketplace add ./integrations`, then `claude plugin install pluribus@pluribus-repo`, then `/reload-plugins` (see README). Use `claude --plugin-dir ./integrations/claude-code-plugin` only for **development** of the unpacked plugin.
 
 ---
 

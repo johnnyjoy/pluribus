@@ -32,8 +32,28 @@ type HTTPEmbedder struct {
 	Endpoint   string
 	APIKey     string
 	Model      string
+	provider   string
 	dim        int
 	HTTPClient *http.Client
+}
+
+// ModelName returns the configured embedding model id.
+func (e *HTTPEmbedder) ModelName() string {
+	if e == nil {
+		return ""
+	}
+	if strings.TrimSpace(e.Model) != "" {
+		return e.Model
+	}
+	return "text-embedding-3-small"
+}
+
+// ProviderName returns the embedding provider label (e.g. http, openai).
+func (e *HTTPEmbedder) ProviderName() string {
+	if e == nil || strings.TrimSpace(e.provider) == "" {
+		return "http"
+	}
+	return e.provider
 }
 
 func (e *HTTPEmbedder) Dimensions() int {
@@ -146,5 +166,19 @@ func NewEmbedderFromConfig(cfg *SemanticRetrievalConfig) Embedder {
 		APIKey:   key,
 		Model:    strings.TrimSpace(cfg.EmbeddingModel),
 		dim:      dim,
+		provider: "http",
+	}
+}
+
+// NewHTTPEmbedderForTest builds an HTTP embedder for benchmark/integration tests.
+func NewHTTPEmbedderForTest(endpoint, model string, dim int, provider string) *HTTPEmbedder {
+	if provider == "" {
+		provider = "http"
+	}
+	return &HTTPEmbedder{
+		Endpoint: endpoint,
+		Model:    model,
+		dim:      dim,
+		provider: provider,
 	}
 }

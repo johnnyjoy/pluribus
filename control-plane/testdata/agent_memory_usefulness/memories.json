@@ -1,0 +1,138 @@
+{
+  "memories": [
+    {
+      "label": "mem_deploy_test_constraint",
+      "kind": "constraint",
+      "statement": "CONSTRAINT deploy release candidate production must run integration tests first never skip tests",
+      "authority": 9,
+      "applicability": "governing",
+      "tags": ["phase11b-deploy"]
+    },
+    {
+      "label": "mem_migration_failure",
+      "kind": "failure",
+      "statement": "FAILURE skipping postgres migration transaction broke deploy pipeline release",
+      "authority": 8,
+      "tags": ["phase11b-deploy"]
+    },
+    {
+      "label": "mem_staged_rollout_decision",
+      "kind": "decision",
+      "statement": "DECISION deploy production release candidate using staged rollout with canary verification",
+      "authority": 8,
+      "tags": ["phase11b-deploy"]
+    },
+    {
+      "label": "mem_frontend_tabs_preference",
+      "kind": "pattern",
+      "statement": "PREFERENCE frontend typescript formatting use tabs not spaces for indentation",
+      "authority": 5,
+      "applicability": "advisory",
+      "tags": ["phase11b-frontend"]
+    },
+    {
+      "label": "mem_backend_go_style",
+      "kind": "pattern",
+      "statement": "PREFERENCE backend go services use gofmt tabs standard formatting",
+      "authority": 5,
+      "tags": ["phase11b-backend"]
+    },
+    {
+      "label": "mem_payments_pci_constraint",
+      "kind": "constraint",
+      "statement": "CONSTRAINT payments PCI scope never log card numbers in checkout handlers",
+      "authority": 9,
+      "applicability": "governing",
+      "tags": ["phase11b-payments"]
+    },
+    {
+      "label": "mem_archived_deploy_pattern",
+      "kind": "pattern",
+      "statement": "LEGACY archived deploy script pattern monolithic bash deploy release obsolete",
+      "authority": 6,
+      "status": "archived",
+      "tags": ["phase11b-deploy"]
+    },
+    {
+      "label": "mem_active_deploy_constraint",
+      "kind": "constraint",
+      "statement": "CONSTRAINT current deploy release candidate use container pipeline not legacy bash",
+      "authority": 9,
+      "applicability": "governing",
+      "tags": ["phase11b-deploy"]
+    },
+    {
+      "label": "mem_superseded_deploy_rule",
+      "kind": "constraint",
+      "statement": "CONSTRAINT superseded deploy release always use single region push obsolete",
+      "authority": 7,
+      "status": "superseded",
+      "tags": ["phase11b-deploy"]
+    },
+    {
+      "label": "mem_successor_deploy_rule",
+      "kind": "constraint",
+      "statement": "CONSTRAINT deploy release candidate use multi-region staged rollout current guidance",
+      "authority": 9,
+      "applicability": "governing",
+      "tags": ["phase11b-deploy"],
+      "supersedes_label": "mem_superseded_deploy_rule"
+    },
+    {
+      "label": "mem_refuted_deploy_belief",
+      "kind": "failure",
+      "statement": "FAILURE refuted deploy release skip health checks belief proven wrong",
+      "authority": 4,
+      "tags": ["phase11b-deploy"],
+      "utility_score": -8,
+      "refuted_count": 2,
+      "wrong_count": 1
+    },
+    {
+      "label": "mem_correct_health_constraint",
+      "kind": "constraint",
+      "statement": "CONSTRAINT deploy release candidate must run health checks before traffic shift",
+      "authority": 9,
+      "applicability": "governing",
+      "tags": ["phase11b-deploy"]
+    },
+    {
+      "label": "mem_event_old",
+      "kind": "pattern",
+      "statement": "HISTORICAL deploy release event old window 2023 legacy deploy pattern",
+      "authority": 5,
+      "tags": ["phase11b-deploy"],
+      "occurred_at": "2023-06-01T00:00:00Z"
+    },
+    {
+      "label": "mem_event_in_window",
+      "kind": "pattern",
+      "statement": "HISTORICAL deploy release event in window 2024 current audit deploy pattern",
+      "authority": 7,
+      "tags": ["phase11b-deploy"],
+      "occurred_at": "2024-06-15T00:00:00Z"
+    },
+    {
+      "label": "mem_relevant_retry_pattern",
+      "kind": "pattern",
+      "statement": "PATTERN deploy release retry with exponential backoff when deploy fails",
+      "authority": 7,
+      "tags": ["phase11b-deploy"]
+    },
+    {
+      "label": "mem_irrelevant_similar_noise",
+      "kind": "pattern",
+      "statement": "PATTERN deploy release marketing blog post tone unrelated operational guidance",
+      "authority": 6,
+      "tags": ["phase11b-deploy"]
+    },
+    {
+      "label": "mem_historical_only_context",
+      "kind": "pattern",
+      "statement": "HISTORICAL archived deploy monolith context legacy release audit only",
+      "authority": 5,
+      "status": "archived",
+      "tags": ["phase11b-deploy"]
+    }
+  ]
+}

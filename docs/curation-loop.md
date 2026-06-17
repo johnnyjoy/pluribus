@@ -191,4 +191,4 @@ curl -s -X POST http://127.0.0.1:8123/v1/curation/candidates/CANDIDATE_UUID/mate
 
 ## Benefit tiers (optional)
 
-See [pluribus-benefit-eval.md](pluribus-benefit-eval.md). Recorded MCP E2E proof (historical): [archive/memory-bank/plans/pluribus-curation-mcp-proof-results-20260323.md](../archive/memory-bank/plans/pluribus-curation-mcp-proof-results-20260323.md).
+See [public-documentation-policy.md](public-documentation-policy.md) (benefit eval is local-only). Recorded MCP E2E proof (historical): [archive/memory-bank/plans/pluribus-curation-mcp-proof-results-20260323.md](../archive/memory-bank/plans/pluribus-curation-mcp-proof-results-20260323.md).

@@ -22,15 +22,14 @@ It is **not** a full research platform. It is a **repeatable procedure** you can
    Same command runs in CI (control-plane, real Postgres in Docker, integration-tagged tests).
 
 2. **Benefit-oriented A vs C eval (human-in-the-loop + MCP)**  
-   Follow **[pluribus-benefit-eval.md](pluribus-benefit-eval.md)**:
-   - `/pluribus-benefit-eval-baseline` (A)
+   Protocol is **local-only** (not shipped in public repo) — see [public-documentation-policy.md](../public-documentation-policy.md). Scripts remain in-repo:
+   - `/pluribus-benefit-eval-baseline` (A) — Cursor command on maintainer machine
    - Seed: `scripts/pluribus-benefit-eval-seed`
    - `/pluribus-benefit-eval` (C)
-   - Check: `scripts/pluribus-benefit-eval-check`  
-   Record results in **`memory-bank/plans/pluribus-benefit-eval-results-latest.md`** (or the template there).
+   - Check: `scripts/pluribus-benefit-eval-check`
 
 3. **Optional in-session sanity (not CI)**  
-   **`/ask-cursor-verify-recall`** — see [cursor-verify-recall.md](cursor-verify-recall.md).
+   **`/ask-cursor-verify-recall`** — local Cursor workflow; see [public-documentation-policy.md](../public-documentation-policy.md).
 
 ## Benefit dimensions to keep in mind
 

@@ -1,0 +1,102 @@
+{
+  "memories": [
+    {
+      "label": "sem_webhook_idempotency_safe",
+      "domain": "pluribus",
+      "kind": "pattern",
+      "statement": "Use idempotency keys for retry-safe webhook ingestion to avoid duplicate charges on payment webhooks.",
+      "authority": 8,
+      "tags": ["semantic", "webhook", "idempotency"],
+      "status": "active",
+      "utility_score": 0.9
+    },
+    {
+      "label": "sem_archived_webhook_bait",
+      "domain": "pluribus",
+      "kind": "pattern",
+      "statement": "Archived webhook idempotency guidance from legacy payment pipeline retry-safe duplicate charges.",
+      "authority": 9,
+      "tags": ["semantic", "webhook", "idempotency", "archived"],
+      "status": "archived",
+      "utility_score": 0.1
+    },
+    {
+      "label": "sem_superseded_webhook_bait",
+      "domain": "pluribus",
+      "kind": "pattern",
+      "statement": "Superseded webhook idempotency pattern for retry-safe duplicate charge prevention on old stack.",
+      "authority": 9,
+      "tags": ["semantic", "webhook", "idempotency"],
+      "status": "superseded",
+      "utility_score": 0.1
+    },
+    {
+      "label": "sem_fitness_yoga_wrong_domain",
+      "domain": "fitness",
+      "kind": "pattern",
+      "statement": "Yoga flow movement tracking fitness session guidance for studio classes.",
+      "authority": 7,
+      "tags": ["semantic", "fitness"],
+      "status": "active"
+    },
+    {
+      "label": "sem_refuted_webhook_bait",
+      "domain": "pluribus",
+      "kind": "failure",
+      "statement": "Refuted claim that webhook idempotency retry-safe duplicate charges need no keys.",
+      "authority": 6,
+      "tags": ["semantic", "webhook", "idempotency"],
+      "status": "active",
+      "refuted": true,
+      "utility_score": -0.8
+    },
+    {
+      "label": "sem_date_inside_event",
+      "domain": "pluribus",
+      "kind": "state",
+      "statement": "June 2023 webhook idempotency retry-safe duplicate charge incident review.",
+      "authority": 7,
+      "tags": ["semantic", "webhook", "historical"],
+      "status": "archived",
+      "occurred_at": "2023-06-15T12:00:00Z"
+    },
+    {
+      "label": "sem_date_outside_event",
+      "domain": "pluribus",
+      "kind": "state",
+      "statement": "December 2024 webhook idempotency retry-safe duplicate charge postmortem.",
+      "authority": 8,
+      "tags": ["semantic", "webhook", "historical"],
+      "status": "archived",
+      "occurred_at": "2024-12-01T10:00:00Z"
+    },
+    {
+      "label": "sem_low_utility_noise",
+      "domain": "pluribus",
+      "kind": "pattern",
+      "statement": "Minor note about webhook idempotency retry-safe wording in old docs.",
+      "authority": 3,
+      "tags": ["semantic", "webhook", "idempotency"],
+      "status": "active",
+      "utility_score": 0.05
+    },
+    {
+      "label": "sem_hist_archived_ok",
+      "domain": "pluribus",
+      "kind": "pattern",
+      "statement": "Historical archived Phase 5 webhook idempotency retry-safe migration context for agents.",
+      "authority": 7,
+      "tags": ["semantic", "phase5", "historical", "webhook"],
+      "status": "archived"
+    },
+    {
+      "label": "sem_hist_superseded_ok",
+      "domain": "pluribus",
+      "kind": "pattern",
+      "statement": "Historical superseded Phase 5 webhook idempotency retry-safe pattern before archive.",
+      "authority": 7,
+      "tags": ["semantic", "phase5", "historical", "webhook"],
+      "status": "superseded"
+    }
+  ]
+}

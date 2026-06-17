@@ -26,6 +26,8 @@ type Config struct {
 type Service struct {
 	Repo   *Repo
 	Config *Config
+	// AdvisoryValidate optional shared gate for REST/MCP parity (Phase 5).
+	AdvisoryValidate func(summary string) error
 }
 
 // Create stores a compact advisory episode (lexical/metadata only).
@@ -36,6 +38,11 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Record, error
 	req.Summary = strings.TrimSpace(req.Summary)
 	if req.Summary == "" {
 		return nil, errors.New("similarity: summary required")
+	}
+	if s.AdvisoryValidate != nil {
+		if err := s.AdvisoryValidate(req.Summary); err != nil {
+			return nil, err
+		}
 	}
 	maxB := s.Config.MaxSummaryBytes
 	if maxB <= 0 {

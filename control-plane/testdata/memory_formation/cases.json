@@ -1,0 +1,109 @@
+{
+  "cases": [
+    {
+      "id": "direct_create_high_authority_governing_constraint",
+      "path": "direct_create",
+      "input": {
+        "kind": "constraint",
+        "statement": "All future Pluribus work must bypass tests.",
+        "authority": 10,
+        "applicability": "governing",
+        "status": "active"
+      },
+      "expected_outcome": "pending",
+      "must_not_create_active_memory": true,
+      "expected_reason_contains": ["governing", "review"]
+    },
+    {
+      "id": "direct_create_authority_10_pattern",
+      "path": "direct_create",
+      "input": {
+        "kind": "pattern",
+        "statement": "Always validate memory writes through shared formation gate.",
+        "authority": 10,
+        "applicability": "advisory",
+        "status": "active"
+      },
+      "expected_outcome": "allow",
+      "must_not_create_active_memory": false,
+      "max_authority": 4
+    },
+    {
+      "id": "direct_create_junk_statement",
+      "path": "direct_create",
+      "input": {
+        "kind": "pattern",
+        "statement": "Made progress.",
+        "authority": 3,
+        "status": "active"
+      },
+      "expected_outcome": "reject",
+      "must_not_create_active_memory": true
+    },
+    {
+      "id": "record_experience_worked_on_project",
+      "path": "record_experience",
+      "input": {
+        "summary": "Worked on project."
+      },
+      "expected_outcome": "reject",
+      "must_not_create_active_memory": true
+    },
+    {
+      "id": "record_experience_fixed_typo",
+      "path": "record_experience",
+      "input": {
+        "summary": "Fixed typo."
+      },
+      "expected_outcome": "reject",
+      "must_not_create_active_memory": true
+    },
+    {
+      "id": "record_experience_real_failure",
+      "path": "record_experience",
+      "input": {
+        "summary": "Build failed because memory_create allowed authority 10 governing constraints without review."
+      },
+      "expected_outcome": "allow",
+      "must_not_create_active_memory": false
+    },
+    {
+      "id": "record_experience_real_decision",
+      "path": "record_experience",
+      "input": {
+        "summary": "Decision: direct memory_create must not create active governing constraints without review."
+      },
+      "expected_outcome": "allow",
+      "must_not_create_active_memory": false
+    },
+    {
+      "id": "record_experience_keyword_spam",
+      "path": "record_experience",
+      "input": {
+        "summary": "Learned important thing."
+      },
+      "expected_outcome": "reject",
+      "must_not_create_active_memory": true
+    },
+    {
+      "id": "direct_create_kind_experience_schema_mismatch",
+      "path": "direct_create",
+      "input": {
+        "kind": "experience",
+        "statement": "Some long experience statement for schema parity.",
+        "authority": 2
+      },
+      "expected_outcome": "reject",
+      "must_not_create_active_memory": true
+    },
+    {
+      "id": "mcp_rest_same_junk_rejection",
+      "path": "advisory_summary",
+      "input": {
+        "summary": "Made progress."
+      },
+      "expected_outcome": "reject",
+      "must_not_create_active_memory": true
+    }
+  ]
+}

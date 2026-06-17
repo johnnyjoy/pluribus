@@ -154,7 +154,7 @@ This document maps the control-plane design (see [control-plane-design-and-start
 | dev-up, migrate (obsolete stub) | ✅ | DSN, postgres (and optional redis); schema in Boot |
 | First-run (DB, migrate, run servers) | ✅ | Documented |
 | Example workflow (create project/target/task, recall, drift, candidates) | ✅ | README/scripts |
-| Cursor usage pattern | ✅ | [docs/ai-recall-cursor-focus.md](ai-recall-cursor-focus.md), [docs/cursor-verify-recall.md](cursor-verify-recall.md) |
+| Cursor usage pattern | ✅ | [integrations/cursor.md](../integrations/cursor.md); local verify/focus docs under `docs/local/` (gitignored) |
 
 ---
 

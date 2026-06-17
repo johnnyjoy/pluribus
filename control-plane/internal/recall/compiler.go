@@ -9,10 +9,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"strings"
 
 	"control-plane/internal/memory"
 	"control-plane/internal/tooling"
+	"control-plane/internal/utility"
 	"control-plane/pkg/api"
 
 	"github.com/google/uuid"
@@ -80,6 +82,20 @@ type Compiler struct {
 	LogRankTopN int
 	// Relationships optional: merges table-backed supersedes edges into pattern supersession map (light touch).
 	Relationships *memory.RelationshipRepo
+	// Utility optional: loads utility_score per memory for ranking (Phase 7).
+	Utility UtilityScoreProvider
+	// UtilityWeight scales utility ranking term (0 = off).
+	UtilityWeight float64
+}
+
+// UtilitySummaryProvider optionally loads full utility score rows for lifecycle labeling.
+type UtilitySummaryProvider interface {
+	GetUtilitySummaries(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]utility.Score, error)
+}
+
+// UtilityScoreProvider loads utility scores for recall ranking.
+type UtilityScoreProvider interface {
+	GetScoresForMemories(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]float64, error)
 }
 
 // SemanticRecallConfig gates compile-time semantic candidate merge (defaults from recall.semantic_retrieval YAML).
@@ -148,6 +164,17 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 	}
 	corrID := strings.TrimSpace(req.CorrelationID)
 
+	recallMode, includeStatuses, lifecycleMeta, err := ResolveLifecycleRecall(req)
+	if err != nil {
+		return nil, err
+	}
+	b.LifecycleRecall = &lifecycleMeta
+
+	dateAfter, dateBefore, err := ParseCompileDateBounds(req)
+	if err != nil {
+		return nil, err
+	}
+
 	// Situation string for retrieval expansion + lexical similarity: caller-provided retrieval_query (+ optional proposal heuristic).
 	situationQuery := enrichSituationQueryWithProposal(strings.TrimSpace(req.RetrievalQuery), req.ProposalText)
 
@@ -157,31 +184,13 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 	// Recall is not project-partitioned: search is unscoped (optional tag filter from the request only).
 	if c.Memory != nil {
 		var semRetrievalDbg *SemanticRetrievalDebug
-		searchReq := memory.SearchRequest{
-			Tags:   req.Tags,
-			Status: "active",
-			Max:    100,
-		}
 		domainTags := []string{}
-		objs, err := c.Memory.Search(ctx, searchReq)
+		objs, err := c.fetchLifecycleCandidates(ctx, req, recallMode, includeStatuses, situationQuery)
 		if err != nil {
 			return nil, err
 		}
-		// Expand candidates by meaning via token-level lexical search.
-		// We use SearchMemories as a lightweight "token bridge" (no embeddings required).
-		if strings.TrimSpace(situationQuery) != "" {
-			for _, kw := range situationKeywords(situationQuery) {
-				extra, err := c.Memory.SearchMemories(ctx, memory.MemoriesSearchRequest{
-					Query:  kw,
-					Tags:   req.Tags,
-					Status: "active",
-					Max:    50,
-				})
-				if err != nil {
-					return nil, err
-				}
-				objs = mergeUniqueMemoryObjects(objs, extra)
-			}
+		if dateAfter != nil || dateBefore != nil {
+			objs = filterByDateBounds(objs, dateAfter, dateBefore)
 		}
 		// Semantic candidates (pgvector): merge with lexical; similarity map feeds hybrid ranking.
 		if c.Semantic != nil && c.Semantic.Enabled && strings.TrimSpace(situationQuery) != "" {
@@ -222,6 +231,10 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 					if minCos <= 0 {
 						minCos = 0.35
 					}
+					searchReq := memory.SearchRequest{Tags: req.Tags, Max: 100}
+					for _, st := range includeStatuses {
+						searchReq.Statuses = append(searchReq.Statuses, string(st))
+					}
 					extra, sims, serr := se.SearchSimilarCandidates(ctx, qv, searchReq, lim, minCos)
 					if serr != nil {
 						semRetrievalDbg.FallbackReason = memory.SemanticFallbackVectorSearchFailed
@@ -243,6 +256,7 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 						for id, s := range sims {
 							semanticSim[id] = s
 						}
+						objs = applyCandidateSafetyFilter(objs, recallMode, includeStatuses, situationQuery, dateAfter, dateBefore)
 						if c.Semantic.LogSemanticMatches && len(sims) > 0 {
 							slog.Info("[SEMANTIC MATCH] detail", "candidates", len(sims))
 						}
@@ -320,7 +334,7 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 				scoringUnresolved = unresolvedFlat
 			}
 		}
-		if c.Experiences != nil {
+		if c.Experiences != nil && !req.SkipExperienceHydration {
 			limit := c.ExperiencesLimit
 			if limit <= 0 {
 				limit = 50
@@ -350,9 +364,33 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 			Symbols:              req.Symbols,
 			SessionCorrelationID: corrID,
 			SituationQuery:       situationQuery,
+			RepoRoot:             strings.TrimSpace(req.RepoRoot),
 			SemanticSimilarity:   semanticSim,
 			Supersession:         superMap,
 			CandidateSet:         candSet,
+			RecallMode:           recallMode,
+		}
+		itemEnrich := memoryItemEnrichment{
+			mode:      recallMode,
+			superMap:  superMap,
+		}
+		if c.Utility != nil && len(objs) > 0 {
+			ids := make([]uuid.UUID, 0, len(objs))
+			for _, o := range objs {
+				ids = append(ids, o.ID)
+			}
+			if c.UtilityWeight > 0 {
+				if scores, err := c.Utility.GetScoresForMemories(ctx, ids); err == nil {
+					scoreReq.UtilityScores = scores
+					scoreReq.UtilityWeight = c.UtilityWeight
+					itemEnrich.utilityScores = scores
+				}
+			}
+			if up, ok := c.Utility.(UtilitySummaryProvider); ok {
+				if sums, err := up.GetUtilitySummaries(ctx, ids); err == nil {
+					itemEnrich.utilitySummaries = sums
+				}
+			}
 		}
 		weights := c.Ranking
 		if req.VariantModifier != nil && req.VariantModifier.Ranking != nil {
@@ -371,9 +409,9 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 			if c.LogRankTopN > 0 {
 				logRankTrace(scored, c.LogRankTopN)
 			}
-			bucket = c.bucketScored(scored, maxPerKind, corrID)
+			bucket = c.bucketScored(scored, maxPerKind, corrID, itemEnrich)
 		} else {
-			bucket = c.bucketUnsorted(objs, maxPerKind, corrID)
+			bucket = c.bucketUnsorted(objs, maxPerKind, corrID, itemEnrich)
 		}
 		trim := func(s []MemoryItem, n int) []MemoryItem {
 			if len(s) <= n {
@@ -452,14 +490,14 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 			}
 		}
 		b.SemanticRetrieval = semRetrievalDbg
-		fillGroupedViews(b, scored, objs, weights != nil, maxPerKind, req.Mode, corrID)
+		fillGroupedViews(b, scored, objs, weights != nil, maxPerKind, req.Mode, corrID, itemEnrich)
 	}
 	populateAgentGrounding(b)
 	setRecallPreamble(b)
 	return b, nil
 }
 
-func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.MemoryObject, hasRanking bool, maxPerKind int, mode string, corrID string) {
+func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.MemoryObject, hasRanking bool, maxPerKind int, mode string, corrID string, enrich memoryItemEnrichment) {
 	if maxPerKind <= 0 {
 		maxPerKind = 5
 	}
@@ -475,15 +513,15 @@ func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.Memor
 		contLim = maxPerKind * 3
 	}
 	if !hasRanking || len(scored) == 0 {
-		b.Continuity = continuityFromRaw(raw, contLim, corrID)
-		b.Constraints = constraintsFromRaw(raw, constraintLim, corrID)
-		b.Experience = experienceFromRaw(raw, expLim, corrID)
+		b.Continuity = continuityFromRaw(raw, contLim, corrID, enrich)
+		b.Constraints = constraintsFromRaw(raw, constraintLim, corrID, enrich)
+		b.Experience = experienceFromRaw(raw, expLim, corrID, enrich)
 		return
 	}
 	var cont, cons, exp []MemoryItem
 	for _, s := range scored {
 		o := s.Object
-		item := memoryItemFromScored(o, s, corrID)
+		item := memoryItemFromScored(o, s, corrID, enrich)
 		switch o.Kind {
 		case api.MemoryKindState, api.MemoryKindDecision:
 			if len(cont) < contLim {
@@ -504,7 +542,7 @@ func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.Memor
 	b.Experience = exp
 }
 
-func continuityFromRaw(objs []memory.MemoryObject, limit int, corrID string) []MemoryItem {
+func continuityFromRaw(objs []memory.MemoryObject, limit int, corrID string, enrich memoryItemEnrichment) []MemoryItem {
 	var out []MemoryItem
 	for _, o := range objs {
 		if o.Kind != api.MemoryKindState && o.Kind != api.MemoryKindDecision {
@@ -513,12 +551,12 @@ func continuityFromRaw(objs []memory.MemoryObject, limit int, corrID string) []M
 		if len(out) >= limit {
 			break
 		}
-		out = append(out, memoryItemFromObject(o, corrID))
+		out = append(out, memoryItemFromObject(o, corrID, enrich))
 	}
 	return out
 }
 
-func experienceFromRaw(objs []memory.MemoryObject, limit int, corrID string) []MemoryItem {
+func experienceFromRaw(objs []memory.MemoryObject, limit int, corrID string, enrich memoryItemEnrichment) []MemoryItem {
 	var out []MemoryItem
 	for _, o := range objs {
 		if o.Kind != api.MemoryKindPattern {
@@ -527,12 +565,12 @@ func experienceFromRaw(objs []memory.MemoryObject, limit int, corrID string) []M
 		if len(out) >= limit {
 			return out
 		}
-		out = append(out, memoryItemFromObject(o, corrID))
+		out = append(out, memoryItemFromObject(o, corrID, enrich))
 	}
 	return out
 }
 
-func constraintsFromRaw(objs []memory.MemoryObject, limit int, corrID string) []MemoryItem {
+func constraintsFromRaw(objs []memory.MemoryObject, limit int, corrID string, enrich memoryItemEnrichment) []MemoryItem {
 	var out []MemoryItem
 	for _, o := range objs {
 		if o.Kind != api.MemoryKindConstraint && o.Kind != api.MemoryKindFailure {
@@ -541,7 +579,7 @@ func constraintsFromRaw(objs []memory.MemoryObject, limit int, corrID string) []
 		if len(out) >= limit {
 			return out
 		}
-		out = append(out, memoryItemFromObject(o, corrID))
+		out = append(out, memoryItemFromObject(o, corrID, enrich))
 	}
 	return out
 }
@@ -618,6 +656,11 @@ func situationKeywords(query string) []string {
 		if len(tok) < 4 {
 			continue
 		}
+		// Skip run-id / uuid fragments so proof harness fillers keyed by {{RUN_ID}} are not
+		// pulled into tag-focused compile via shared id tokens in the query string.
+		if strings.ContainsAny(tok, "0123456789") {
+			continue
+		}
 		if _, isStop := stop[tok]; isStop {
 			continue
 		}
@@ -633,7 +676,7 @@ func situationKeywords(query string) []string {
 	return out
 }
 
-func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int, corrID string) map[api.MemoryKind][]MemoryItem {
+func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int, corrID string, enrich memoryItemEnrichment) map[api.MemoryKind][]MemoryItem {
 	bucket := map[api.MemoryKind][]MemoryItem{
 		api.MemoryKindConstraint: nil,
 		api.MemoryKindDecision:   nil,
@@ -642,7 +685,7 @@ func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int, corrID st
 	}
 	for _, s := range scored {
 		o := s.Object
-		item := memoryItemFromScored(o, s, corrID)
+		item := memoryItemFromScored(o, s, corrID, enrich)
 		switch o.Kind {
 		case api.MemoryKindConstraint:
 			bucket[api.MemoryKindConstraint] = append(bucket[api.MemoryKindConstraint], item)
@@ -657,7 +700,7 @@ func (c *Compiler) bucketScored(scored []ScoredMemory, maxPerKind int, corrID st
 	return bucket
 }
 
-func (c *Compiler) bucketUnsorted(objs []memory.MemoryObject, maxPerKind int, corrID string) map[api.MemoryKind][]MemoryItem {
+func (c *Compiler) bucketUnsorted(objs []memory.MemoryObject, maxPerKind int, corrID string, enrich memoryItemEnrichment) map[api.MemoryKind][]MemoryItem {
 	bucket := map[api.MemoryKind][]MemoryItem{
 		api.MemoryKindConstraint: nil,
 		api.MemoryKindDecision:   nil,
@@ -665,7 +708,7 @@ func (c *Compiler) bucketUnsorted(objs []memory.MemoryObject, maxPerKind int, co
 		api.MemoryKindPattern:    nil,
 	}
 	for _, o := range objs {
-		item := memoryItemFromObject(o, corrID)
+		item := memoryItemFromObject(o, corrID, enrich)
 		switch o.Kind {
 		case api.MemoryKindConstraint:
 			bucket[api.MemoryKindConstraint] = append(bucket[api.MemoryKindConstraint], item)
@@ -699,7 +742,18 @@ func logRankTrace(scored []ScoredMemory, n int) {
 	}
 }
 
-func memoryItemFromScored(o memory.MemoryObject, s ScoredMemory, corrID string) MemoryItem {
+type memoryItemEnrichment struct {
+	mode             RecallMode
+	superMap         map[uuid.UUID]uuid.UUID
+	utilityScores    map[uuid.UUID]float64
+	utilitySummaries map[uuid.UUID]utility.Score
+}
+
+func roundRecallScore(v float64) float64 {
+	return math.Round(v*1e12) / 1e12
+}
+
+func memoryItemFromScored(o memory.MemoryObject, s ScoredMemory, corrID string, enrich memoryItemEnrichment) MemoryItem {
 	sloc := sessionTagMatches(corrID, o.Tags)
 	reason := strings.TrimSpace(s.Reason)
 	if reason == "" {
@@ -710,11 +764,15 @@ func memoryItemFromScored(o memory.MemoryObject, s ScoredMemory, corrID string) 
 		Kind:          string(o.Kind),
 		Statement:     o.Statement,
 		Authority:     o.Authority,
-		Justification: &JustificationMeta{Reason: s.Reason, Score: s.Score},
+		Applicability: o.Applicability,
+		Status:        string(o.Status),
+		Justification: &JustificationMeta{Reason: s.Reason, Score: roundRecallScore(s.Score), Components: s.Components},
 		RIU:           s.RIU,
 		SessionLocal:  sloc,
 		WhyMatters:      BuildWhyMattersLine(string(o.Kind), reason, 0, sloc),
 	}
+	applyLifecycleFields(&it, o, enrich)
+	applyAgentContractFields(&it, o)
 	if o.OccurredAt != nil {
 		t := *o.OccurredAt
 		it.OccurredAt = &t
@@ -722,7 +780,7 @@ func memoryItemFromScored(o memory.MemoryObject, s ScoredMemory, corrID string) 
 	return it
 }
 
-func memoryItemFromObject(o memory.MemoryObject, corrID string) MemoryItem {
+func memoryItemFromObject(o memory.MemoryObject, corrID string, enrich memoryItemEnrichment) MemoryItem {
 	sloc := sessionTagMatches(corrID, o.Tags)
 	reason := "Kind-bucketed retrieval (ordering before ranking trim)"
 	it := MemoryItem{
@@ -730,6 +788,8 @@ func memoryItemFromObject(o memory.MemoryObject, corrID string) MemoryItem {
 		Kind:      string(o.Kind),
 		Statement: o.Statement,
 		Authority: o.Authority,
+		Applicability: o.Applicability,
+		Status:    string(o.Status),
 		// Ungrouped bucket path still exposes why this row appears (Task 73 / agent transparency).
 		Justification: &JustificationMeta{
 			Reason: reason,
@@ -738,11 +798,166 @@ func memoryItemFromObject(o memory.MemoryObject, corrID string) MemoryItem {
 		SessionLocal: sloc,
 		WhyMatters:   BuildWhyMattersLine(string(o.Kind), reason, 0, sloc),
 	}
+	applyLifecycleFields(&it, o, enrich)
+	applyAgentContractFields(&it, o)
 	if o.OccurredAt != nil {
 		t := *o.OccurredAt
 		it.OccurredAt = &t
 	}
 	return it
+}
+
+func applyLifecycleFields(it *MemoryItem, o memory.MemoryObject, enrich memoryItemEnrichment) {
+	if it == nil {
+		return
+	}
+	var util *utility.Score
+	if enrich.utilitySummaries != nil {
+		if s, ok := enrich.utilitySummaries[o.ID]; ok {
+			util = &s
+			sc := s.UtilityScore
+			it.UtilityScore = &sc
+		}
+	} else if enrich.utilityScores != nil {
+		if sc, ok := enrich.utilityScores[o.ID]; ok {
+			it.UtilityScore = &sc
+		}
+	}
+	it.LifecycleRole = deriveLifecycleRole(enrich.mode, o, util)
+	it.SupersededBy = supersededByString(enrich.superMap, o.ID)
+}
+
+func applyAgentContractFields(it *MemoryItem, o memory.MemoryObject) {
+	if it == nil {
+		return
+	}
+
+	// source_created_at is present to support temporal basis checks in contract validation.
+	t := o.CreatedAt
+	it.SourceCreatedAt = &t
+
+	if len(o.Payload) == 0 {
+		return
+	}
+
+	var m map[string]any
+	if err := json.Unmarshal(o.Payload, &m); err != nil {
+		return
+	}
+
+	// Schema type: formationquality persists this as either schema_type or memory_schema_type.
+	it.SchemaType = firstNonEmptyString(m["schema_type"], m["memory_schema_type"])
+	it.Scope = firstNonEmptyString(m["scope"])
+	it.UseInstruction = firstNonEmptyString(m["use_instruction"])
+	it.MisuseWarning = firstNonEmptyString(m["misuse_warning"])
+	it.SourceType = firstNonEmptyString(m["source_type"])
+	it.AuthorityBasis = firstNonEmptyString(m["authority_basis"])
+
+	it.NegativeScope = stringSliceFromAny(m["negative_scope"])
+	it.RetrievalCues = stringSliceFromAny(m["retrieval_cues"])
+	if len(it.RetrievalCues) == 0 {
+		it.RetrievalCues = stringSliceFromAny(m["retrieval_terms"])
+	}
+
+	// Quality state and defects/warnings summary are persisted at formation time.
+	if v, ok := m["quality_score"]; ok {
+		if f, ok := toFloat64(v); ok {
+			it.QualityScore = &f
+		}
+	}
+	it.QualityState = firstNonEmptyString(m["quality_state"])
+
+	if v, ok := m["safe_for_active_recall"]; ok {
+		if b, ok := v.(bool); ok {
+			it.SafeForActiveRecall = &b
+		}
+	}
+
+	it.QualityDefects = issuesFromPayload(m["quality_defects"])
+	it.QualityWarnings = issuesFromPayload(m["quality_warnings"])
+}
+
+func firstNonEmptyString(vs ...any) string {
+	for _, v := range vs {
+		s := strings.TrimSpace(asString(v))
+		if s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func asString(v any) string {
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return ""
+}
+
+func stringSliceFromAny(v any) []string {
+	if v == nil {
+		return nil
+	}
+	arr, ok := v.([]any)
+	if !ok {
+		// Some payloads may store arrays as []string when unmarshaled into specific types;
+		// but this function operates on map[string]any, so we only accept []any.
+		return nil
+	}
+	out := make([]string, 0, len(arr))
+	for _, x := range arr {
+		s := strings.TrimSpace(asString(x))
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func toFloat64(v any) (float64, bool) {
+	switch n := v.(type) {
+	case float64:
+		return n, true
+	case int:
+		return float64(n), true
+	case json.Number:
+		f, err := n.Float64()
+		return f, err == nil
+	default:
+		return 0, false
+	}
+}
+
+func issuesFromPayload(v any) []QualityIssue {
+	if v == nil {
+		return nil
+	}
+	arr, ok := v.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]QualityIssue, 0, len(arr))
+	for _, x := range arr {
+		obj, ok := x.(map[string]any)
+		if !ok {
+			continue
+		}
+		code := firstNonEmptyString(obj["code"])
+		if code == "" {
+			continue
+		}
+		out = append(out, QualityIssue{
+			Code:     code,
+			Severity: firstNonEmptyString(obj["severity"]),
+		})
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func setRecallPreamble(b *RecallBundle) {

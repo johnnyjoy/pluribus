@@ -2,6 +2,8 @@
 
 **Canonical** public material. Historical and cutover narratives live under **[archive/](archive/)** — not active system truth.
 
+**Public vs local:** Editor workflows and phase audit reports are **not** in the public repo. See **[public-documentation-policy.md](public-documentation-policy.md)** and **[local/README.md](local/README.md)** (local tree is gitignored on your machine).
+
 ---
 
 ## New here?
@@ -24,6 +26,8 @@ Everything below is **reference** — use the table when you need a specific top
 |-----|---------|
 | **[get-started.md](get-started.md)** | **Minimal path** — run, connect agent, optional doctrine |
 | **[memory-doctrine.md](memory-doctrine.md)** | **Canonical product model — highest authority** |
+| [product-doctrine.md](product-doctrine.md) | Product implementation doctrine (agents, interfaces, no second-AI trap) |
+| [agent-interface-boundary.md](agent-interface-boundary.md) | MCP + REST/API primary interfaces; embedder is internal plumbing |
 | [anti-regression.md](anti-regression.md) | Reviewer enforcement; banned patterns; CI guard pointers |
 | [architecture.md](architecture.md) | System shape aligned with the doctrine |
 | [pluribus-quickstart.md](pluribus-quickstart.md) | First-run — run, verify, HTTP smoke, MCP pointers |
@@ -50,6 +54,15 @@ Everything below is **reference** — use the table when you need a specific top
 | [pluribus-release-readiness.md](pluribus-release-readiness.md) | Release gate + operator smoke |
 | [pluribus-post-release-roadmap.md](pluribus-post-release-roadmap.md) | Future work fence |
 | [pluribus-lsp-mcp-boundary.md](pluribus-lsp-mcp-boundary.md) | Pluribus ≠ editor LSP |
+
+---
+
+## Architecture (proposed)
+
+| Doc | Purpose |
+|-----|---------|
+| [architecture/layered-memory-L0-L3.md](architecture/layered-memory-L0-L3.md) | **Proposed:** layered context (L0–L3) as threshold views on one substrate |
+| [architecture/situational-affinity-ranking.md](architecture/situational-affinity-ranking.md) | Situational affinity ranking (query/repo/tag boost; not partitions) |
 
 ---
 
@@ -85,13 +98,33 @@ Everything below is **reference** — use the table when you need a specific top
 
 ---
 
+## Phase 11 — agent memory usefulness, contract, telemetry, utility (canonical)
+
+| Doc | Purpose |
+|-----|---------|
+| [agent-memory-usefulness.md](agent-memory-usefulness.md) | Phase 11B cognitive usefulness harness doctrine |
+| [cognitive-memory-engineering.md](cognitive-memory-engineering.md) | Phase 11C research-backed benefit hardening |
+| [memory-formation-quality.md](memory-formation-quality.md) | Phase 11D formation quality gate |
+| [formation-escape-hatches.md](formation-escape-hatches.md) | Phase 11E escape hatches + codebase test isolation |
+| [agent-facing-memory-contract.md](agent-facing-memory-contract.md) | Phase 11F agent-facing memory contract |
+| [agent-memory-contract-field-matrix.md](agent-memory-contract-field-matrix.md) | Phase 11G field-level contract matrix |
+| [agent-memory-contract-endpoint-coverage.md](agent-memory-contract-endpoint-coverage.md) | Phase 11G endpoint coverage map |
+| [agent-contract-obedience.md](agent-contract-obedience.md) | Phase 11H obedience telemetry |
+| [memory-use-telemetry.md](memory-use-telemetry.md) | Phase 11I persisted telemetry + live loop |
+| [automatic-recall-telemetry.md](automatic-recall-telemetry.md) | Phase 11J automatic recall hooks + Postgres proof |
+| [guarded-utility-policy.md](guarded-utility-policy.md) | Phase 11K guarded utility application policy |
+| [recall-quality.md](recall-quality.md) | Recall benchmark gates and hybrid scoring |
+
+---
+
 ## Optional / advisory
 
 | Doc | Note |
 |-----|------|
 | [episodic-similarity.md](episodic-similarity.md) | **Advisory** only — not canonical recall authority; REST proof scenarios in **`make proof-rest`** / **`make proof-episodic`** |
 | [../evidence/episodic-proof.md](../evidence/episodic-proof.md) | Episodic proof inventory, commands, limits |
-| [pluribus-benefit-eval.md](pluribus-benefit-eval.md) | Eval methodology |
+
+Benefit eval and Cursor verify protocols are **local-only** — see [public-documentation-policy.md](public-documentation-policy.md).
 
 ---
 
@@ -107,9 +140,10 @@ Everything below is **reference** — use the table when you need a specific top
 
 | Doc | Purpose |
 |-----|---------|
-| [work-order-format.md](work-order-format.md) | Work order sections |
 | [memory-curation.md](memory-curation.md) | Curation style |
-| [retrieval-order.md](retrieval-order.md) | Context order (retrieval ritual) |
+| [pre-change-enforcement.md](pre-change-enforcement.md) | Pre-change enforcement product doc |
+
+Work-order, constitution, and retrieval-order formats are **local-only** — [local/README.md](local/README.md).
 
 ---
 

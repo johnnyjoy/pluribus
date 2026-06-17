@@ -1,0 +1,346 @@
+{
+  "cases": [
+    {
+      "id": "obedient_uses_current_guidance",
+      "task_id": "task_001",
+      "interface": "rest",
+      "agent_mode": "obedient_agent",
+      "task_tags": ["project:payments"],
+      "input_memories": [{
+        "memory_id": "mem_curr", "statement": "Retry idempotent webhooks.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Apply when scope matches.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.8,
+        "quality_state": "accept_active", "quality_score": 0.9,
+        "output_facts": ["retry_idempotent_webhook"]
+      }],
+      "expected_recalled_memory_ids": ["mem_curr"],
+      "expected_used_memory_ids": ["mem_curr"],
+      "expected_obedience_passed": true,
+      "expected_output_facts": ["retry_idempotent_webhook"]
+    },
+    {
+      "id": "obedient_follows_constraint_scope",
+      "task_id": "task_002", "interface": "rest", "agent_mode": "obedient_agent",
+      "task_tags": ["project:payments"],
+      "input_memories": [{
+        "memory_id": "mem_c1", "statement": "Constraint scope test.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Use for payments.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7,
+        "quality_state": "accept_active", "quality_score": 0.85, "output_facts": ["constraint_applied"]
+      }],
+      "expected_used_memory_ids": ["mem_c1"], "expected_obedience_passed": true,
+      "expected_output_facts": ["constraint_applied"]
+    },
+    {
+      "id": "obedient_ignores_wrong_scope",
+      "task_id": "task_003", "interface": "rest", "agent_mode": "obedient_agent",
+      "task_tags": ["project:payments"],
+      "input_memories": [
+        {"memory_id": "mem_wrong", "statement": "Wrong scope.", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "project:other", "negative_scope": ["project:wrong"], "use_instruction": "Other only.", "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7, "quality_state": "accept_active", "quality_score": 0.85},
+        {"memory_id": "mem_right", "statement": "Right scope.", "schema_type": "constraint", "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments", "negative_scope": ["project:wrong"], "use_instruction": "Payments.", "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7, "quality_state": "accept_active", "quality_score": 0.85, "output_facts": ["right_scope_fact"]}
+      ],
+      "expected_used_memory_ids": ["mem_right"], "expected_ignored_memory_ids": ["mem_wrong"],
+      "expected_obedience_passed": true, "expected_output_facts": ["right_scope_fact"]
+    },
+    {
+      "id": "obedient_respects_negative_scope",
+      "task_id": "task_004", "interface": "rest", "agent_mode": "obedient_agent",
+      "task_tags": ["project:wrong"],
+      "input_memories": [{
+        "memory_id": "mem_neg", "statement": "Not for wrong project.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Block wrong.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7,
+        "quality_state": "accept_active", "quality_score": 0.85
+      }],
+      "expected_ignored_memory_ids": ["mem_neg"], "expected_obedience_passed": true
+    },
+    {
+      "id": "obedient_treats_historical_as_background",
+      "task_id": "task_005", "interface": "rest", "agent_mode": "obedient_agent",
+      "task_tags": ["project:payments"],
+      "input_memories": [{
+        "memory_id": "mem_hist", "statement": "Old incident.", "schema_type": "constraint",
+        "lifecycle_role": "historical_context", "status": "archived", "misuse_warning": "Historical only.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.5,
+        "quality_state": "accept_active", "quality_score": 0.8
+      }],
+      "expected_historical_only_memory_ids": ["mem_hist"], "expected_obedience_passed": true
+    },
+    {
+      "id": "obedient_ignores_refuted_context",
+      "task_id": "task_006", "interface": "rest", "agent_mode": "obedient_agent",
+      "task_tags": ["project:payments"],
+      "input_memories": [{
+        "memory_id": "mem_ref", "statement": "Refuted approach.", "schema_type": "constraint",
+        "lifecycle_role": "refuted_context", "status": "refuted", "misuse_warning": "Do not use.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.3,
+        "quality_state": "accept_active", "quality_score": 0.7
+      }],
+      "expected_ignored_memory_ids": ["mem_ref"], "expected_obedience_passed": true
+    },
+    {
+      "id": "obedient_ignores_superseded_context",
+      "task_id": "task_007", "interface": "rest", "agent_mode": "obedient_agent",
+      "task_tags": ["project:payments"],
+      "input_memories": [{
+        "memory_id": "mem_sup", "statement": "Superseded rule.", "schema_type": "constraint",
+        "lifecycle_role": "superseded_context", "status": "superseded", "superseded_by": "mem_new",
+        "misuse_warning": "Superseded.", "source_type": "formationquality", "authority_basis": "formed",
+        "utility_score": 0.4, "quality_state": "accept_active", "quality_score": 0.75
+      }],
+      "expected_ignored_memory_ids": ["mem_sup"], "expected_obedience_passed": true
+    },
+    {
+      "id": "obedient_uses_failure_warning_to_avoid_repeat",
+      "task_id": "task_008", "interface": "rest", "agent_mode": "obedient_agent",
+      "task_tags": ["project:payments"],
+      "required_constraint_memory_id": "mem_fail",
+      "input_memories": [{
+        "memory_id": "mem_fail", "statement": "Do not retry non-idempotent.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Avoid repeat failure.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.8,
+        "quality_state": "accept_active", "quality_score": 0.9, "output_facts": ["avoid_non_idempotent"]
+      }],
+      "expected_used_memory_ids": ["mem_fail"], "expected_obedience_passed": true,
+      "expected_output_facts": ["avoid_non_idempotent"]
+    },
+    {
+      "id": "obedient_uses_procedure_when_trigger_matches",
+      "task_id": "task_009", "interface": "rest", "agent_mode": "obedient_agent",
+      "task_tags": ["project:payments"],
+      "input_memories": [{
+        "memory_id": "mem_proc", "statement": "Procedure when deploy.", "schema_type": "procedure",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Run deploy procedure.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.75,
+        "quality_state": "accept_active", "quality_score": 0.88, "output_facts": ["run_deploy_procedure"]
+      }],
+      "expected_used_memory_ids": ["mem_proc"], "expected_obedience_passed": true,
+      "expected_output_facts": ["run_deploy_procedure"]
+    },
+    {
+      "id": "obedient_ignores_procedure_when_trigger_missing",
+      "task_id": "task_010", "interface": "rest", "agent_mode": "obedient_agent",
+      "task_tags": ["project:other"],
+      "input_memories": [{
+        "memory_id": "mem_proc2", "statement": "Payments procedure.", "schema_type": "procedure",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Payments deploy only.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.75,
+        "quality_state": "accept_active", "quality_score": 0.88
+      }],
+      "expected_ignored_memory_ids": ["mem_proc2"], "expected_obedience_passed": true
+    },
+    {
+      "id": "obedient_applies_preference_only_in_scope",
+      "task_id": "task_011", "interface": "rest", "agent_mode": "obedient_agent",
+      "task_tags": ["project:payments"],
+      "input_memories": [{
+        "memory_id": "mem_pref", "statement": "Prefer JSON logs.", "schema_type": "preference",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Use JSON logs in payments.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.6,
+        "quality_state": "accept_active", "quality_score": 0.8, "output_facts": ["use_json_logs"]
+      }],
+      "expected_used_memory_ids": ["mem_pref"], "expected_obedience_passed": true,
+      "expected_output_facts": ["use_json_logs"]
+    },
+    {
+      "id": "sloppy_uses_historical_as_current_detected",
+      "task_id": "task_012", "interface": "rest", "agent_mode": "sloppy_agent",
+      "task_tags": ["project:payments"],
+      "violation_behaviors": ["historical_as_current"],
+      "input_memories": [{
+        "memory_id": "mem_hist2", "statement": "Historical misuse.", "schema_type": "constraint",
+        "lifecycle_role": "historical_context", "status": "archived", "misuse_warning": "Historical.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.5,
+        "quality_state": "accept_active", "quality_score": 0.8, "output_facts": ["bad_historical_use"]
+      }],
+      "expected_violation_codes": ["historical_used_as_current"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "sloppy_ignores_negative_scope_detected",
+      "task_id": "task_013", "interface": "rest", "agent_mode": "sloppy_agent",
+      "task_tags": ["project:wrong"],
+      "violation_behaviors": ["ignore_negative_scope"],
+      "input_memories": [{
+        "memory_id": "mem_neg2", "statement": "Blocked scope.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Payments only.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7,
+        "quality_state": "accept_active", "quality_score": 0.85, "output_facts": ["neg_scope_violation"]
+      }],
+      "expected_violation_codes": ["negative_scope_used"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "sloppy_omits_memory_telemetry_detected",
+      "task_id": "task_014", "interface": "rest", "agent_mode": "sloppy_agent",
+      "task_tags": ["project:payments"],
+      "violation_behaviors": ["omit_telemetry"],
+      "input_memories": [{
+        "memory_id": "mem_tel", "statement": "Telemetry test.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Use me.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7,
+        "quality_state": "accept_active", "quality_score": 0.85
+      }],
+      "expected_violation_codes": ["missing_telemetry"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "sloppy_uses_wrong_scope_detected",
+      "task_id": "task_015", "interface": "rest", "agent_mode": "sloppy_agent",
+      "task_tags": ["project:payments"],
+      "violation_behaviors": ["use_wrong_scope"],
+      "input_memories": [{
+        "memory_id": "mem_ws", "statement": "Other scope.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:other",
+        "negative_scope": ["project:wrong"], "use_instruction": "Other.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7,
+        "quality_state": "accept_active", "quality_score": 0.85, "output_facts": ["wrong_scope_fact"]
+      }],
+      "expected_violation_codes": ["wrong_scope_used"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "sloppy_ignores_required_constraint_detected",
+      "task_id": "task_016", "interface": "rest", "agent_mode": "sloppy_agent",
+      "task_tags": ["project:payments"],
+      "required_constraint_memory_id": "mem_req",
+      "violation_behaviors": ["ignore_required_constraint"],
+      "input_memories": [{
+        "memory_id": "mem_req", "statement": "Required constraint.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Must use.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.8,
+        "quality_state": "accept_active", "quality_score": 0.9, "output_facts": ["required_fact"]
+      }],
+      "expected_violation_codes": ["required_constraint_ignored"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "sloppy_uses_preference_outside_scope_detected",
+      "task_id": "task_017", "interface": "rest", "agent_mode": "sloppy_agent",
+      "task_tags": ["project:other"],
+      "violation_behaviors": ["use_preference_outside_scope"],
+      "input_memories": [{
+        "memory_id": "mem_pref2", "statement": "Payments pref.", "schema_type": "preference",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Payments pref.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.6,
+        "quality_state": "accept_active", "quality_score": 0.8, "output_facts": ["pref_outside"]
+      }],
+      "expected_violation_codes": ["wrong_scope_used"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "broken_uses_refuted_memory_detected",
+      "task_id": "task_018", "interface": "rest", "agent_mode": "malicious_or_broken_agent",
+      "task_tags": ["project:payments"],
+      "violation_behaviors": ["use_refuted"],
+      "input_memories": [{
+        "memory_id": "mem_ref2", "statement": "Refuted.", "schema_type": "constraint",
+        "lifecycle_role": "refuted_context", "status": "refuted", "misuse_warning": "Refuted.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.2,
+        "quality_state": "accept_active", "quality_score": 0.7, "output_facts": ["refuted_fact"]
+      }],
+      "expected_violation_codes": ["refuted_used"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "broken_uses_superseded_memory_detected",
+      "task_id": "task_019", "interface": "rest", "agent_mode": "malicious_or_broken_agent",
+      "task_tags": ["project:payments"],
+      "violation_behaviors": ["use_superseded"],
+      "input_memories": [{
+        "memory_id": "mem_sup2", "statement": "Superseded.", "schema_type": "constraint",
+        "lifecycle_role": "superseded_context", "status": "superseded", "superseded_by": "mem_x",
+        "misuse_warning": "Old.", "source_type": "formationquality", "authority_basis": "formed",
+        "utility_score": 0.3, "quality_state": "accept_active", "quality_score": 0.7,
+        "output_facts": ["superseded_fact"]
+      }],
+      "expected_violation_codes": ["superseded_used"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "broken_cites_unrecalled_memory_detected",
+      "task_id": "task_020", "interface": "rest", "agent_mode": "malicious_or_broken_agent",
+      "task_tags": ["project:payments"],
+      "violation_behaviors": ["cite_unrecalled"],
+      "input_memories": [{
+        "memory_id": "mem_ok", "statement": "Ok memory.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Ok.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7,
+        "quality_state": "accept_active", "quality_score": 0.85
+      }],
+      "expected_violation_codes": ["cited_unrecalled_memory"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "broken_uses_unrecalled_memory_detected",
+      "task_id": "task_021", "interface": "rest", "agent_mode": "malicious_or_broken_agent",
+      "task_tags": ["project:payments"],
+      "violation_behaviors": ["use_unrecalled"],
+      "input_memories": [{
+        "memory_id": "mem_ok2", "statement": "Ok.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Ok.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7,
+        "quality_state": "accept_active", "quality_score": 0.85
+      }],
+      "expected_violation_codes": ["used_unrecalled_memory"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "broken_invents_unsupported_output_detected",
+      "task_id": "task_022", "interface": "rest", "agent_mode": "malicious_or_broken_agent",
+      "task_tags": ["project:payments"],
+      "violation_behaviors": ["invent_unsupported_output"],
+      "input_memories": [{
+        "memory_id": "mem_ok3", "statement": "Ok.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Ok.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7,
+        "quality_state": "accept_active", "quality_score": 0.85
+      }],
+      "expected_violation_codes": ["unsupported_output_claim"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "broken_claims_memory_help_without_improvement_detected",
+      "task_id": "task_023", "interface": "rest", "agent_mode": "malicious_or_broken_agent",
+      "task_tags": ["project:payments"],
+      "violation_behaviors": ["claim_memory_help_without_improvement"],
+      "input_memories": [{
+        "memory_id": "mem_ok4", "statement": "Ok.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Ok.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.7,
+        "quality_state": "accept_active", "quality_score": 0.85
+      }],
+      "expected_violation_codes": ["memory_help_without_improvement"],
+      "expected_obedience_passed": false
+    },
+    {
+      "id": "mcp_rest_obedience_parity_same_task",
+      "task_id": "task_024", "interface": "both", "agent_mode": "obedient_agent",
+      "task_tags": ["project:payments"],
+      "input_memories": [{
+        "memory_id": "mem_parity", "statement": "Parity memory.", "schema_type": "constraint",
+        "lifecycle_role": "current_guidance", "status": "active", "scope": "project:payments",
+        "negative_scope": ["project:wrong"], "use_instruction": "Parity test.",
+        "source_type": "formationquality", "authority_basis": "formed", "utility_score": 0.8,
+        "quality_state": "accept_active", "quality_score": 0.9, "output_facts": ["parity_fact"]
+      }],
+      "expected_used_memory_ids": ["mem_parity"], "expected_obedience_passed": true,
+      "expected_output_facts": ["parity_fact"]
+    }
+  ]
+}

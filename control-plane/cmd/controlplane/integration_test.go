@@ -19,6 +19,7 @@ import (
 	"control-plane/internal/apiserver"
 	"control-plane/internal/app"
 	"control-plane/internal/curation"
+	"control-plane/internal/eval"
 	"control-plane/internal/enforcement"
 	"control-plane/internal/httpx"
 	"control-plane/internal/memory"
@@ -53,6 +54,18 @@ func TestMain(m *testing.M) {
 // integrationConfigPath returns a path to the example config. go test runs with cwd = the
 // package directory (e.g. cmd/controlplane), so relative "configs/..." from LoadConfig's default
 // would fail; we walk up to the module root (go.mod). Override with CONFIG=/abs/path.yaml if needed.
+// loadIntegrationConfig loads the example config with proof-friendly formation defaults
+// so REST integration tests seed active governing memories recallable without review pending.
+func loadIntegrationConfig(t *testing.T) *app.Config {
+	t.Helper()
+	cfg, err := app.LoadConfig(integrationConfigPath(t))
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	eval.ApplyProofIntegrationDefaults(cfg)
+	return cfg
+}
+
 func integrationConfigPath(t *testing.T) string {
 	t.Helper()
 	if p := strings.TrimSpace(os.Getenv("CONFIG")); p != "" {
@@ -101,10 +114,7 @@ func TestIntegration_promoteCandidateToPattern(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -178,10 +188,7 @@ func TestIntegration_restHealthReadyAndRecall(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -233,10 +240,7 @@ func TestIntegration_memories_createSearch(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
@@ -309,10 +313,7 @@ func TestIntegration_enforcementEvaluate_postgresVsSqlite(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_PG_DSN not set")
 	}
-	cfg, err := app.LoadConfig(integrationConfigPath(t))
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
+	cfg := loadIntegrationConfig(t)
 	cfg.Postgres.DSN = dsn
 	container, err := app.Boot(cfg)
 	if err != nil {
