@@ -8,6 +8,7 @@ server:
 # Optional: gates tool mcp_episode_ingest (low-noise advisory episodes; never canonical).
 # mcp:
 #   disabled: true
+#   # tools_tier: all   # tools/list filter: core | standard | all (default all). tools/call accepts every name. Env PLURIBUS_TOOLS overrides.
 #   memory_formation:
 #     episode_ingest_enabled: true
 #     min_summary_chars: 12
@@ -175,6 +176,7 @@ memory:
   dedup:
     enabled: true   # omit = on; set false to allow duplicate statements (not recommended)
     near_dup_jaccard_threshold: 0.92   # Phase F: recall collapse; 0 = off; typical 0.92 (creative C2)
+    # semantic_consolidate_threshold: 0   # create-time near-dup reinforce; 0 = off; typical 0.93 when enabled
   # Near-duplicate pattern merge on create (optional). Requires enabled: true; see internal/memory/pattern_generalize.go.
   # pattern_generalization:
   #   enabled: false
@@ -272,6 +274,8 @@ promotion:
 #   neardup_scan_window_days: 14
 #   neardup_scan_limit: 20
 #   chore_min_resolvers: 2
+#   embed_backfill_enabled: true
+#   embed_backfill_batch_size: 50
 
 curation:
   candidate_threshold: 0.5

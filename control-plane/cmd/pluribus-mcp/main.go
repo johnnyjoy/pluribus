@@ -33,6 +33,7 @@ func main() {
 }
 
 func run() error {
+	mcp.InitToolsTier("")
 	sc := bufio.NewScanner(os.Stdin)
 	buf := make([]byte, 64*1024)
 	sc.Buffer(buf, 16*1024*1024)

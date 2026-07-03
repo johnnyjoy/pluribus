@@ -28,6 +28,38 @@ func (f *fakePromoter) AutoPromoteBatchCount(ctx context.Context) (int, int, err
 	return 1, 2, f.err
 }
 
+type fakeEmbedBackfill struct {
+	calls atomic.Int32
+	err   error
+}
+
+func (f *fakeEmbedBackfill) BackfillEmbeddingBatch(ctx context.Context, batchSize int) (embedded, remaining int, err error) {
+	f.calls.Add(1)
+	if f.err != nil {
+		return 0, 0, f.err
+	}
+	return 2, 5, nil
+}
+
+func TestRunOnce_callsEmbedBackfill(t *testing.T) {
+	emb := &fakeEmbedBackfill{}
+	s := &Scheduler{Interval: time.Hour, Embeddings: emb, EmbedBackfillBatchSize: 10}
+	s.RunOnce(context.Background())
+	if emb.calls.Load() != 1 {
+		t.Fatalf("expected embed backfill call, got %d", emb.calls.Load())
+	}
+}
+
+func TestRunOnce_embedFailureDoesNotBlockExpire(t *testing.T) {
+	exp := &fakeExpirer{}
+	emb := &fakeEmbedBackfill{err: errors.New("embedder down")}
+	s := &Scheduler{Interval: time.Hour, Memory: exp, Embeddings: emb}
+	s.RunOnce(context.Background())
+	if exp.calls.Load() != 1 {
+		t.Fatalf("expire must still run after embed failure")
+	}
+}
+
 func TestRunOnce_callsExpireAndPromote(t *testing.T) {
 	exp := &fakeExpirer{}
 	pro := &fakePromoter{}

@@ -2,6 +2,12 @@
 
 Generated from `control-plane/internal/mcp/tool_registry.go`. Do not edit tool rows by hand — run `UPDATE_MCP_TOOLS_DOC=1 go test ./internal/mcp/ -run TestMCPToolsDocMatchesRegistry` from `control-plane/` to refresh.
 
+## Tool tiers (`tools/list` only)
+
+Set **`PLURIBUS_TOOLS`** env or **`mcp.tools_tier`** in config (`core` | `standard` | `all`). Default **`all`** lists every tool. **`tools/call`** still accepts all registered names regardless of tier.
+
+- **`core`** — loop + housekeeping: `enforcement_evaluate`, `health`, `list_chores`, `mcp_episode_ingest`, `memory_context_resolve`, `recall_context`, `record_experience`, `resolve_chore`, `wakeup_context`- **`standard`** — core plus: `auto_log_episode_if_relevant`, `curation_auto_promote`, `curation_digest`, `curation_materialize`, `curation_pending`, `curation_promote_candidate`, `curation_promotion_suggestions`, `curation_reject_candidate`, `curation_review_candidate`, `curation_strengthened`, `memory_create`, `memory_delete`, `memory_feedback`, `memory_log_if_relevant`, `memory_promote`, `memory_quarantine`
+
 | Tool | Purpose | Agent-loop role | Required inputs | Optional inputs | Backend endpoint | Output summary | Risk level | Test coverage |
 |------|---------|-----------------|-----------------|-----------------|------------------|----------------|------------|---------------|
 | `recall_context` | Use at the start of a substantive task, after context changes, or when uncertain whether prior constraints, decisions... | session_start | (semantic) | agent_id, correlation_id, entities, mode, occurred_after, occurred_before, project_root, query, recall_mode, repo_root, retrieval_query, session_id, tags, task, task_description, workspace_root | POST /v1/recall/compile (wrapped) | mcp_context + recall_bundle JSON | low | both |

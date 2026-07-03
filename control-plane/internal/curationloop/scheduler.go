@@ -29,6 +29,12 @@ type ChorePassRunner interface {
 	RunChorePass(ctx context.Context) (opened int, err error)
 }
 
+// EmbeddingBackfiller embeds a batch of rows missing or stale vectors.
+// Satisfied by *memory.Service via router adapter.
+type EmbeddingBackfiller interface {
+	BackfillEmbeddingBatch(ctx context.Context, batchSize int) (embedded, remaining int, err error)
+}
+
 // Scheduler runs the curation loop. Zero-value fields are skipped.
 type Scheduler struct {
 	// Interval between runs (required; caller applies the config default).
@@ -38,6 +44,9 @@ type Scheduler struct {
 	Memory       MemoryExpirer
 	Promoter     AutoPromoter
 	Chores       ChorePassRunner
+	Embeddings   EmbeddingBackfiller
+	// EmbedBackfillBatchSize caps rows embedded per pass (default 50).
+	EmbedBackfillBatchSize int
 }
 
 // Run blocks until ctx is done, executing RunOnce every Interval.
@@ -98,11 +107,26 @@ func (s *Scheduler) RunOnce(ctx context.Context) {
 		n, err := s.Chores.RunChorePass(ctx)
 		if err != nil {
 			slog.Warn("[CURATION LOOP] chore pass failed", "error", err.Error())
+		} else {
+			choresOpened = n
 		}
-		choresOpened = n
+	}
+	embedBatch := s.EmbedBackfillBatchSize
+	if embedBatch <= 0 {
+		embedBatch = 50
+	}
+	embedded, embedRemaining := 0, 0
+	if s.Embeddings != nil {
+		n, rem, err := s.Embeddings.BackfillEmbeddingBatch(ctx, embedBatch)
+		if err != nil {
+			slog.Warn("[CURATION LOOP] embed backfill failed", "error", err.Error())
+		} else {
+			embedded, embedRemaining = n, rem
+		}
 	}
 	slog.Info("[CURATION LOOP] pass complete",
 		"archived", archived, "promoted", promoted, "promote_skipped", skipped,
 		"chores_opened", choresOpened,
+		"embeddings_backfilled", embedded, "embeddings_remaining", embedRemaining,
 		"elapsed_ms", time.Since(start).Milliseconds())
 }

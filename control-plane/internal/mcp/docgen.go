@@ -11,6 +11,13 @@ func GenerateMCPToolsMarkdown() string {
 	var b strings.Builder
 	b.WriteString("# Pluribus MCP tools\n\n")
 	b.WriteString("Generated from `control-plane/internal/mcp/tool_registry.go`. Do not edit tool rows by hand — run `UPDATE_MCP_TOOLS_DOC=1 go test ./internal/mcp/ -run TestMCPToolsDocMatchesRegistry` from `control-plane/` to refresh.\n\n")
+	b.WriteString("## Tool tiers (`tools/list` only)\n\n")
+	b.WriteString("Set **`PLURIBUS_TOOLS`** env or **`mcp.tools_tier`** in config (`core` | `standard` | `all`). Default **`all`** lists every tool. **`tools/call`** still accepts all registered names regardless of tier.\n\n")
+	b.WriteString("- **`core`** — loop + housekeeping: ")
+	b.WriteString(tierToolList(ToolsTierCore))
+	b.WriteString("- **`standard`** — core plus: ")
+	b.WriteString(standardExtraToolList())
+	b.WriteString("\n\n")
 	b.WriteString("| Tool | Purpose | Agent-loop role | Required inputs | Optional inputs | Backend endpoint | Output summary | Risk level | Test coverage |\n")
 	b.WriteString("|------|---------|-----------------|-----------------|-----------------|------------------|----------------|------------|---------------|\n")
 
@@ -94,4 +101,22 @@ func schemaFieldLists(schema map[string]any) (required, optional string) {
 		optFields = []string{"—"}
 	}
 	return strings.Join(reqFields, ", "), strings.Join(optFields, ", ")
+}
+
+func tierToolList(tier string) string {
+	names := make([]string, 0, len(toolRegistry()))
+	for _, t := range filterRegistryByTier(toolRegistry(), tier) {
+		names = append(names, "`"+t.Name+"`")
+	}
+	sort.Strings(names)
+	return strings.Join(names, ", ")
+}
+
+func standardExtraToolList() string {
+	names := make([]string, 0, len(standardExtraToolNames))
+	for n := range standardExtraToolNames {
+		names = append(names, "`"+n+"`")
+	}
+	sort.Strings(names)
+	return strings.Join(names, ", ")
 }

@@ -20,4 +20,4 @@ Paste into editor rules, `AGENTS.md`, `instructions`, or system prompts. Tighten
 
 ## Non-destructive evolution
 
-- Candidates and promotion are how learning becomes durable; there is no “delete the bad memory” user story—see doctrine.
+- Candidates and promotion are how learning becomes durable. Corrections are additive (supersede, not erase). For harmful or suspect rows, use **`memory_quarantine`** and resolve the resulting **chore** via **`resolve_chore`** (corroborated votes apply soft delete or re-review)—see [memory-doctrine.md](../../memory-doctrine.md).

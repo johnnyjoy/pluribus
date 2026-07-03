@@ -131,6 +131,10 @@ func buildMemoryContextResolveCompileBody(arguments json.RawMessage) ([]byte, ma
 		"retrieval_query": task,
 		"mode":            compileMode,
 	}
+	repoRoot := strings.TrimSpace(firstString(m, "repo_root", "workspace_root", "project_root"))
+	if repoRoot != "" {
+		tags = appendRepoRootTags(tags, repoRoot)
+	}
 	if len(tags) > 0 {
 		out["tags"] = dedupeStrings(tags)
 	}
@@ -161,7 +165,6 @@ func buildMemoryContextResolveCompileBody(arguments json.RawMessage) ([]byte, ma
 	if inc := parseStringSliceField(m, "include_status"); len(inc) > 0 {
 		out["include_status"] = dedupeStrings(inc)
 	}
-	repoRoot := strings.TrimSpace(firstString(m, "repo_root", "workspace_root", "project_root"))
 	if repoRoot != "" {
 		out["repo_root"] = repoRoot
 	}

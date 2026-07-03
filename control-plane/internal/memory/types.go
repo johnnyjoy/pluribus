@@ -174,6 +174,9 @@ type MemoryObject struct {
 	// AgentID attributes the memory to its authoring agent (Phase 3 attribution;
 	// loaded on GetByID, not on bulk search paths).
 	AgentID string `json:"agent_id,omitempty"`
+	// Consolidated is set on create responses when semantic near-dup consolidation
+	// reinforced an existing row instead of inserting (not persisted).
+	Consolidated bool `json:"consolidated,omitempty"`
 }
 
 // CreateRequest is the payload for creating a memory object.

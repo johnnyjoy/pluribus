@@ -70,7 +70,10 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		}
 	}
 	if cfg.Memory.Dedup != nil {
-		memorySvc.Dedup = &memory.DedupConfig{Enabled: cfg.Memory.Dedup.Enabled}
+		memorySvc.Dedup = &memory.DedupConfig{
+			Enabled:                      cfg.Memory.Dedup.Enabled,
+			SemanticConsolidateThreshold: cfg.Memory.Dedup.SemanticConsolidateThreshold,
+		}
 	}
 	if cfg.Memory.PatternGeneralization != nil {
 		pg := cfg.Memory.PatternGeneralization
@@ -478,8 +481,14 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		if cfg.Promotion.AutoPromote {
 			sched.Promoter = curationSvc
 		}
+		if cfg.CurationScheduler.EmbedBackfillEnabled {
+			sched.Embeddings = &memoryEmbedBackfill{svc: memorySvc}
+			sched.EmbedBackfillBatchSize = cfg.CurationScheduler.EmbedBackfillBatchSize
+		}
 		go sched.Run(context.Background())
-		slog.Info("[CURATION LOOP] scheduled", "interval", interval.String(), "auto_promote", cfg.Promotion.AutoPromote)
+		slog.Info("[CURATION LOOP] scheduled", "interval", interval.String(),
+			"auto_promote", cfg.Promotion.AutoPromote,
+			"embed_backfill", cfg.CurationScheduler.EmbedBackfillEnabled)
 	}
 
 	complianceHandlers := &compliance.Handlers{Service: complianceSvc}
@@ -599,4 +608,20 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	})
 
 	return httpx.WrapWithPluribusAuth(mcp.WrapHandler(router, cfg, complianceSvc), container.APIKey), nil
+}
+
+// memoryEmbedBackfill adapts memory.Service for the curation loop embedding pass.
+type memoryEmbedBackfill struct {
+	svc *memory.Service
+}
+
+func (a *memoryEmbedBackfill) BackfillEmbeddingBatch(ctx context.Context, batchSize int) (embedded, remaining int, err error) {
+	if a == nil || a.svc == nil {
+		return 0, 0, nil
+	}
+	res, err := a.svc.BackfillEmbeddings(ctx, batchSize)
+	if err != nil {
+		return 0, 0, err
+	}
+	return res.Embedded, res.Remaining, nil
 }

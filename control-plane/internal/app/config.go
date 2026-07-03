@@ -66,6 +66,11 @@ type CurationSchedulerConfig struct {
 	// ChoreMinResolvers distinct agents must vote for the same action before a
 	// curation chore applies. Default 2; set 1 for a small hive.
 	ChoreMinResolvers int `yaml:"chore_min_resolvers"`
+	// EmbedBackfillEnabled runs a bounded embedding backfill batch each pass
+	// (rows missing/stale vectors). Default false.
+	EmbedBackfillEnabled bool `yaml:"embed_backfill_enabled"`
+	// EmbedBackfillBatchSize rows per pass when embed backfill is enabled. Default 50.
+	EmbedBackfillBatchSize int `yaml:"embed_backfill_batch_size"`
 }
 
 // LexicalConfig gates experimental BM25 retrieval against a projection table (not canonical memories).
@@ -80,6 +85,8 @@ type LexicalConfig struct {
 type MCPConfig struct {
 	// Disabled skips the MCP wrapper (no MCP endpoint; POST /v1/mcp is not handled by MCP).
 	Disabled bool `yaml:"disabled"`
+	// ToolsTier filters tools/list: all (default), standard, or core. tools/call still accepts every name.
+	ToolsTier string `yaml:"tools_tier,omitempty"`
 	// MemoryFormation gates MCP tools that create advisory episodes / surface candidates (optional).
 	MemoryFormation *MCPMemoryFormationConfig `yaml:"memory_formation,omitempty"`
 }
@@ -270,6 +277,9 @@ type MemoryDedupConfig struct {
 	// 0 = do not collapse near-dups (exact statement_key collapse still applies when ranking is on).
 	// Typical: 0.92 (creative C2).
 	NearDupJaccardThreshold float64 `yaml:"near_dup_jaccard_threshold,omitempty"`
+	// SemanticConsolidateThreshold: cosine similarity at create time to reinforce instead of insert.
+	// 0 = off (default). Typical when enabled: 0.93.
+	SemanticConsolidateThreshold float64 `yaml:"semantic_consolidate_threshold,omitempty"`
 }
 
 // MemoryLifecycleConfig holds deltas for authority adjustment (Task 74) and expiration (Task 75).

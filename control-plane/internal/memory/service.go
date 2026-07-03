@@ -359,6 +359,11 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*MemoryObject,
 		}
 	}
 	s.maybeEmbedOnCreate(ctx, &req)
+	if merged, err := s.tryMergeSemanticNearDuplicate(ctx, &req); err != nil {
+		return nil, err
+	} else if merged != nil {
+		return merged, nil
+	}
 	obj, err := s.Repo.Create(ctx, req)
 	if err != nil {
 		return nil, err

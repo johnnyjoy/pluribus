@@ -19,7 +19,11 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-      - recall_pgdata:/var/lib/postgresql/data/18/docker
+      # PG18 images moved PGDATA to /var/lib/postgresql/<major>/docker; mount the
+      # PARENT so data actually lands on the volume. The old target
+      # (/var/lib/postgresql/data/18/docker) was never written to, which silently
+      # kept the database in the container layer — `docker compose down` wiped it.
+      - recall_pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U controlplane -d controlplane"]
       interval: 5s
@@ -47,6 +51,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8123:8123"
+    # Lets the container reach services on the docker host (e.g. Ollama :11434
+    # for local semantic embeddings) via host.docker.internal.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro

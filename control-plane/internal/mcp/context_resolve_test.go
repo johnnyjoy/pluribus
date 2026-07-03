@@ -76,6 +76,20 @@ func TestBuildMemoryContextResolveCompileBody_repoRoot(t *testing.T) {
 	if m["repo_root"] != "/projects/pluribus" {
 		t.Fatalf("repo_root: %v", m["repo_root"])
 	}
+	rawTags, ok := m["tags"].([]any)
+	if !ok || len(rawTags) != 2 {
+		t.Fatalf("tags: %v", m["tags"])
+	}
+	tagSet := map[string]struct{}{}
+	for _, v := range rawTags {
+		s, _ := v.(string)
+		tagSet[s] = struct{}{}
+	}
+	for _, want := range []string{"project:pluribus", "repo:pluribus"} {
+		if _, ok := tagSet[want]; !ok {
+			t.Fatalf("missing tag %q in %v", want, m["tags"])
+		}
+	}
 }
 
 func TestBuildMemoryContextResolveCompileBody_dateBounds(t *testing.T) {

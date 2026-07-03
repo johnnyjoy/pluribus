@@ -107,6 +107,9 @@ curation_scheduler:
   # Distinct agents that must vote the same action before a chore applies.
   # 2 = corroborated (recommended once several agents visit); 1 = single-agent hive.
   chore_min_resolvers: 2
+  # Bounded embedding backfill each pass (rows missing/stale vectors).
+  embed_backfill_enabled: true
+  embed_backfill_batch_size: 50
 
 slow_path:
   enabled: false

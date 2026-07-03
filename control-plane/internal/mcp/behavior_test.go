@@ -61,8 +61,8 @@ func TestMCPBehavior_toolsListSchemasNonEmpty(t *testing.T) {
 	}
 	result, _ := out["result"].(map[string]any)
 	tools, _ := result["tools"].([]any)
-	if len(tools) != len(toolRegistry()) {
-		t.Fatalf("tools count %d want %d", len(tools), len(toolRegistry()))
+	if len(tools) != len(registryForList()) {
+		t.Fatalf("tools count %d want %d", len(tools), len(registryForList()))
 	}
 	for _, raw := range tools {
 		tool, _ := raw.(map[string]any)

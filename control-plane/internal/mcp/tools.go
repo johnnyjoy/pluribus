@@ -29,7 +29,7 @@ var wakeupContextInputSchema = map[string]any{
 
 // ToolDefinitions returns MCP tool descriptors from the canonical registry (stdio and HTTP MCP).
 func ToolDefinitions() []map[string]any {
-	reg := toolRegistry()
+	reg := registryForList()
 	out := make([]map[string]any, len(reg))
 	for i, t := range reg {
 		desc := t.Description + toolDoctrineHint

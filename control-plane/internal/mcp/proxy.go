@@ -532,10 +532,8 @@ func buildAdvisoryEpisodeMCPBody(arguments json.RawMessage, pol *MemoryFormation
 	if ek, ok := m["event_kind"].(string); ok && strings.TrimSpace(ek) != "" {
 		tags = append(tags, "mcp:event:"+sanitizeMcpEventKind(ek))
 	}
-	if rr, ok := m["repo_root"].(string); ok && strings.TrimSpace(rr) != "" {
-		if base := repoBasename(rr); base != "" {
-			tags = append(tags, "repo:"+base)
-		}
+	if rr := strings.TrimSpace(firstString(m, "repo_root", "workspace_root", "project_root")); rr != "" {
+		tags = appendRepoRootTags(tags, rr)
 	}
 	out := map[string]any{
 		"summary": strings.TrimSpace(summary),

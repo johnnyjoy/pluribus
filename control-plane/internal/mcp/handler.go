@@ -31,6 +31,11 @@ const (
 // MCP JSON-RPC; all other requests go to inner. inner receives loopback tool traffic (same
 // middleware and routes as real HTTP).
 func WrapHandler(inner http.Handler, cfg *app.Config, telemetry *compliance.Service) http.Handler {
+	tier := ""
+	if cfg != nil && cfg.MCP != nil {
+		tier = cfg.MCP.ToolsTier
+	}
+	InitToolsTier(tier)
 	if cfg == nil || !cfg.MCPEnabled() {
 		return inner
 	}

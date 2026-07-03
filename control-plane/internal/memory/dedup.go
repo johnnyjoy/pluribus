@@ -4,6 +4,10 @@ package memory
 // Nil Enabled means on (same default pattern as enforcement.enabled).
 type DedupConfig struct {
 	Enabled *bool
+	// SemanticConsolidateThreshold: when > 0 and semantic retrieval is on, create path
+	// reinforces an existing same-kind row whose embedding cosine ≥ threshold instead of
+	// inserting a near-duplicate. 0 = off (default).
+	SemanticConsolidateThreshold float64
 }
 
 // IsEnabled returns whether duplicate detection runs before insert. Omitted or nil Enabled → true.
