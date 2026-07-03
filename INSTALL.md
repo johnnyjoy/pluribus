@@ -36,7 +36,7 @@ This starts the default local stack:
 - `redis`
 - `controlplane` (HTTP API on `:8123`)
 
-`controlplane` startup waits for DB, applies embedded baseline SQL, and verifies core tables exist (fresh Postgres intended).
+`controlplane` startup waits for DB, applies embedded forward-only idempotent migrations **in place** against the existing database, and verifies core tables exist. Existing memories are preserved across upgrades; see `scripts/upgrade-in-place.sh` for the supported upgrade path.
 
 ### Verify
 

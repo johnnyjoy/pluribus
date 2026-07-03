@@ -1,0 +1,18 @@
+{
+  "phase": "12D",
+  "generated_at": "2026-05-25",
+  "platforms_reviewed": 10,
+  "integrations_reviewed": 11,
+  "platform_research_complete_rate": 1.0,
+  "canonical_instruction_conformance_rate": 1.0,
+  "mcp_surface_conformance_rate": 1.0,
+  "install_verification_coverage_rate": 1.0,
+  "smoke_verification_coverage_rate": 0.73,
+  "below_platform_capability_count": 7,
+  "overclaims_capability_count": 0,
+  "broken_or_unverified_count": 0,
+  "notes": {
+    "smoke_verification_coverage_rate": "8/11 integrations have static verify scripts; template packs rely on manual smoke",
+    "below_platform_capability_count": "Expected where platform max exceeds current tier; honestly labeled"
+  }
+}

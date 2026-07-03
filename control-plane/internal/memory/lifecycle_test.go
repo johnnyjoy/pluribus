@@ -23,15 +23,35 @@ func TestApplyAuthorityEvent_contradiction(t *testing.T) {
 	if got != 4 {
 		t.Errorf("ApplyAuthorityEvent(5, contradiction, 0.1, 0.2) = %d, want 4", got)
 	}
-	// authority 1 (0.1) - 0.2*0.1 = 0.08 => rounds to 1; low authority stays low
+	// authority 1: multiplicative decay rounds back to 1, but negative events
+	// guarantee at least a one-step drop (C3: demotion must always progress)
 	got = ApplyAuthorityEvent(1, "contradiction", 0.1, 0.2)
-	if got != 1 {
-		t.Errorf("ApplyAuthorityEvent(1, contradiction, ...) = %d, want 1", got)
+	if got != 0 {
+		t.Errorf("ApplyAuthorityEvent(1, contradiction, ...) = %d, want 0 (guaranteed progress)", got)
 	}
 	// authority 0 unchanged
 	got = ApplyAuthorityEvent(0, "contradiction", 0.1, 0.2)
 	if got != 0 {
 		t.Errorf("ApplyAuthorityEvent(0, contradiction, ...) = %d, want 0 (capped)", got)
+	}
+}
+
+func TestApplyAuthorityEvent_failureAlwaysDemotes(t *testing.T) {
+	// Hostile audit C3: authority used to stick at 2 under repeated failures
+	// (2 -> 1.6 -> rounds to 2). Every negative event must now drop >= 1 step.
+	for start := 1; start <= 10; start++ {
+		got := ApplyAuthorityEvent(start, "failure", 0.1, 0.2)
+		if got >= start {
+			t.Errorf("ApplyAuthorityEvent(%d, failure) = %d, want < %d", start, got, start)
+		}
+	}
+	// Repeated failures from 2 must reach 0 (below any recall floor).
+	a := 2
+	for i := 0; i < 5 && a > 0; i++ {
+		a = ApplyAuthorityEvent(a, "failure", 0.1, 0.2)
+	}
+	if a != 0 {
+		t.Errorf("repeated failures from 2 ended at %d, want 0", a)
 	}
 }
 

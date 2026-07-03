@@ -31,4 +31,10 @@ const (
 	StatusArchived   Status = "archived"
 	StatusPending    Status = "pending"
 	StatusRejected   Status = "rejected"
+	// StatusQuarantined marks rows stored but never surfaced by recall, awaiting
+	// review (harmful-advice screen, operator quarantine, or authority exhausted).
+	StatusQuarantined Status = "quarantined"
+	// StatusDeleted is a soft-delete tombstone: excluded from all recall including
+	// historical mode. Canonical rows are never hard-deleted.
+	StatusDeleted Status = "deleted"
 )

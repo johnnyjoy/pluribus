@@ -10,9 +10,11 @@ import (
 
 	"control-plane/internal/agenttelemetry"
 	"control-plane/internal/app"
+	"control-plane/internal/chores"
 	"control-plane/internal/compliance"
 	"control-plane/internal/contradiction"
 	"control-plane/internal/curation"
+	"control-plane/internal/curationloop"
 	"control-plane/internal/distillation"
 	"control-plane/internal/drift"
 	"control-plane/internal/enforcement"
@@ -55,6 +57,7 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			AuthorityPositiveDelta:       cfg.Memory.Lifecycle.AuthorityPositiveDelta,
 			AuthorityNegativeDelta:       cfg.Memory.Lifecycle.AuthorityNegativeDelta,
 			ExpirationAuthorityThreshold: cfg.Memory.Lifecycle.ExpirationAuthorityThreshold,
+			ProbationaryExpireDays:       cfg.Memory.Lifecycle.ProbationaryExpireDays,
 		}
 		if memorySvc.Lifecycle.AuthorityPositiveDelta <= 0 {
 			memorySvc.Lifecycle.AuthorityPositiveDelta = 0.1
@@ -127,6 +130,25 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	contradictionRepo := &contradiction.Repo{DB: container.DB}
 	contradictionSvc := &contradiction.Service{Repo: contradictionRepo, MemoryRepo: memoryRepo, Utility: utilitySvc}
 	contradictionHandlers := &contradiction.Handlers{Service: contradictionSvc}
+	// Phase 3: contradiction-on-write links opposing memories and holds both for review.
+	memorySvc.Contradictions = contradictionSvc
+
+	// Agent-driven curation chores: the server packages review work
+	// (contradictions, quarantine, near-duplicates) for visiting agents;
+	// corroborated votes from distinct agents apply the resolution.
+	choresSvc := &chores.Service{
+		Repo:           &chores.Repo{DB: container.DB},
+		Memory:         memorySvc,
+		Contradictions: contradictionRepo,
+		MinResolvers:   cfg.CurationScheduler.ChoreMinResolvers,
+		NearDup: chores.NearDupConfig{
+			Enabled:       cfg.CurationScheduler.NearDupScanEnabled,
+			MinSimilarity: cfg.CurationScheduler.NearDupCosineThreshold,
+			WindowDays:    cfg.CurationScheduler.NearDupScanWindowDays,
+			Limit:         cfg.CurationScheduler.NearDupScanLimit,
+		},
+	}
+	choresHandlers := &chores.Handlers{Service: choresSvc}
 
 	curationRepo := &curation.Repo{DB: container.DB}
 	curationConfig := &curation.SalienceConfig{
@@ -182,6 +204,11 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 	)
 	w.SemanticSimilarity = recall.ResolveSemanticSimilarityWeight(rk.WeightSemanticSimilarity)
 	recallCompiler.Ranking = &w
+	recall.ApplyRankingTermConfig(recall.RankingTermConfig{
+		ProductAnchorTerms:           rk.ProductAnchorTerms,
+		ExtraGenericTerms:            rk.ExtraGenericTerms,
+		ExtraCommonDistinctiveTokens: rk.ExtraCommonDistinctiveTokens,
+	})
 	if cfg.Recall.SemanticRetrieval != nil && cfg.Recall.SemanticRetrieval.RetrievalEnabled() {
 		recallCompiler.Semantic = &recall.SemanticRecallConfig{
 			Enabled:             true,
@@ -435,6 +462,26 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 		}
 	}
 
+	// Phase 3 auto-curation: background loop keeps the pool curated (expire
+	// stale/probationary rows; auto-promote eligible candidates) without
+	// requiring an operator to call the batch endpoints manually.
+	if cfg.CurationScheduler.Enabled {
+		interval := time.Duration(cfg.CurationScheduler.IntervalMinutes) * time.Minute
+		if interval <= 0 {
+			interval = time.Hour
+		}
+		delay := time.Duration(cfg.CurationScheduler.InitialDelaySeconds) * time.Second
+		if delay <= 0 {
+			delay = 30 * time.Second
+		}
+		sched := &curationloop.Scheduler{Interval: interval, InitialDelay: delay, Memory: memorySvc, Chores: choresSvc}
+		if cfg.Promotion.AutoPromote {
+			sched.Promoter = curationSvc
+		}
+		go sched.Run(context.Background())
+		slog.Info("[CURATION LOOP] scheduled", "interval", interval.String(), "auto_promote", cfg.Promotion.AutoPromote)
+	}
+
 	complianceHandlers := &compliance.Handlers{Service: complianceSvc}
 	telemetryHandlers := &agenttelemetry.Handlers{Service: telemetrySvc}
 	policyRepo := &utilitypolicy.Repo{DB: container.DB}
@@ -456,6 +503,9 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			r.Post("/search", memoryHandlers.Search)
 			r.Put("/{id}/attributes", memoryHandlers.SetAttributes)
 			r.Post("/{id}/authority/event", memoryHandlers.ApplyAuthorityEvent)
+			r.Post("/{id}/quarantine", memoryHandlers.Quarantine)
+			r.Delete("/{id}", memoryHandlers.Delete)
+			r.Post("/embeddings/backfill", memoryHandlers.BackfillEmbeddings)
 			r.Post("/{id}/feedback", utilityHandlers.PostFeedback)
 			r.Get("/{id}/feedback", utilityHandlers.ListFeedback)
 			r.Get("/{id}/utility", utilityHandlers.GetUtility)
@@ -479,6 +529,8 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			r.Post("/candidates/{id}/materialize", curationHandlers.Materialize)
 			r.Post("/candidates/{id}/promote", curationHandlers.MarkPromoted)
 			r.Post("/candidates/{id}/reject", curationHandlers.MarkRejected)
+			r.Get("/chores", choresHandlers.List)
+			r.Post("/chores/{id}/resolve", choresHandlers.Resolve)
 		})
 		r.Route("/recall", func(r chi.Router) {
 			r.Get("/", recallHandlers.GetBundle)

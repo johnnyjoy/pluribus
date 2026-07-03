@@ -44,6 +44,9 @@ type LifecycleConfig struct {
 	AuthorityPositiveDelta       float64 // validation
 	AuthorityNegativeDelta       float64 // contradiction, failure
 	ExpirationAuthorityThreshold int     // 0-10; memories with authority < this and TTL expired get archived
+	// ProbationaryExpireDays archives probationary rows without a TTL after this many days
+	// (authority below threshold, no historical-value signals). 0 = disabled.
+	ProbationaryExpireDays int
 }
 
 // Service provides memory object use cases.
@@ -71,6 +74,15 @@ type Service struct {
 	Formation *formation.Gate
 	// ReinforceDuplicateAuthority when true restores legacy duplicate authority +1 (Phase 7 default: false).
 	ReinforceDuplicateAuthority bool
+	// Contradictions optional: records an unresolved contradiction link when
+	// contradiction-on-write detects an opposing active memory (Phase 3).
+	Contradictions ContradictionLinker
+}
+
+// ContradictionLinker records an unresolved contradiction between two memories
+// so both are held back from recall until reviewed. *contradiction.Service satisfies it.
+type ContradictionLinker interface {
+	RecordDetected(ctx context.Context, memoryID, conflictWithID uuid.UUID) error
 }
 
 // ReinforceRecallUsage increases authority for recalled memories (frequency/reuse signal).
@@ -186,17 +198,28 @@ func (s *Service) ReinforceRecallUsageWithMeta(ctx context.Context, ids []uuid.U
 			}
 		}
 		newCtx, newAgents := SalienceDistinctCounts(merged)
+		// Corroboration (Phase 3): the memory's author never self-promotes.
+		// Usage is still recorded (salience merge below), but authority only
+		// rises when a *different* agent confirms or applies the memory.
+		selfUse := agKey != "" && obj.AgentID != "" && agKey == AgentUsageKey(obj.AgentID)
 		room := AuthorityScale - obj.Authority
-		if room <= 0 {
-			continue
-		}
 		reuseD := maxDelta
 		if reuseD > room {
 			reuseD = room
 		}
+		if selfUse {
+			reuseD = 0
+		}
+		if s.Reinforcement != nil && s.Reinforcement.RequireDistinctAgentForAuthority {
+			// Strict corroboration: reuse authority requires a newly seen distinct
+			// agent; repetition by an already-counted agent merges salience only.
+			if agKey == "" || newAgents <= prevAgents {
+				reuseD = 0
+			}
+		}
 		remaining := room - reuseD
 		agentExtra := 0
-		if newAgents > prevAgents && prevAgents < maxAgentForAuth {
+		if !selfUse && newAgents > prevAgents && prevAgents < maxAgentForAuth {
 			inc := newAgents - prevAgents
 			if inc > 0 {
 				agentExtra = inc
@@ -209,7 +232,17 @@ func (s *Service) ReinforceRecallUsageWithMeta(ctx context.Context, ids []uuid.U
 			}
 		}
 		totalAdd := reuseD + agentExtra
-		if totalAdd <= 0 {
+		if totalAdd <= 0 || room <= 0 {
+			// No authority change; still persist salience usage so future
+			// distinct-agent corroboration has an accurate baseline.
+			if merr == nil && len(merged) > 0 && !bytes.Equal(merged, obj.Payload) {
+				if err := s.Repo.UpdatePayload(ctx, id, merged); err == nil {
+					cacheDirty = true
+				}
+			}
+			if selfUse {
+				slog.Info("[AUTHORITY UPDATE]", "memory_id", id.String(), "reason", "self_use_no_promotion", "delta", 0, "new_authority", obj.Authority, "distinct_agents", newAgents)
+			}
 			continue
 		}
 		newAuthority := obj.Authority + totalAdd
@@ -294,7 +327,11 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*MemoryObject,
 				}
 				return upgraded, nil
 			}
-			if s.ReinforceDuplicateAuthority {
+			// Corroboration (Phase 3): re-submitting one's own memory never
+			// self-promotes; only a distinct agent's duplicate create reinforces.
+			sameAuthor := strings.TrimSpace(req.AgentID) != "" && existing.AgentID != "" &&
+				strings.TrimSpace(req.AgentID) == existing.AgentID
+			if s.ReinforceDuplicateAuthority && !sameAuthor {
 				newAuth := existing.Authority + 1
 				if newAuth > 10 {
 					newAuth = 10
@@ -341,6 +378,24 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*MemoryObject,
 			}
 		}
 	}
+	if req.ConflictsWithID != nil && *req.ConflictsWithID != uuid.Nil {
+		// Contradiction-on-write hit: link the pair (typed edge + unresolved
+		// contradiction record) so both are held for review instead of surfacing.
+		if s.Relationships != nil {
+			if _, err := s.Relationships.CreateRelationship(ctx, obj.ID, *req.ConflictsWithID, RelContradicts,
+				"contradiction detected at write time", "memory_create_contradiction_on_write"); err != nil {
+				slog.Warn("[CONTRADICTION] could not record contradicts edge", "error", err.Error())
+			}
+		}
+		if s.Contradictions != nil {
+			if err := s.Contradictions.RecordDetected(ctx, obj.ID, *req.ConflictsWithID); err != nil {
+				slog.Warn("[CONTRADICTION] could not record contradiction", "error", err.Error())
+			} else {
+				slog.Info("[CONTRADICTION] linked opposing memories for review",
+					"memory_id", obj.ID.String(), "conflict_with_id", req.ConflictsWithID.String())
+			}
+		}
+	}
 	if s.Cache != nil {
 		_ = s.Cache.DeleteByPrefix(ctx, "memory:tags:")
 		s.invalidateRecallBundleCache(ctx)
@@ -377,7 +432,8 @@ func (s *Service) applyFormationGate(ctx context.Context, req *CreateRequest) er
 	req.Authority = in.Authority
 	req.Applicability = in.Applicability
 	req.Status = in.Status
-	if s.Formation.Config().ContradictionOnWrite && req.Kind == api.MemoryKindConstraint {
+	if s.Formation.Config().ContradictionOnWrite &&
+		(req.Kind == api.MemoryKindConstraint || req.FormationPath == formation.PathProbationaryIngest) {
 		if err := s.applyContradictionOnWrite(ctx, req); err != nil {
 			return err
 		}
@@ -385,30 +441,54 @@ func (s *Service) applyFormationGate(ctx context.Context, req *CreateRequest) er
 	return nil
 }
 
+// applyContradictionOnWrite flags a new write that opposes an active memory
+// (Phase 3 contradiction detection). Two paths:
+//   - governing/high-risk constraints (original gate): checked against active
+//     governing constraints;
+//   - probationary lessons from advisory ingest: checked against active
+//     memories of the same kind, regardless of authority.
+//
+// On a hit the new row lands pending (never surfaces unreviewed) and
+// ConflictsWithID is stashed so Create links the pair after insert, which also
+// holds the opposing memory back from recall until an operator resolves it.
 func (s *Service) applyContradictionOnWrite(ctx context.Context, req *CreateRequest) error {
 	if s == nil || s.Repo == nil || req == nil {
 		return nil
 	}
-	if req.Status == api.StatusPending {
+	// Quarantined rows never surface; no contradiction link needed.
+	if req.Status == api.StatusQuarantined {
 		return nil
 	}
-	if req.Applicability != api.ApplicabilityGoverning && req.Authority < s.Formation.Config().DirectCreate.HighRiskAuthorityThreshold {
+	lessonPath := req.FormationPath == formation.PathProbationaryIngest
+	// Rows already held for review skip the direct-create check, but lessons are
+	// still scanned so the opposing ACTIVE memory gets linked and held too.
+	if req.Status == api.StatusPending && !lessonPath {
 		return nil
+	}
+	if !lessonPath && req.Applicability != api.ApplicabilityGoverning && req.Authority < s.Formation.Config().DirectCreate.HighRiskAuthorityThreshold {
+		return nil
+	}
+	kind := api.MemoryKindConstraint
+	if lessonPath {
+		kind = req.Kind
 	}
 	list, err := s.Repo.SearchUnscoped(ctx, SearchRequest{
-		Kinds:  []api.MemoryKind{api.MemoryKindConstraint},
+		Kinds:  []api.MemoryKind{kind},
 		Status: string(api.StatusActive),
 		Max:    40,
 	})
 	if err != nil {
 		return nil
 	}
-	for _, m := range list {
-		if m.Applicability != api.ApplicabilityGoverning {
+	for i := range list {
+		m := list[i]
+		if !lessonPath && m.Applicability != api.ApplicabilityGoverning {
 			continue
 		}
 		if formation.ContradictsStatement(req.Statement, m.Statement) {
 			req.Status = api.StatusPending
+			conflictID := m.ID
+			req.ConflictsWithID = &conflictID
 			if req.Payload == nil {
 				raw := json.RawMessage(`{"formation":"contradiction_on_write"}`)
 				req.Payload = &raw
@@ -466,6 +546,11 @@ func (s *Service) SearchMemories(ctx context.Context, req MemoriesSearchRequest)
 	return s.Repo.SearchTagOnly(ctx, req.Query, req.Tags, req.Status, req.Max)
 }
 
+// SearchFullText exposes the tsvector candidate slice for hybrid recall (H1).
+func (s *Service) SearchFullText(ctx context.Context, query, status string, max int) ([]MemoryObject, error) {
+	return s.Repo.SearchFullText(ctx, query, status, max)
+}
+
 func validKind(k api.MemoryKind) bool {
 	switch k {
 	case api.MemoryKindDecision, api.MemoryKindConstraint, api.MemoryKindFailure, api.MemoryKindPattern, api.MemoryKindState:
@@ -486,7 +571,9 @@ func validBehaviorKind(k api.MemoryKind) bool {
 
 func validCreateStatus(s api.Status) bool {
 	switch s {
-	case api.StatusActive, api.StatusPending:
+	// quarantined is settable at create so the harmful-advice screen can store
+	// flagged advisory formations without surfacing them (C2).
+	case api.StatusActive, api.StatusPending, api.StatusQuarantined:
 		return true
 	default:
 		return false
@@ -529,22 +616,39 @@ func (s *Service) ApplyAuthorityEvent(ctx context.Context, memoryID uuid.UUID, e
 	if err := s.Repo.UpdateAuthority(ctx, memoryID, newAuthority); err != nil {
 		return nil, err
 	}
+	obj.Authority = newAuthority
+	// Repeated negative events exhaust authority to 0; at that point the row
+	// leaves recall entirely (quarantined pending review) instead of lingering
+	// as active zero-trust guidance (C3 remediation).
+	if newAuthority == 0 && (eventType == "failure" || eventType == "contradiction") &&
+		obj.Status == api.StatusActive {
+		if err := s.Repo.UpdateStatusWithReason(ctx, memoryID, api.StatusQuarantined,
+			"authority_exhausted:"+eventType); err == nil {
+			obj.Status = api.StatusQuarantined
+		}
+	}
 	if s.Cache != nil {
 		_ = s.Cache.DeleteByPrefix(ctx, "memory:tags:")
 		s.invalidateRecallBundleCache(ctx)
 	}
-	obj.Authority = newAuthority
 	return obj, nil
 }
 
 // ExpireMemories archives active memories that have TTL set and have expired, and authority below threshold (Task 75).
 // Threshold is from Lifecycle.ExpirationAuthorityThreshold (0-10 scale; default 2). Returns count archived.
+// C3 extension: when Lifecycle.ProbationaryExpireDays > 0, probationary rows without a TTL
+// also age out (archive) after that many days, subject to the same historical-value exclusions.
 func (s *Service) ExpireMemories(ctx context.Context, asOf time.Time) (int, error) {
 	threshold := 2
 	if s.Lifecycle != nil && s.Lifecycle.ExpirationAuthorityThreshold > 0 {
 		threshold = s.Lifecycle.ExpirationAuthorityThreshold
 	}
-	list, err := s.Repo.ListExpiredCandidates(ctx, threshold, asOf)
+	var probationaryBefore *time.Time
+	if s.Lifecycle != nil && s.Lifecycle.ProbationaryExpireDays > 0 {
+		cutoff := asOf.AddDate(0, 0, -s.Lifecycle.ProbationaryExpireDays)
+		probationaryBefore = &cutoff
+	}
+	list, err := s.Repo.ListExpiredCandidates(ctx, threshold, asOf, probationaryBefore)
 	if err != nil {
 		return 0, err
 	}
@@ -560,6 +664,91 @@ func (s *Service) ExpireMemories(ctx context.Context, asOf time.Time) (int, erro
 		s.invalidateRecallBundleCache(ctx)
 	}
 	return archived, nil
+}
+
+// Quarantine removes a memory from all recall (any mode) pending review (C3 remediation).
+// Non-destructive: the row is preserved with status=quarantined and an auditable reason.
+func (s *Service) Quarantine(ctx context.Context, memoryID uuid.UUID, reason string) (*MemoryObject, error) {
+	return s.setRemediationStatus(ctx, memoryID, api.StatusQuarantined, reason, "operator_quarantine")
+}
+
+// SoftDelete tombstones a memory (C3 remediation). The row is preserved with
+// status=deleted and excluded from all recall including historical mode.
+// Canonical rows are never hard-deleted (memory doctrine: not a forgetory).
+func (s *Service) SoftDelete(ctx context.Context, memoryID uuid.UUID, reason string) (*MemoryObject, error) {
+	return s.setRemediationStatus(ctx, memoryID, api.StatusDeleted, reason, "operator_delete")
+}
+
+// ReleaseQuarantined returns a quarantined memory to the review queue
+// (status=pending, never straight to active). Errors if the row is not quarantined.
+func (s *Service) ReleaseQuarantined(ctx context.Context, memoryID uuid.UUID, reason string) (*MemoryObject, error) {
+	obj, err := s.Repo.GetByID(ctx, memoryID)
+	if err != nil {
+		return nil, err
+	}
+	if obj == nil {
+		return nil, fmt.Errorf("memory not found")
+	}
+	if obj.Status != api.StatusQuarantined {
+		return nil, fmt.Errorf("memory is not quarantined (status %q)", obj.Status)
+	}
+	return s.setRemediationStatus(ctx, memoryID, api.StatusPending, reason, "quarantine_release")
+}
+
+// SupersedeMemory marks loser superseded by winner and records the supersedes
+// edge. Non-destructive consolidation used by agent-driven curation chores.
+func (s *Service) SupersedeMemory(ctx context.Context, winnerID, loserID uuid.UUID, reason, source string) error {
+	if winnerID == loserID {
+		return fmt.Errorf("winner and loser must differ")
+	}
+	loser, err := s.Repo.GetByID(ctx, loserID)
+	if err != nil {
+		return err
+	}
+	if loser == nil {
+		return fmt.Errorf("memory not found")
+	}
+	if err := s.Repo.MarkSuperseded(ctx, loserID, time.Now()); err != nil {
+		return err
+	}
+	// Keep the surviving row reachable via the loser's tags.
+	if len(loser.Tags) > 0 {
+		if err := s.Repo.MergeTagsIntoMemory(ctx, winnerID, loser.Tags); err != nil {
+			slog.Warn("[CHORES] could not merge tags into surviving memory", "error", err.Error())
+		}
+	}
+	if s.Relationships != nil {
+		if _, err := s.Relationships.CreateRelationship(ctx, winnerID, loserID, RelSupersedes, reason, source); err != nil {
+			slog.Warn("[CHORES] could not record supersedes edge", "error", err.Error())
+		}
+	}
+	if s.Cache != nil {
+		_ = s.Cache.DeleteByPrefix(ctx, "memory:tags:")
+		s.invalidateRecallBundleCache(ctx)
+	}
+	return nil
+}
+
+func (s *Service) setRemediationStatus(ctx context.Context, memoryID uuid.UUID, status api.Status, reason, defaultReason string) (*MemoryObject, error) {
+	obj, err := s.Repo.GetByID(ctx, memoryID)
+	if err != nil {
+		return nil, err
+	}
+	if obj == nil {
+		return nil, fmt.Errorf("memory not found")
+	}
+	if strings.TrimSpace(reason) == "" {
+		reason = defaultReason
+	}
+	if err := s.Repo.UpdateStatusWithReason(ctx, memoryID, status, reason); err != nil {
+		return nil, err
+	}
+	if s.Cache != nil {
+		_ = s.Cache.DeleteByPrefix(ctx, "memory:tags:")
+		s.invalidateRecallBundleCache(ctx)
+	}
+	obj.Status = status
+	return obj, nil
 }
 
 // SetAttributes replaces all attributes for a memory (Task 78: constraint attributes for conflict detection).

@@ -16,10 +16,11 @@ const (
 )
 
 const (
-	testMemoryUUID    = "11111111-1111-4111-8111-111111111111"
-	testMemoryUUID2   = "22222222-2222-4222-8222-222222222222"
-	testCandidateUUID = "33333333-3333-4333-8333-333333333333"
-	testSessionUUID   = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+	testMemoryUUID     = "11111111-1111-4111-8111-111111111111"
+	testMemoryUUID2    = "22222222-2222-4222-8222-222222222222"
+	testCandidateUUID  = "33333333-3333-4333-8333-333333333333"
+	testChoreUUID      = "66666666-6666-4666-8666-666666666666"
+	testSessionUUID    = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 	testEpisodeSummary = "Unit test MCP tools/call coverage: recorded experience for phase 1 close-out validation."
 )
 
@@ -60,6 +61,10 @@ func MinValidToolCallArguments(toolName string) (map[string]any, error) {
 		return map[string]any{"min_support": 2}, nil
 	case "curation_review_candidate", "curation_materialize", "curation_promote_candidate", "curation_reject_candidate":
 		return map[string]any{"candidate_id": testCandidateUUID}, nil
+	case "list_chores":
+		return map[string]any{}, nil
+	case "resolve_chore":
+		return map[string]any{"chore_id": testChoreUUID, "action": "coexist", "agent_id": "mcp-coverage-test-agent"}, nil
 	case "episode_search_similar":
 		return map[string]any{"query": "unit test episode search"}, nil
 	case "episode_distill_explicit":
@@ -76,6 +81,10 @@ func MinValidToolCallArguments(toolName string) (map[string]any, error) {
 		return map[string]any{"kind": "note"}, nil
 	case "memory_relationships_get":
 		return map[string]any{"memory_id": testMemoryUUID}, nil
+	case "memory_quarantine":
+		return map[string]any{"memory_id": testMemoryUUID, "reason": "unit test quarantine via MCP coverage"}, nil
+	case "memory_delete":
+		return map[string]any{"memory_id": testMemoryUUID, "reason": "unit test soft delete via MCP coverage"}, nil
 	case "memory_relationships_create":
 		return map[string]any{
 			"from_memory_id":    testMemoryUUID,
@@ -104,10 +113,10 @@ func MinValidToolCallArguments(toolName string) (map[string]any, error) {
 		}, nil
 	case "agent_telemetry_record_output":
 		return map[string]any{
-			"session_id":      testSessionUUID,
-			"recall_event_id":   "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-			"output_facts":      []string{"fact"},
-			"memory_citations":  []string{"mem_curr"},
+			"session_id":       testSessionUUID,
+			"recall_event_id":  "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+			"output_facts":     []string{"fact"},
+			"memory_citations": []string{"mem_curr"},
 		}, nil
 	case "agent_telemetry_evaluate":
 		return map[string]any{

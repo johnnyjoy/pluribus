@@ -19,6 +19,24 @@ import (
 // EnforcementMaxProposalBytes must match internal/enforcement/validate.go (EvaluateRequest proposal_text cap).
 const EnforcementMaxProposalBytes = 32768
 
+// rawForwardTools forward MCP arguments verbatim as the REST request body.
+// Their arguments are filtered to declared schema properties before forwarding
+// (REST decodes with DisallowUnknownFields).
+var rawForwardTools = map[string]bool{
+	"recall_compile":                  true,
+	"recall_run_multi":                true,
+	"memory_create":                   true,
+	"memory_promote":                  true,
+	"curation_digest":                 true,
+	"curation_auto_promote":           true,
+	"memory_relationships_create":     true,
+	"enforcement_evaluate":            true,
+	"compliance_evaluate":             true,
+	// agent_telemetry_* and agent_utility_* endpoints decode tolerantly (no
+	// DisallowUnknownFields) and accept richer bodies than their schemas
+	// advertise; never filter them.
+}
+
 // HandleToolsCall forwards an MCP tools/call to control-plane HTTP (same mapping as the stdio MCP adapter).
 // policy gates record_experience / mcp_episode_ingest (nil uses DefaultMemoryFormationPolicy).
 func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMessage, policy *MemoryFormationPolicy, gate *formation.Gate) (any, error) {
@@ -29,6 +47,12 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 	}
 	if p.Name == "" {
 		return nil, fmt.Errorf("missing tool name")
+	}
+	if rawForwardTools[p.Name] {
+		// These tools forward arguments verbatim to REST endpoints that decode
+		// with DisallowUnknownFields; strip undeclared client metadata
+		// (agent_id, repo_root, ...) so extras are tolerated, not a 400.
+		p.Arguments = FilterArgumentsToSchema(p.Name, p.Arguments)
 	}
 	var (
 		body      io.Reader
@@ -147,6 +171,17 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 		} else {
 			body = bytes.NewReader([]byte("{}"))
 		}
+	case "list_chores":
+		method = http.MethodGet
+		fullURL = base + "/v1/curation/chores?limit=" + url.QueryEscape(strconv.Itoa(parseOptionalChoreLimit(p.Arguments)))
+	case "resolve_chore":
+		choreID, b, cErr := parseChoreResolveArgs(p.Arguments)
+		if cErr != nil {
+			return ToolResultErr(cErr.Error()), nil
+		}
+		method = http.MethodPost
+		fullURL = base + "/v1/curation/chores/" + url.PathEscape(choreID) + "/resolve"
+		body = bytes.NewReader(b)
 	case "episode_search_similar":
 		method = http.MethodPost
 		fullURL = base + "/v1/advisory-episodes/similar"
@@ -203,6 +238,20 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 		if err != nil {
 			return nil, err
 		}
+	case "memory_quarantine", "memory_delete":
+		mid, reason, rErr := parseRemediationArgs(p.Arguments)
+		if rErr != nil {
+			return nil, rErr
+		}
+		if p.Name == "memory_quarantine" {
+			method = http.MethodPost
+			fullURL = base + "/v1/memory/" + url.PathEscape(mid) + "/quarantine"
+		} else {
+			method = http.MethodDelete
+			fullURL = base + "/v1/memory/" + url.PathEscape(mid)
+		}
+		b, _ := json.Marshal(map[string]string{"reason": reason})
+		body = bytes.NewReader(b)
 	case "memory_relationships_get":
 		method = http.MethodGet
 		mid, err := parseRequiredUUIDArg(p.Arguments, "memory_id")
@@ -381,6 +430,13 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 		statusErr = true
 		text = fmt.Sprintf("HTTP %s\n%s", resp.Status, text)
 	}
+	if p.Name == "wakeup_context" && !statusErr {
+		// Wakeup carries the optional housekeeping line: one open curation
+		// chore a visiting agent may resolve (never required, never ranked).
+		if structured := toolResultWakeupWithHousekeeping(client, base, apiKey, rawBody); structured != nil {
+			return structured, nil
+		}
+	}
 	if isStructuredRecallTool(p.Name) {
 		if structured := toolResultStructuredRecall(p.Name, rawBody, statusErr, text); structured != nil {
 			return structured, nil
@@ -476,9 +532,17 @@ func buildAdvisoryEpisodeMCPBody(arguments json.RawMessage, pol *MemoryFormation
 	if ek, ok := m["event_kind"].(string); ok && strings.TrimSpace(ek) != "" {
 		tags = append(tags, "mcp:event:"+sanitizeMcpEventKind(ek))
 	}
+	if rr, ok := m["repo_root"].(string); ok && strings.TrimSpace(rr) != "" {
+		if base := repoBasename(rr); base != "" {
+			tags = append(tags, "repo:"+base)
+		}
+	}
 	out := map[string]any{
 		"summary": strings.TrimSpace(summary),
 		"source":  "mcp",
+	}
+	if aid, ok := m["agent_id"].(string); ok && strings.TrimSpace(aid) != "" {
+		out["agent_id"] = strings.TrimSpace(aid)
 	}
 	if len(tags) > 0 {
 		out["tags"] = tags
@@ -520,6 +584,18 @@ func parseStringSliceField(m map[string]any, key string) []string {
 	}
 }
 
+// repoBasename returns the sanitized final path segment of a workspace path.
+func repoBasename(p string) string {
+	p = strings.TrimRight(strings.TrimSpace(p), "/\\")
+	if p == "" {
+		return ""
+	}
+	if i := strings.LastIndexAny(p, "/\\"); i >= 0 {
+		p = p[i+1:]
+	}
+	return sanitizeMcpEventKind(p)
+}
+
 func sanitizeMcpEventKind(s string) string {
 	s = strings.TrimSpace(strings.ToLower(s))
 	var b strings.Builder
@@ -536,6 +612,26 @@ func sanitizeMcpEventKind(s string) string {
 		return "unspecified"
 	}
 	return out
+}
+
+// parseRemediationArgs extracts memory_id (or id) and optional reason for memory_quarantine / memory_delete.
+func parseRemediationArgs(arguments json.RawMessage) (string, string, error) {
+	if len(bytes.TrimSpace(arguments)) == 0 {
+		return "", "", fmt.Errorf("memory remediation requires arguments with memory_id (UUID)")
+	}
+	var m map[string]any
+	if err := json.Unmarshal(arguments, &m); err != nil {
+		return "", "", fmt.Errorf("memory remediation arguments: %w", err)
+	}
+	raw := strings.TrimSpace(firstString(m, "memory_id", "id"))
+	if raw == "" {
+		return "", "", fmt.Errorf("memory remediation requires memory_id (UUID)")
+	}
+	if _, err := uuid.Parse(raw); err != nil {
+		return "", "", fmt.Errorf("memory remediation: memory_id must be a valid UUID")
+	}
+	reason := strings.TrimSpace(firstString(m, "reason"))
+	return raw, reason, nil
 }
 
 // ValidateDigestArguments ensures MCP calls match DigestRequest requirements before HTTP (clear errors; bounded intent).

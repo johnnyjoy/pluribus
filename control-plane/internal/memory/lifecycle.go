@@ -31,10 +31,18 @@ func ApplyAuthorityEvent(currentAuthority int, eventType string, deltaPos, delta
 	}
 	out := int(new*float64(AuthorityScale) + 0.5)
 	if out < 0 {
-		return 0
+		out = 0
 	}
 	if out > AuthorityScale {
-		return AuthorityScale
+		out = AuthorityScale
+	}
+	// Negative events must always make progress: with multiplicative decay,
+	// rounding used to absorb failures at low authority (2 -> 1.6 -> rounds
+	// back to 2 forever), making poisoned memories impossible to demote via
+	// the API (hostile audit C3). Guarantee at least a one-step drop.
+	if (eventType == "contradiction" || eventType == "failure") &&
+		out >= currentAuthority && currentAuthority > 0 {
+		out = currentAuthority - 1
 	}
 	return out
 }

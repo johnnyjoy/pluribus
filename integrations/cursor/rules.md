@@ -20,6 +20,7 @@
 ## What “good” looks like
 
 - **Pluribus** **recall** runs before substantive edits when MCP is available.  
+- When **housekeeping** / **`list_chores`** surfaces work, **`resolve_chore`** runs when the agent can judge (or defers with reason in **`record_experience`**).  
 - **Pluribus** **record** runs after meaningful outcomes (not after every trivial keystroke).  
 - Noise is not promoted; durable **Pluribus** lessons are what matter (`docs/memory-doctrine.md`).
 

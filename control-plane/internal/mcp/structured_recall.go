@@ -78,6 +78,9 @@ func toolResultStructuredRecall(toolName string, rawBody []byte, statusErr bool,
 	return toolResultStructuredJSON(wrap)
 }
 
+// toolResultStructuredJSON returns an MCP spec-compliant result: content blocks
+// only use the "text" type (the MCP spec allows text, image, audio, resource_link,
+// resource — never "json"); the machine-readable payload rides in structuredContent.
 func toolResultStructuredJSON(payload map[string]any) map[string]any {
 	out, err := json.Marshal(payload)
 	if err != nil {
@@ -86,11 +89,11 @@ func toolResultStructuredJSON(payload map[string]any) map[string]any {
 	return map[string]any{
 		"content": []map[string]any{
 			{
-				"type": "json",
-				"json": payload,
+				"type": "text",
 				"text": string(out),
 			},
 		},
-		"isError": false,
+		"structuredContent": payload,
+		"isError":           false,
 	}
 }

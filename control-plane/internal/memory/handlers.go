@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
@@ -196,6 +197,73 @@ func (h *Handlers) ExpireMemories(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, ExpireMemoriesResponse{Archived: count})
+}
+
+// BackfillEmbeddingsRequest is the optional body for POST /v1/memory/embeddings/backfill.
+type BackfillEmbeddingsRequest struct {
+	Limit int `json:"limit,omitempty"`
+}
+
+// BackfillEmbeddings handles POST /v1/memory/embeddings/backfill: embed rows
+// created before the local embedder was enabled (or under a previous model).
+func (h *Handlers) BackfillEmbeddings(w http.ResponseWriter, r *http.Request) {
+	var req BackfillEmbeddingsRequest
+	if r.Body != nil && r.ContentLength != 0 {
+		if err := httpx.DecodeJSON(r, &req); err != nil {
+			httpx.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+	res, err := h.Service.BackfillEmbeddings(r.Context(), req.Limit)
+	if err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	httpx.WriteJSON(w, res)
+}
+
+// RemediationRequest is the optional body for DELETE /v1/memory/{id} and POST /v1/memory/{id}/quarantine.
+type RemediationRequest struct {
+	Reason string `json:"reason,omitempty"`
+}
+
+// Quarantine handles POST /v1/memory/{id}/quarantine (C3 remediation).
+// The row is preserved with status=quarantined and never surfaced by recall.
+func (h *Handlers) Quarantine(w http.ResponseWriter, r *http.Request) {
+	h.remediate(w, r, h.Service.Quarantine)
+}
+
+// Delete handles DELETE /v1/memory/{id} (C3 remediation). Soft delete:
+// the row is preserved as a tombstone (status=deleted) and excluded from all
+// recall including historical mode. Canonical rows are never hard-deleted.
+func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
+	h.remediate(w, r, h.Service.SoftDelete)
+}
+
+func (h *Handlers) remediate(w http.ResponseWriter, r *http.Request, apply func(ctx context.Context, id uuid.UUID, reason string) (*MemoryObject, error)) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid memory id: expected a UUID")
+		return
+	}
+	var req RemediationRequest
+	if r.Body != nil && r.ContentLength != 0 {
+		if err := httpx.DecodeJSON(r, &req); err != nil {
+			httpx.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+	obj, err := apply(r.Context(), id, req.Reason)
+	if err != nil {
+		if err.Error() == "memory not found" {
+			httpx.WriteError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		httpx.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	httpx.WriteJSON(w, obj)
 }
 
 // SetAttributesRequest is the body for PUT /v1/memory/{id}/attributes (Task 78: constraint attributes).

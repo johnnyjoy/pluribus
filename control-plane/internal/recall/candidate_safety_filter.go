@@ -30,7 +30,9 @@ func applyCandidateSafetyFilter(
 		if st == "" {
 			st = api.StatusActive
 		}
-		if st == api.StatusPending || st == api.StatusRejected {
+		// quarantined and deleted are never recallable, in any mode (C2/C3).
+		if st == api.StatusPending || st == api.StatusRejected ||
+			st == api.StatusQuarantined || st == api.StatusDeleted {
 			continue
 		}
 		if _, ok := allowed[st]; !ok {

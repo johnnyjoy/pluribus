@@ -33,8 +33,8 @@ func TestHandlers_Create_duplicateMemory_noBlindReinforce(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(existingID))
 	mock.ExpectQuery(`SELECT id, kind, statement`).
 		WithArgs(existingID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
-			AddRow(existingID, api.MemoryKindDecision, stmt, memorynorm.StatementCanonical(stmt), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(existingID, api.MemoryKindDecision, stmt, memorynorm.StatementCanonical(stmt), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil, nil))
 
 	svc := &Service{Repo: &Repo{DB: db}}
 	h := &Handlers{Service: svc}
@@ -75,8 +75,8 @@ func TestHandlers_Create_duplicateMemory_legacyReinforceWhenEnabled(t *testing.T
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(existingID))
 	mock.ExpectQuery(`SELECT id, kind, statement`).
 		WithArgs(existingID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
-			AddRow(existingID, api.MemoryKindDecision, stmt, memorynorm.StatementCanonical(stmt), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(existingID, api.MemoryKindDecision, stmt, memorynorm.StatementCanonical(stmt), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil, nil))
 	mock.ExpectExec(`UPDATE memories SET authority`).
 		WithArgs(6, existingID).
 		WillReturnResult(sqlmock.NewResult(0, 1))

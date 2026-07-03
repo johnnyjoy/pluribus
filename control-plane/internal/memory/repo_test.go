@@ -28,7 +28,7 @@ func TestRepo_Create_withTags(t *testing.T) {
 	sk := memorynorm.StatementKey("Do not duplicate")
 
 	mock.ExpectQuery(`INSERT INTO memories`).
-		WithArgs(sqlmock.AnyArg(), "constraint", "Do not duplicate", canon, sk, dedup, 7, "governing", "active", nil, nil, nil).
+		WithArgs(sqlmock.AnyArg(), "constraint", "Do not duplicate", canon, sk, dedup, 7, "governing", "active", nil, nil, nil, nil).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
 			AddRow(uuid.MustParse("22222222-2222-2222-2222-222222222222"), api.MemoryKindConstraint, "Do not duplicate", canon, sk, 7, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
 	for _, tag := range []string{"api", "rest"} {
@@ -139,8 +139,8 @@ func TestRepo_GetByID(t *testing.T) {
 	sk := memorynorm.StatementKey("A decision")
 
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
-			AddRow(id, api.MemoryKindDecision, "A decision", canon, sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(id, api.MemoryKindDecision, "A decision", canon, sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil, nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).
 		WillReturnRows(sqlmock.NewRows([]string{"tag"}).AddRow("topic:decisions").AddRow("api"))
 
@@ -181,7 +181,7 @@ func TestRepo_Create_patternPayload_roundTrip(t *testing.T) {
 	insertRows := sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
 		AddRow(memID, api.MemoryKindPattern, "Never skip tests.", canon, sk, 5, "governing", "active", nil, nil, payloadBytes, time.Now(), time.Now(), nil)
 	mock.ExpectQuery(`INSERT INTO memories`).
-		WithArgs(sqlmock.AnyArg(), "pattern", "Never skip tests.", canon, sk, dedup, 5, "governing", "active", nil, payloadBytes, nil).
+		WithArgs(sqlmock.AnyArg(), "pattern", "Never skip tests.", canon, sk, dedup, 5, "governing", "active", nil, payloadBytes, nil, nil).
 		WillReturnRows(insertRows)
 	raw := json.RawMessage(payloadBytes)
 	obj, err := repo.Create(ctx, CreateRequest{
@@ -208,8 +208,8 @@ func TestRepo_Create_patternPayload_roundTrip(t *testing.T) {
 		t.Errorf("payload round-trip: got %+v", got)
 	}
 
-	getByIDRows := sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
-		AddRow(memID, api.MemoryKindPattern, "Never skip tests.", canon, sk, 5, "governing", "active", nil, nil, payloadBytes, time.Now(), time.Now(), nil)
+	getByIDRows := sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+		AddRow(memID, api.MemoryKindPattern, "Never skip tests.", canon, sk, 5, "governing", "active", nil, nil, payloadBytes, time.Now(), time.Now(), nil, nil)
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(memID).
 		WillReturnRows(getByIDRows)
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(memID).

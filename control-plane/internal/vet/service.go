@@ -94,16 +94,36 @@ func (s *Service) tryFormProbationary(ctx context.Context, ep *similarity.Record
 	if weak {
 		auth = authorityWeakIngest
 	}
-	payload := map[string]any{
-		"pluribus_ingest": map[string]any{
-			"advisory_experience_id": ep.ID.String(),
-			"advisory_episode_id":    ep.ID.String(),
-			"ingest_source":          ep.Source,
-			"probationary":           true,
-			"signal_reason":          sigReason,
-			"weak_signal":            weak,
-		},
+	ingestMeta := map[string]any{
+		"advisory_experience_id": ep.ID.String(),
+		"advisory_episode_id":    ep.ID.String(),
+		"ingest_source":          ep.Source,
+		"probationary":           true,
+		"signal_reason":          sigReason,
+		"weak_signal":            weak,
 	}
+	// Provenance stamp (C2/Phase 3 attribution): record the authoring agent so
+	// poisoned lessons are traceable (agent_id column, plus agent:<id> tag).
+	agentID := strings.TrimSpace(ep.AgentID)
+	if agentID == "" {
+		for _, t := range ep.Tags {
+			if rest, found := strings.CutPrefix(t, "agent:"); found && strings.TrimSpace(rest) != "" {
+				agentID = strings.TrimSpace(rest)
+				break
+			}
+		}
+	}
+	if agentID != "" {
+		ingestMeta["agent_id"] = agentID
+	}
+	// Harmful-advice screen (C2): safety-negating imperative advice is stored
+	// QUARANTINED — never surfaced by recall — pending review, so a single
+	// poisoned record_experience cannot reach other agents.
+	harmReason := formation.HarmfulAdviceReason(stmt)
+	if harmReason != "" {
+		ingestMeta["quarantine_reason"] = harmReason
+	}
+	payload := map[string]any{"pluribus_ingest": ingestMeta}
 	pj, _ := json.Marshal(payload)
 	tags := append([]string(nil), ep.Tags...)
 	tags = append(tags, "probationary", "memory_ingest_inline")
@@ -115,6 +135,7 @@ func (s *Service) tryFormProbationary(ctx context.Context, ep *similarity.Record
 		Tags:          uniqTags(tags),
 		Payload:       (*json.RawMessage)(&pj),
 		FormationPath: formation.PathProbationaryIngest,
+		AgentID:       agentID,
 	}
 	if s.Formation != nil {
 		in := &formation.CreateInput{
@@ -134,6 +155,10 @@ func (s *Service) tryFormProbationary(ctx context.Context, ep *similarity.Record
 		cr.Applicability = in.Applicability
 		cr.Status = in.Status
 	}
+	if harmReason != "" {
+		// Quarantine wins over any gate-assigned status.
+		cr.Status = api.StatusQuarantined
+	}
 	if ep.OccurredAt != nil {
 		cr.OccurredAt = ep.OccurredAt
 	}
@@ -146,6 +171,10 @@ func (s *Service) tryFormProbationary(ctx context.Context, ep *similarity.Record
 	}
 	if err := s.Episodes.SetRelatedMemoryID(ctx, ep.ID, obj.ID); err != nil {
 		return nil, "", err
+	}
+	if harmReason != "" {
+		slog.Warn("[INGEST]", "outcome", "quarantined", "advisory_experience_id", ep.ID.String(),
+			"memory_id", obj.ID.String(), "reason", harmReason)
 	}
 	return &formationLink{memoryID: obj.ID.String(), kind: string(kind)}, "", nil
 }

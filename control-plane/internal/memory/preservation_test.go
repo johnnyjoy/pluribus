@@ -20,12 +20,12 @@ func TestListExpiredCandidates_excludesHistoricalValueSignals(t *testing.T) {
 	defer db.Close()
 	// Hardened query returns no rows when historical-value exclusions apply.
 	mock.ExpectQuery(`SELECT m.id`).
-		WithArgs(2, sqlmock.AnyArg(), OccurredAtMaterialDeltaSeconds, sqlmock.AnyArg()).
+		WithArgs(2, sqlmock.AnyArg(), OccurredAtMaterialDeltaSeconds, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at",
 		}))
 
-	list, err := (&Repo{DB: db}).ListExpiredCandidates(context.Background(), 2, time.Now())
+	list, err := (&Repo{DB: db}).ListExpiredCandidates(context.Background(), 2, time.Now(), nil)
 	if err != nil {
 		t.Fatalf("ListExpiredCandidates: %v", err)
 	}
@@ -44,7 +44,7 @@ func TestService_ExpireMemories_skipsHistoricalValueCandidates(t *testing.T) {
 	}
 	defer db.Close()
 	mock.ExpectQuery(`SELECT m.id`).
-		WithArgs(2, sqlmock.AnyArg(), OccurredAtMaterialDeltaSeconds, sqlmock.AnyArg()).
+		WithArgs(2, sqlmock.AnyArg(), OccurredAtMaterialDeltaSeconds, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at",
 		}))
@@ -70,7 +70,7 @@ func TestService_ExpireMemories_archivesDisposableCandidate(t *testing.T) {
 	ttl := 60
 
 	mock.ExpectQuery(`SELECT m.id`).
-		WithArgs(2, sqlmock.AnyArg(), OccurredAtMaterialDeltaSeconds, sqlmock.AnyArg()).
+		WithArgs(2, sqlmock.AnyArg(), OccurredAtMaterialDeltaSeconds, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at",
 		}).AddRow(id, api.MemoryKindDecision, "Low auth disposable", memorynorm.StatementCanonical("Low auth disposable"), memorynorm.StatementKey("Low auth disposable"), 1, "governing", "active", nil, ttl, nil, time.Now().Add(-2*time.Hour), time.Now(), nil))
@@ -97,14 +97,14 @@ func TestListExpiredCandidates_includesNullPayloadDisposable(t *testing.T) {
 	id := uuid.MustParse("b0000000-0000-0000-0000-000000000001")
 	created := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	mock.ExpectQuery(`SELECT m.id`).
-		WithArgs(2, sqlmock.AnyArg(), OccurredAtMaterialDeltaSeconds, sqlmock.AnyArg()).
+		WithArgs(2, sqlmock.AnyArg(), OccurredAtMaterialDeltaSeconds, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at",
 		}).AddRow(id, api.MemoryKindState, "Disposable null payload", "disposable null payload", "disposable", 1, "advisory", "active", nil, 60, nil, created, created, nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).WillReturnRows(
 		sqlmock.NewRows([]string{"tag"}).AddRow("ephemeral"))
 
-	list, err := (&Repo{DB: db}).ListExpiredCandidates(context.Background(), 2, time.Now())
+	list, err := (&Repo{DB: db}).ListExpiredCandidates(context.Background(), 2, time.Now(), nil)
 	if err != nil {
 		t.Fatalf("ListExpiredCandidates: %v", err)
 	}

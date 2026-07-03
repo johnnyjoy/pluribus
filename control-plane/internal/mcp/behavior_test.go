@@ -45,7 +45,7 @@ func TestMCPBehavior_initialize(t *testing.T) {
 		t.Fatalf("missing serverInfo: %+v", result)
 	}
 	inst, _ := result["instructions"].(string)
-	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") {
+	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") {
 		t.Fatalf("instructions missing loop tools: %q", inst)
 	}
 }
@@ -175,16 +175,17 @@ func TestMCPBehavior_missingRequiredArgument(t *testing.T) {
 	}
 }
 
-func TestMCPBehavior_extraArgumentRejected(t *testing.T) {
+func TestMCPBehavior_extraArgumentTolerated(t *testing.T) {
+	// Unknown arguments are tolerated (dropped at forwarding), never rejected:
+	// MCP clients attach metadata like agent_id/repo_root to every call (H2).
 	h := NewHTTPHandler(mcpStubRouter(), DefaultMemoryFormationPolicy(), nil, formation.NewGate(nil))
 	srv := httptestNewServer(h)
 	defer srv.Close()
 
-	body := `{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"enforcement_evaluate","arguments":{"proposal_text":"x","extra":1}}}`
+	body := `{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"enforcement_evaluate","arguments":{"proposal_text":"x","extra":1,"agent_id":"cursor:test"}}}`
 	out := postMCP(t, srv.URL, body)
-	errObj, _ := out["error"].(map[string]any)
-	if errObj == nil {
-		t.Fatal("expected error for extra property")
+	if errObj, _ := out["error"].(map[string]any); errObj != nil {
+		t.Fatalf("extra properties must be tolerated, got error %v", errObj)
 	}
 }
 

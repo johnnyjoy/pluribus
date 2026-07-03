@@ -59,6 +59,22 @@ func (c *Compiler) fetchLifecycleCandidates(ctx context.Context, req CompileRequ
 		if mode == RecallModeCurrent && includeSupersededCandidates(situationQuery) {
 			searchStatuses = append(append([]api.Status{}, statuses...), api.StatusSuperseded)
 		}
+		// Hybrid slice 2/3 (H1): Postgres full-text top-K over the whole situation
+		// query (GIN tsvector index), so the pool no longer depends solely on the
+		// authority-top slice + per-keyword ILIKE bridges as the corpus grows.
+		// Optional interface: real service implements it; stubs without it skip.
+		type fullTextSearcher interface {
+			SearchFullText(ctx context.Context, query, status string, max int) ([]memory.MemoryObject, error)
+		}
+		if fts, ok := c.Memory.(fullTextSearcher); ok {
+			for _, st := range searchStatuses {
+				extra, err := fts.SearchFullText(ctx, situationQuery, string(st), 50)
+				if err != nil {
+					return nil, err
+				}
+				objs = mergeUniqueMemoryObjects(objs, extra)
+			}
+		}
 		keywords := situationKeywords(situationQuery)
 		for _, kw := range keywords {
 			for _, st := range searchStatuses {

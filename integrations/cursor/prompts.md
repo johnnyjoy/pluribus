@@ -15,6 +15,11 @@ Copy into **Agent** chat (or pin in **User rules**) when you want a deliberate n
 - **Durable lesson:** “**`record_experience`** — short summary of what changed, what we learned, and whether anything should be promoted later.”
 - **Decided something new:** “**`record_experience`** — capture the decision and alternatives rejected so the next session does not re-litigate.”
 
+## Housekeeping (when chores exist)
+
+- **After recall/wakeup:** “If **`housekeeping`** or **`list_chores`** shows a chore, call **`resolve_chore`** with **`chore_id`**, **`action`**, and stable **`agent_id`** when you can judge; otherwise note deferral in **`record_experience`**.”
+- **Quarantine / contradiction:** “Read chore statements and allowed actions; do not vote randomly — corroboration requires distinct agents.”
+
 ## Review / hygiene (optional)
 
 - **Candidates:** “List or summarize episodic / candidate items relevant to these tags before we promote anything.”

@@ -28,6 +28,16 @@ TEXT="## Pluribus (plugin)
 - Optional hook \`UserPromptSubmit\` may inject a recall preview from \`POST /v1/recall/compile\` (set \`PLURIBUS_HOOK_RECALL=off\` to disable).
 "
 
+if [[ "$STATUS" == "unreachable" ]]; then
+  TEXT="${TEXT}
+- **WARNING: Pluribus API unreachable.** MCP tools will not work until ${BASE} responds to GET /healthz. Hooks fail open; recall/record are not automatic.
+"
+elif [[ "$STATUS" == "curl-missing" ]]; then
+  TEXT="${TEXT}
+- **WARNING: curl not installed.** Session health check skipped; install curl for hook diagnostics.
+"
+fi
+
 WAKE_BLOCK=""
 if [[ "${PLURIBUS_HOOK_WAKEUP:-on}" != "off" ]] \
   && [[ "$STATUS" == "reachable" ]] \

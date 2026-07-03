@@ -12,8 +12,8 @@ func TestCallCoverage_everyToolClassified(t *testing.T) {
 	if issues := CallCoverageIssues(); len(issues) > 0 {
 		t.Fatalf("call coverage classification issues:\n- %s", strings.Join(issues, "\n- "))
 	}
-	if len(toolRegistry()) != 55 {
-		t.Fatalf("expected 55 tools, got %d", len(toolRegistry()))
+	if len(toolRegistry()) != 59 {
+		t.Fatalf("expected 59 tools, got %d", len(toolRegistry()))
 	}
 }
 

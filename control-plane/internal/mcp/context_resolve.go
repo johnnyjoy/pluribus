@@ -246,6 +246,11 @@ func execMemoryContextResolve(client *http.Client, base, apiKey string, argument
 	enrichMCPContextFromRecallBundle(meta, bundle)
 	applyMCPRecallBehaviorHints(meta)
 	mergeRecallTelemetryIntoMCPContext(meta, bundle)
+	// Optional housekeeping: offer at most one open curation chore. Lives only
+	// in mcp_context — never injected into the recall bundle or its ranking.
+	if line := fetchHousekeepingLine(client, base, apiKey); line != "" {
+		meta["housekeeping"] = line
+	}
 	wrap := map[string]any{
 		"mcp_context":   meta,
 		"recall_bundle": bundle,
@@ -254,16 +259,17 @@ func execMemoryContextResolve(client *http.Client, base, apiKey string, argument
 	if err != nil {
 		return ToolResultErr(err.Error())
 	}
+	// MCP spec only allows text/image/audio/resource_link/resource content types.
+	// Serialized JSON goes in the text block; structuredContent carries the object.
 	return map[string]any{
 		"content": []map[string]any{
 			{
-				"type": "json",
-				"json": wrap,
-				// Keep legacy text output for existing tests and clients that parse only `content[0].text`.
+				"type": "text",
 				"text": string(out),
 			},
 		},
-		"isError": false,
+		"structuredContent": wrap,
+		"isError":           false,
 	}
 }
 

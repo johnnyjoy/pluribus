@@ -74,6 +74,14 @@ func MCPFullStubRouter() http.Handler {
 	r.Post("/v1/memory/relationships", func(w http.ResponseWriter, _ *http.Request) {
 		jsonOK(w, `{"id":"44444444-4444-4444-8444-444444444444"}`)
 	})
+	r.Post("/v1/memory/{id}/quarantine", func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		jsonOK(w, `{"id":"`+id+`","status":"quarantined"}`)
+	})
+	r.Delete("/v1/memory/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		jsonOK(w, `{"id":"`+id+`","status":"deleted"}`)
+	})
 	r.Post("/v1/curation/digest", func(w http.ResponseWriter, _ *http.Request) {
 		jsonOK(w, `{"proposals":[]}`)
 	})
@@ -97,6 +105,13 @@ func MCPFullStubRouter() http.Handler {
 	})
 	r.Post("/v1/curation/auto-promote", func(w http.ResponseWriter, _ *http.Request) {
 		jsonOK(w, `{"promoted_count":0}`)
+	})
+	r.Get("/v1/curation/chores", func(w http.ResponseWriter, _ *http.Request) {
+		jsonOK(w, `{"chores":[]}`)
+	})
+	r.Post("/v1/curation/chores/{id}/resolve", func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		jsonOK(w, `{"chore_id":"`+id+`","recorded":true,"counted":true,"votes_for_action":1,"min_resolvers":2,"applied":false,"state":"open"}`)
 	})
 	r.Post("/v1/episodes/distill", func(w http.ResponseWriter, _ *http.Request) {
 		jsonOK(w, `{"distilled":true}`)

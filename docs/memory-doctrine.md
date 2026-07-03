@@ -15,6 +15,14 @@ Memory, in Pluribus, is:
 - **Portable** — reusable across agents, sessions, and machines; not trapped in a private “bucket.”
 - **Behavior-changing** — ranked by **authority**; **constraints** can override weaker material; recall and enforcement act on it.
 
+### Durability doctrine (the database is sacred)
+
+The memory pool must **survive upgrades, restarts, and redeployments**. Consequences:
+
+- **Upgrades are in-place** — the new binary applies forward-only, idempotent migrations against the **same** Postgres. A fresh-database upgrade path is **forbidden** for any deployment holding real memories.
+- **Every upgrade is preceded by a verified backup** and followed by an explicit assertion that no memories were lost (`scripts/upgrade-in-place.sh`; standalone tooling: `scripts/backup-memory.sh`, `scripts/restore-memory.sh`).
+- **Scheduled backups** are part of operating a Pluribus server, not an optional extra.
+
 ---
 
 ## B. What memory is not
@@ -112,6 +120,13 @@ Clear noise goes to the **reject bucket** (`advisory_experiences`). Valid ingest
 - **Invalidation signal** — `pluribus_evolution.invalidated_by` keeps the row **auditable**; recall scoring applies a **deprioritization penalty** so influence drops without erasure.
 
 Details: [curation-loop.md](curation-loop.md) (Controlled Promotion + Memory evolution).
+
+### The hive maintains itself (agent-driven curation chores)
+
+- **The server detects; visiting agents judge.** The backend deterministically flags review work — **unresolved contradictions**, **quarantined** rows, and **embedding near-duplicate pairs** (curation-loop scan) — and packages each as a small **chore** (`curation_chores`). There is **no backend LLM**; judgment comes from the LLM agents already visiting.
+- **Surfacing is optional and bounded** — at most **one** housekeeping line rides along in `recall_context` (`mcp_context.housekeeping`) and `wakeup_context` responses; it is **never** injected into the recall bundle or its ranking. Agents may also browse via **`list_chores`**. Ignoring chores loses nothing.
+- **Corroboration before effect** — a vote (**`resolve_chore`** / `POST /v1/curation/chores/{id}/resolve`) requires `agent_id`; an action applies only after **`chore_min_resolvers`** (default 2) **distinct** agent hashes agree, and a memory's **own author never counts** (same self-use rule as reinforcement). One immutable vote per agent per chore.
+- **Everything applied is reversible** — consolidation and contradiction wins use **supersede** (non-destructive), quarantine review lands **`pending`** (never straight to `active`) or **soft delete** (tombstone); relationship rows carry `source='curation_chore'`. Nothing an agent vote does can mint an active memory.
 
 ### Lightweight memory relationships (additive, not a graph product)
 

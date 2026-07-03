@@ -29,8 +29,8 @@ func TestService_Create_duplicateBeforeInsert(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(existingID))
 	mock.ExpectQuery(`SELECT id, kind, statement`).
 		WithArgs(existingID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
-			AddRow(existingID, api.MemoryKindDecision, stmt, memorynorm.StatementCanonical(stmt), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(existingID, api.MemoryKindDecision, stmt, memorynorm.StatementCanonical(stmt), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil, nil))
 
 	svc := &Service{Repo: &Repo{DB: db}}
 	obj, err := svc.Create(ctx, CreateRequest{
@@ -62,7 +62,7 @@ func TestService_Create_dedupDisabled_skipsLookup(t *testing.T) {
 
 	dedup := DedupKey()
 	mock.ExpectQuery(`INSERT INTO memories`).
-		WithArgs(sqlmock.AnyArg(), "decision", stmt, memorynorm.StatementCanonical(stmt), memorynorm.StatementKey(stmt), dedup, 0, "governing", "active", nil, nil, nil).
+		WithArgs(sqlmock.AnyArg(), "decision", stmt, memorynorm.StatementCanonical(stmt), memorynorm.StatementKey(stmt), dedup, 0, "governing", "active", nil, nil, nil, nil).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
 			AddRow(newID, api.MemoryKindDecision, stmt, memorynorm.StatementCanonical(stmt), memorynorm.StatementKey(stmt), 0, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
 	svc := &Service{Repo: &Repo{DB: db}, Dedup: &DedupConfig{Enabled: &dedupOff}}

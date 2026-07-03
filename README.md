@@ -88,7 +88,7 @@ Both should return `ok` when startup has finished.
 
 **Prefer a published image (no local build)?** Use **`docker-compose.install.yml`** and a registry image—see [INSTALL.md](INSTALL.md) and [docs/pluribus-container-install.md](docs/pluribus-container-install.md).
 
-**Reset the dev database completely** (destructive): `docker compose down -v` then `docker compose up -d`. Pre-release builds assume a **fresh or disposable** Postgres; there is no GA-grade versioned migration story yet—see [INSTALL.md](INSTALL.md).
+**The memory database is sacred.** Upgrades run **in place**: the new binary applies forward-only, idempotent migrations against the **same** Postgres on startup — never a fresh database. Use [`scripts/upgrade-in-place.sh`](scripts/upgrade-in-place.sh) (backup, swap binary, health check, and an explicit post-upgrade assertion that no memories were lost, with automatic rollback on failure). Take scheduled backups with [`scripts/backup-memory.sh`](scripts/backup-memory.sh); restore with [`scripts/restore-memory.sh`](scripts/restore-memory.sh). `docker compose down -v` is for throwaway dev sandboxes **only** — never run it against a database holding real memories.
 
 ---
 

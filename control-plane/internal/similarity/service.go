@@ -63,6 +63,11 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Record, error
 	if corr != "" {
 		tags = append(tags, "mcp:session:"+corr)
 	}
+	// Provenance (C2): stamp the recording agent as a tag until the dedicated
+	// agent_id column lands, so every formed memory is traceable to its author.
+	if aid := strings.TrimSpace(req.AgentID); aid != "" {
+		tags = append(tags, "agent:"+aid)
+	}
 	if src == "mcp" && s.Config != nil && s.Config.McpDedupEnabled && s.Repo != nil {
 		win := s.Config.McpDedupWindow
 		if win <= 0 {
@@ -84,6 +89,7 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Record, error
 		RelatedMemoryID: req.RelatedMemoryID,
 		OccurredAt:      req.OccurredAt,
 		Entities:        normalizeEntityList(req.Entities),
+		AgentID:         strings.TrimSpace(req.AgentID),
 	}
 	if err := s.Repo.Create(ctx, rec); err != nil {
 		return nil, err

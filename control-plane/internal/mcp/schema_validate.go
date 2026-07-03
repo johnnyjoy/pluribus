@@ -39,17 +39,11 @@ func validateAgainstSchema(schema map[string]any, data map[string]any, toolName 
 	if typ != "object" {
 		return fmt.Errorf("tool %s: unsupported root schema type %q", toolName, typ)
 	}
-	if ap, ok := schema["additionalProperties"].(bool); ok && !ap {
-		props, _ := schema["properties"].(map[string]any)
-		for k := range data {
-			if k == "" {
-				continue
-			}
-			if props == nil || props[k] == nil {
-				return fmt.Errorf("unexpected argument %q for tool %s (additionalProperties=false)", k, toolName)
-			}
-		}
-	}
+	// Unknown arguments are tolerated and dropped, never rejected: MCP clients
+	// commonly attach metadata like agent_id, repo_root, or session context to
+	// every call, and rejecting the whole call breaks the agent loop (H2,
+	// hostile audit 2026-07). Forwarding strips undeclared keys instead
+	// (see FilterArgumentsToSchema).
 	if req, ok := schema["required"].([]any); ok {
 		for _, r := range req {
 			key, _ := r.(string)
@@ -81,6 +75,44 @@ func validateAgainstSchema(schema map[string]any, data map[string]any, toolName 
 		}
 	}
 	return nil
+}
+
+// FilterArgumentsToSchema drops arguments not declared in the tool's inputSchema
+// properties. Used before forwarding raw arguments to REST endpoints that decode
+// with DisallowUnknownFields, so extra client metadata (agent_id, repo_root, ...)
+// is tolerated instead of causing an HTTP 400. Returns the input unchanged when
+// the tool or schema is unknown or the arguments are not a JSON object.
+func FilterArgumentsToSchema(toolName string, arguments json.RawMessage) json.RawMessage {
+	spec, ok := ToolSpecByName(toolName)
+	if !ok || spec.InputSchema == nil {
+		return arguments
+	}
+	props, _ := spec.InputSchema["properties"].(map[string]any)
+	if props == nil {
+		return arguments
+	}
+	if len(bytesTrimSpace(arguments)) == 0 {
+		return arguments
+	}
+	var m map[string]any
+	if err := json.Unmarshal(arguments, &m); err != nil {
+		return arguments
+	}
+	changed := false
+	for k := range m {
+		if _, declared := props[k]; !declared {
+			delete(m, k)
+			changed = true
+		}
+	}
+	if !changed {
+		return arguments
+	}
+	out, err := json.Marshal(m)
+	if err != nil {
+		return arguments
+	}
+	return out
 }
 
 func hasNonEmptyValue(m map[string]any, key string) bool {
@@ -251,6 +283,10 @@ func validateToolSemantics(toolName string, m map[string]any) error {
 		txt := strings.TrimSpace(firstString(m, "evidence_text", "text", "content"))
 		if txt == "" {
 			return fmt.Errorf("missing required argument: evidence_text")
+		}
+	case "memory_quarantine", "memory_delete":
+		if _, _, err := parseRemediationArgs(raw); err != nil {
+			return err
 		}
 	case "memory_relationships_get":
 		if _, err := parseRequiredUUIDArg(raw, "memory_id"); err != nil {

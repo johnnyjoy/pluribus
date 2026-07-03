@@ -13,7 +13,7 @@ A **config and behavior pack** that makes Pluribus **native-feeling** in Cursor:
 3. **User rules:** **Cursor Settings → Rules → User rules** — paste [`pluribus-instructions.md`](../pluribus-instructions.md) + [`snippets/context-prime.txt`](snippets/context-prime.txt) ([Rules](https://cursor.com/docs/rules)).
 4. **Repository rule (optional, team):** copy [`pluribus.mdc`](pluribus.mdc) → **`.cursor/rules/pluribus.mdc`** so clones share the same **`.cursor/rules`** entry (frontmatter + `alwaysApply` / `globs`).
 
-**Loop:** **`recall_context` → plan → act → `record_experience`**. One canonical rule ([`pluribus.mdc`](pluribus.mdc)); stricter anti-deferral is built in—see [`rules.md`](rules.md).
+**Loop:** **`recall_context` → housekeeping (`resolve_chore` when chores exist) → plan → act → `record_experience`**. One canonical rule ([`pluribus.mdc`](pluribus.mdc)); stricter anti-deferral is built in—see [`rules.md`](rules.md).
 
 ## Pack contents
 

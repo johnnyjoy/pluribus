@@ -44,10 +44,14 @@ func (r *Repo) Create(ctx context.Context, rec *Record) error {
 	if status == "" {
 		status = FormationRejected
 	}
-	q := `INSERT INTO advisory_experiences (summary_text, source, tags, related_memory_id, occurred_at, entities, memory_formation_status)
-		VALUES ($1, $2, $3::jsonb, $4, $5, $6::jsonb, $7)
+	var agent interface{}
+	if rec.AgentID != "" {
+		agent = rec.AgentID
+	}
+	q := `INSERT INTO advisory_experiences (summary_text, source, tags, related_memory_id, occurred_at, entities, memory_formation_status, agent_id)
+		VALUES ($1, $2, $3::jsonb, $4, $5, $6::jsonb, $7, $8)
 		RETURNING id, created_at`
-	return r.DB.QueryRowContext(ctx, q, rec.SummaryText, rec.Source, tags, rel, occ, ent, status).Scan(&rec.ID, &rec.CreatedAt)
+	return r.DB.QueryRowContext(ctx, q, rec.SummaryText, rec.Source, tags, rel, occ, ent, status, agent).Scan(&rec.ID, &rec.CreatedAt)
 }
 
 // FindMcpDuplicateInWindow returns a recent advisory_experiences row with source=mcp, same summary_text,
@@ -61,7 +65,7 @@ func (r *Repo) FindMcpDuplicateInWindow(ctx context.Context, summary string, cor
 	}
 	since := time.Now().Add(-window).UTC()
 	rows, err := r.DB.QueryContext(ctx, `
-		SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities, memory_formation_status, rejection_reason
+		SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities, memory_formation_status, rejection_reason, agent_id
 		FROM advisory_experiences
 		WHERE source = 'mcp'
 		  AND summary_text = $1
@@ -101,7 +105,7 @@ func (r *Repo) ListCandidates(ctx context.Context, limit int, occurredAfter, occ
 		before = *occurredBefore
 	}
 	rows, err := r.DB.QueryContext(ctx, `
-		SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities, memory_formation_status, rejection_reason
+		SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities, memory_formation_status, rejection_reason, agent_id
 		FROM advisory_experiences
 		WHERE memory_formation_status <> $4
 		  AND ($1::timestamptz IS NULL OR COALESCE(occurred_at, created_at) >= $1)
@@ -121,7 +125,7 @@ func (r *Repo) GetByID(ctx context.Context, id uuid.UUID) (*Record, error) {
 		return nil, errors.New("similarity: repo not configured")
 	}
 	row := r.DB.QueryRowContext(ctx, `
-		SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities, memory_formation_status, rejection_reason
+		SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities, memory_formation_status, rejection_reason, agent_id
 		FROM advisory_experiences WHERE id = $1`, id)
 	rec, err := scanOneAdvisoryRow(row)
 	if err != nil {
@@ -142,9 +146,12 @@ func scanOneAdvisoryRow(row sqlRowScanner) (*Record, error) {
 	var tags, ent []byte
 	var rel sql.NullString
 	var occ sql.NullTime
-	var reject sql.NullString
-	if err := row.Scan(&rec.ID, &rec.SummaryText, &rec.Source, &tags, &rel, &rec.CreatedAt, &occ, &ent, &rec.MemoryFormationStatus, &reject); err != nil {
+	var reject, agent sql.NullString
+	if err := row.Scan(&rec.ID, &rec.SummaryText, &rec.Source, &tags, &rel, &rec.CreatedAt, &occ, &ent, &rec.MemoryFormationStatus, &reject, &agent); err != nil {
 		return nil, err
+	}
+	if agent.Valid {
+		rec.AgentID = agent.String
 	}
 	if err := json.Unmarshal(tags, &rec.Tags); err != nil {
 		return nil, err

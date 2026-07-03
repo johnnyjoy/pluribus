@@ -41,6 +41,31 @@ type Config struct {
 	MCP *MCPConfig `yaml:"mcp,omitempty"`
 	// Lexical: optional pg_textsearch BM25 path (experimental). Canonical memory unchanged; see docs/experiments/pg-textsearch.md.
 	Lexical *LexicalConfig `yaml:"lexical,omitempty"`
+	// CurationScheduler gates the background auto-curation loop (expire + auto-promote).
+	CurationScheduler CurationSchedulerConfig `yaml:"curation_scheduler,omitempty"`
+}
+
+// CurationSchedulerConfig configures the in-process curation loop (Phase 3 auto-curation).
+// Disabled by default; when enabled it periodically expires stale/probationary memories
+// and (when promotion.auto_promote is on) auto-promotes eligible candidates.
+type CurationSchedulerConfig struct {
+	Enabled bool `yaml:"enabled"`
+	// IntervalMinutes between passes. Default 60.
+	IntervalMinutes int `yaml:"interval_minutes"`
+	// InitialDelaySeconds before the first pass. Default 30.
+	InitialDelaySeconds int `yaml:"initial_delay_seconds"`
+	// NearDupScanEnabled adds an embedding near-duplicate pass that opens
+	// duplicate_pair curation chores for visiting agents to judge. Default false.
+	NearDupScanEnabled bool `yaml:"neardup_scan_enabled"`
+	// NearDupCosineThreshold is the minimum cosine similarity to flag a pair. Default 0.92.
+	NearDupCosineThreshold float64 `yaml:"neardup_cosine_threshold"`
+	// NearDupScanWindowDays restricts the scan to recently created rows. Default 14.
+	NearDupScanWindowDays int `yaml:"neardup_scan_window_days"`
+	// NearDupScanLimit caps flagged pairs per pass. Default 20.
+	NearDupScanLimit int `yaml:"neardup_scan_limit"`
+	// ChoreMinResolvers distinct agents must vote for the same action before a
+	// curation chore applies. Default 2; set 1 for a small hive.
+	ChoreMinResolvers int `yaml:"chore_min_resolvers"`
 }
 
 // LexicalConfig gates experimental BM25 retrieval against a projection table (not canonical memories).
@@ -252,6 +277,10 @@ type MemoryLifecycleConfig struct {
 	AuthorityPositiveDelta       float64 `yaml:"authority_positive_delta"`       // validation: default 0.1
 	AuthorityNegativeDelta       float64 `yaml:"authority_negative_delta"`       // contradiction/failure: default 0.2
 	ExpirationAuthorityThreshold int     `yaml:"expiration_authority_threshold"` // max authority (0-10) to consider for TTL expiry; 2 = 0.2 logical
+	// ProbationaryExpireDays archives probationary rows WITHOUT a TTL after this
+	// many days when authority stays below the threshold and no historical-value
+	// signals exist (C3: probationary rows must not accumulate forever). 0 = off.
+	ProbationaryExpireDays int `yaml:"probationary_expire_days"`
 }
 
 // MemoryPatternGeneralizationConfig gates near-duplicate pattern reinforcement on memory create.
@@ -331,6 +360,15 @@ type RecallRankingConfig struct {
 	WeightElevationSuppression float64 `yaml:"weight_elevation_suppression"`
 	// WeightSituationalAffinity boosts query-coverage overlap between situation/repo/tags and memory (default 0.35; ranking only).
 	WeightSituationalAffinity float64 `yaml:"weight_situational_affinity"`
+	// ProductAnchorTerms are product/deployment names for named-product scoring
+	// branches (M2 de-overfit: replaces the hardcoded default ["pluribus"]).
+	ProductAnchorTerms []string `yaml:"product_anchor_terms,omitempty"`
+	// ExtraGenericTerms extends the built-in generic-token list (tokens that must
+	// not dominate relevance alone) with corpus-specific noise words.
+	ExtraGenericTerms []string `yaml:"extra_generic_terms,omitempty"`
+	// ExtraCommonDistinctiveTokens extends tokens considered too common to count
+	// as product anchors.
+	ExtraCommonDistinctiveTokens []string `yaml:"extra_common_distinctive_tokens,omitempty"`
 }
 
 // RecallRIUConfig configures Recall Intelligence Upgrade (RIU). Omit or enabled=false for ranking-only recall.

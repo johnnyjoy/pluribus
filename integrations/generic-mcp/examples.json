@@ -65,5 +65,37 @@
         "tags": ["auth", "incident"]
       }
     }
+  },
+  "tools_call_wakeup_context": {
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "tools/call",
+    "params": {
+      "name": "wakeup_context",
+      "arguments": {}
+    }
+  },
+  "tools_call_agent_telemetry_start_session": {
+    "jsonrpc": "2.0",
+    "id": 8,
+    "method": "tools/call",
+    "params": {
+      "name": "agent_telemetry_start_session",
+      "arguments": {
+        "interface": "generic-mcp-example",
+        "client_name": "example-client"
+      }
+    }
+  },
+  "tools_call_agent_utility_evaluate_candidate": {
+    "jsonrpc": "2.0",
+    "id": 9,
+    "method": "tools/call",
+    "params": {
+      "name": "agent_utility_evaluate_candidate",
+      "arguments": {
+        "candidate_id": "00000000-0000-4000-8000-000000000001"
+      }
+    }
   }
 }

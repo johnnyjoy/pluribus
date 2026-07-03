@@ -51,10 +51,10 @@ func TestFindSimilar_LexicalOrdersByOverlap(t *testing.T) {
 	mock.ExpectQuery(`SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities, memory_formation_status, rejection_reason`).
 		WithArgs(nil, nil, 500, FormationRejected).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "summary_text", "source", "tags", "related_memory_id", "created_at", "occurred_at", "entities", "memory_formation_status", "rejection_reason",
+			"id", "summary_text", "source", "tags", "related_memory_id", "created_at", "occurred_at", "entities", "memory_formation_status", "rejection_reason", "agent_id",
 		}).
-			AddRow(id1, "webhook debugging notes", "manual", []byte(`[]`), nil, t1, nil, []byte(`[]`), FormationLinked, nil).
-			AddRow(id2, "payment webhook timeout retry", "manual", []byte(`[]`), nil, t2, nil, []byte(`[]`), FormationLinked, nil))
+			AddRow(id1, "webhook debugging notes", "manual", []byte(`[]`), nil, t1, nil, []byte(`[]`), FormationLinked, nil, nil).
+			AddRow(id2, "payment webhook timeout retry", "manual", []byte(`[]`), nil, t2, nil, []byte(`[]`), FormationLinked, nil, nil))
 
 	s := &Service{
 		Repo:   &Repo{DB: db},
@@ -94,10 +94,10 @@ func TestFindSimilar_TagFilter(t *testing.T) {
 	mock.ExpectQuery(`SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities, memory_formation_status, rejection_reason`).
 		WithArgs(nil, nil, 500, FormationRejected).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "summary_text", "source", "tags", "related_memory_id", "created_at", "occurred_at", "entities", "memory_formation_status", "rejection_reason",
+			"id", "summary_text", "source", "tags", "related_memory_id", "created_at", "occurred_at", "entities", "memory_formation_status", "rejection_reason", "agent_id",
 		}).
-			AddRow(id1, "alpha beta topic one", "manual", []byte(`["a"]`), nil, now, nil, []byte(`[]`), FormationLinked, nil).
-			AddRow(id2, "gamma delta topic two", "manual", []byte(`["b","c"]`), nil, now, nil, []byte(`[]`), FormationLinked, nil))
+			AddRow(id1, "alpha beta topic one", "manual", []byte(`["a"]`), nil, now, nil, []byte(`[]`), FormationLinked, nil, nil).
+			AddRow(id2, "gamma delta topic two", "manual", []byte(`["b","c"]`), nil, now, nil, []byte(`[]`), FormationLinked, nil, nil))
 
 	s := &Service{
 		Repo:   &Repo{DB: db},
@@ -148,9 +148,9 @@ func TestFindSimilar_MinResemblanceFiltersWeak(t *testing.T) {
 	mock.ExpectQuery(`SELECT id, summary_text, source, tags, related_memory_id, created_at, occurred_at, entities, memory_formation_status, rejection_reason`).
 		WithArgs(nil, nil, 500, FormationRejected).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "summary_text", "source", "tags", "related_memory_id", "created_at", "occurred_at", "entities", "memory_formation_status", "rejection_reason",
+			"id", "summary_text", "source", "tags", "related_memory_id", "created_at", "occurred_at", "entities", "memory_formation_status", "rejection_reason", "agent_id",
 		}).
-			AddRow(id1, "completely unrelated xyz", "manual", []byte(`[]`), nil, now, nil, []byte(`[]`), FormationLinked, nil))
+			AddRow(id1, "completely unrelated xyz", "manual", []byte(`[]`), nil, now, nil, []byte(`[]`), FormationLinked, nil, nil))
 
 	s := &Service{
 		Repo:   &Repo{DB: db},

@@ -48,8 +48,13 @@ Two integration paths:
 
 - **Pluribus: Check health**
 - **Pluribus: Show metrics**
+- **Pluribus: Verify Mandatory Loop** — checklist in Output + health ping (12D)
 - **Pluribus: Show output**
 - **Pluribus: Recall Context (manual)** / **Record Experience (manual)** / **View Learnings** / **Refresh sidebar**
+
+## Distribution
+
+This extension is **not published** to the VS Code Marketplace from this repository. Distribution is **local VSIX install only** (see Build / local install below). Do not claim marketplace availability unless you have actually published a package.
 
 ## Build / local install
 

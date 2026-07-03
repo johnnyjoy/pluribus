@@ -340,6 +340,13 @@ func TestHandleToolsCall_recordExperience_alias(t *testing.T) {
 func TestHandleToolsCall_recallContext_alias(t *testing.T) {
 	var gotPath, gotMethod string
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// recall_context also fetches the optional housekeeping chore;
+		// record only the recall compile call itself.
+		if r.URL.Path == "/v1/curation/chores" {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"chores":[]}`))
+			return
+		}
 		gotMethod = r.Method
 		gotPath = r.URL.Path
 		w.WriteHeader(http.StatusOK)

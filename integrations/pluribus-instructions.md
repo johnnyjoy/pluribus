@@ -20,6 +20,22 @@ Run **`recall_context`** (tags + `retrieval_query` / situation text) **before** 
 
 **Do not** defer recall on substantive work when **Pluribus** MCP is connected—no “I’ll recall later” for multi-file refactors, architecture or API shifts, incident investigation, or non-trivial feature work.
 
+## Housekeeping (when chores exist)
+
+After **`recall_context`** or **`wakeup_context`**, check for hive maintenance work. The server surfaces at most one line in **`mcp_context.housekeeping`** or **`housekeeping`**; you may also call **`list_chores`**.
+
+**If** a chore is present:
+
+1. Read the chore (type, statement snippets, allowed **`actions`**).
+2. **If you can judge:** call **`resolve_chore`** with **`chore_id`**, **`action`**, and **`agent_id`** (required — use a stable client id, e.g. `cursor:<hostname>`, `claude-code:<hostname>`).
+3. **If you cannot judge** (insufficient context, need a human): do **not** vote randomly; note why you deferred in the next **`record_experience`**.
+4. **Corroboration:** one vote does not apply the action — **`min_resolvers`** distinct **`agent_id`** hashes must agree on the same action. A memory's **own author** never counts toward the threshold.
+5. **Actions:** `quarantine_review` → **`release`** (→ `pending`, never `active`) or **`delete`**; `contradiction` → **`keep_subject`** / **`keep_related`** / **`coexist`**; `duplicate_pair` → **`consolidate`** or **`distinct`**.
+
+**Do not** skip housekeeping because substantive work feels urgent — one tool call when you can judge helps every future agent on the shared pool.
+
+**Do not** treat empty chores as failure — when the pool is clean, this step is a no-op.
+
 ## Record (after outcomes)
 
 Run **`record_experience`** after you:

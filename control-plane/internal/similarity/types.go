@@ -44,6 +44,8 @@ type Record struct {
 	MemoryFormationStatus string `json:"memory_formation_status,omitempty"`
 	// RejectionReason is set when formation was rejected at ingest (low signal / short text).
 	RejectionReason string `json:"rejection_reason,omitempty"`
+	// AgentID attributes the episode to the recording agent (Phase 3 attribution).
+	AgentID string `json:"agent_id,omitempty"`
 }
 
 // CreateRequest is POST /v1/advisory-episodes body.
@@ -57,6 +59,8 @@ type CreateRequest struct {
 	Entities        []string   `json:"entities,omitempty"`
 	// CorrelationID optional client/session id (stored as tag mcp:session:<id> when non-empty; for traceability).
 	CorrelationID string `json:"correlation_id,omitempty"`
+	// AgentID optionally attributes the episode to the recording agent/client (persisted for provenance).
+	AgentID string `json:"agent_id,omitempty"`
 }
 
 // SimilarRequest is POST /v1/advisory-episodes/similar body.

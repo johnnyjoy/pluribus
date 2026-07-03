@@ -38,7 +38,7 @@ func TestToolDefinitions_recallRecordLoopDescriptions(t *testing.T) {
 func TestInitializeResult_memoryLoopInstructions(t *testing.T) {
 	res := InitializeResult("test", "0.0.0")
 	inst, _ := res["instructions"].(string)
-	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") {
+	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") {
 		t.Fatalf("instructions: %q", inst)
 	}
 }
@@ -161,6 +161,13 @@ func TestHandleToolsCall_wakeupContext_forwardsPOST(t *testing.T) {
 	var gotMethod, gotPath string
 	var gotBody []byte
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// The wakeup wrapper also fetches the optional housekeeping chore;
+		// record only the wakeup call itself.
+		if r.URL.Path == "/v1/curation/chores" {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"chores":[]}`))
+			return
+		}
 		gotMethod = r.Method
 		gotPath = r.URL.Path
 		gotBody, _ = io.ReadAll(r.Body)

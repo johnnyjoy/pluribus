@@ -8,6 +8,7 @@
 | Step | DO |
 |------|-----|
 | 1 | **`recall_context`** (pre-action **Pluribus**) |
+| 1b | If **`housekeeping`** / **`list_chores`**: **`resolve_chore`** or defer in **`record_experience`** |
 | 2 | **Plan / reason** on bundle |
 | 3 | **Act** |
 | 4 | **`record_experience`** (post-action **Pluribus**) |

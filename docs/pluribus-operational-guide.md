@@ -43,10 +43,11 @@ Load balancers should use **`readyz`** for traffic.
 
 ---
 
-## Schema (fresh Postgres)
+## Schema (in-place, forward-only)
 
-- SQL files: `control-plane/migrations/*.sql`.
-- Applied on **every control-plane startup** (idempotent DDL; **no** version ledger, **no** supported in-place upgrade from prior schemas). **Pre-release:** there are no GA installs to upgrade — use a **new** database or volume; do not point the server at legacy populated schemas expecting migration.
+- SQL files: `control-plane/migrations/*.sql` (lexicographic order = apply order; additive, idempotent DDL only).
+- Applied on **every control-plane startup** against the **same** database (no version ledger; idempotency makes replay safe). **The database is sacred:** upgrades must run in place against the existing populated database — a fresh-database upgrade path destroys the memory pool and is forbidden. Use `scripts/upgrade-in-place.sh` (verified backup, binary swap, health check, post-upgrade memory-count assertion, automatic rollback).
+- New migrations must be additive and idempotent (`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, guarded `ALTER`), never destructive to existing rows.
 - Historical archive (obsolete flows): [archive/migration-unversioned-baseline.md](archive/migration-unversioned-baseline.md).
 
 ---

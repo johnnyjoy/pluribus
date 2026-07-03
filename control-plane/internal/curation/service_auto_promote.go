@@ -57,6 +57,24 @@ func (s *Service) AutoPromoteBatch(ctx context.Context) (*AutoPromoteResponse, e
 	return &AutoPromoteResponse{Results: out}, nil
 }
 
+// AutoPromoteBatchCount runs AutoPromoteBatch and reduces the result to counts
+// (promoted, everything-else). Used by the background curation scheduler.
+func (s *Service) AutoPromoteBatchCount(ctx context.Context) (int, int, error) {
+	resp, err := s.AutoPromoteBatch(ctx)
+	if err != nil {
+		return 0, 0, err
+	}
+	promoted, skipped := 0, 0
+	for _, r := range resp.Results {
+		if r.Status == "promoted" {
+			promoted++
+		} else {
+			skipped++
+		}
+	}
+	return promoted, skipped, nil
+}
+
 func (s *Service) autoPromoteEligible(p *ProposalPayloadV1, salience float64) bool {
 	cfg := s.Promotion
 	if cfg == nil {

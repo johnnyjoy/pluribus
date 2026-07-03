@@ -169,6 +169,7 @@ export function activate(context: vscode.ExtensionContext): void {
         tree.connectionOk ? "Pluribus: health OK" : "Pluribus: health check failed — see Output"
       );
     }),
+    vscode.commands.registerCommand("pluribus.verifyMandatoryLoop", () => verifyMandatoryLoop(orch)),
     vscode.commands.registerCommand("pluribus.showMetrics", () => {
       metrics.log(output);
       output.show(true);
@@ -279,6 +280,41 @@ async function recordExperience(): Promise<void> {
     const msg = e instanceof Error ? e.message : String(e);
     vscode.window.showErrorMessage(`Pluribus record failed: ${msg}`);
     metrics.failedRecord += 1;
+  }
+}
+
+async function verifyMandatoryLoop(orch: { checkHealth: () => Promise<boolean> }): Promise<void> {
+  const c = cfg();
+  const base = getBaseUrl(c);
+  const lines: string[] = [
+    "Pluribus mandatory loop checklist (VS Code extension)",
+    "",
+    "This extension orchestrates REST recall/record on task/debug events.",
+    "It does NOT embed MCP — use a separate MCP client for agent tool loops.",
+    "",
+    `Base URL: ${base}`,
+    `Orchestrator enabled: ${c.get<boolean>("orchestrator.enabled") !== false}`,
+    `Recall on task start: ${c.get<boolean>("orchestrator.recallOnTaskStart") !== false}`,
+    `Recall on debug start: ${c.get<boolean>("orchestrator.recallOnDebugStart") !== false}`,
+    `Record on task process failure: ${c.get<boolean>("orchestrator.recordOnTaskProcessFailure") !== false}`,
+    "",
+    "Server owns memory semantics. Extension only triggers HTTP contact.",
+    "",
+    "Manual: run Recall Context / Record Experience after agent work if MCP is not wired.",
+  ];
+  const text = lines.join("\n");
+  output.appendLine("[verify mandatory loop]");
+  output.appendLine(text);
+  output.show(true);
+  await orch.checkHealth();
+  if (tree.connectionOk === false) {
+    vscode.window.showWarningMessage(
+      "Pluribus unreachable — auto recall/record will not run until the server is up."
+    );
+  } else {
+    vscode.window.showInformationMessage(
+      "Pluribus loop checklist in Output. See sidebar for last auto recall/record."
+    );
   }
 }
 

@@ -30,6 +30,61 @@ func isGenericRecallTerm(tok string) bool {
 	return ok
 }
 
+// productAnchorQueryTerms are product/deployment names that trigger the
+// named-product scoring branches. Deployment-specific: override via
+// recall.ranking.product_anchor_terms (M2 de-overfit: no hardcoded literals
+// buried in scoring logic).
+var productAnchorQueryTerms = []string{"pluribus"}
+
+// RankingTermConfig carries deployment-tunable term lists for relevance scoring.
+type RankingTermConfig struct {
+	// ProductAnchorTerms replaces the default product-name list when non-empty.
+	ProductAnchorTerms []string
+	// ExtraGenericTerms extends genericRecallTerms (tokens that must not
+	// dominate relevance alone) for corpus-specific noise.
+	ExtraGenericTerms []string
+	// ExtraCommonDistinctiveTokens extends commonDistinctiveTokens (tokens too
+	// common to count as product anchors).
+	ExtraCommonDistinctiveTokens []string
+}
+
+// ApplyRankingTermConfig installs deployment-specific term lists at wiring time
+// (before any recall traffic; not safe for concurrent mutation afterwards).
+func ApplyRankingTermConfig(cfg RankingTermConfig) {
+	if len(cfg.ProductAnchorTerms) > 0 {
+		terms := make([]string, 0, len(cfg.ProductAnchorTerms))
+		for _, t := range cfg.ProductAnchorTerms {
+			if t = strings.ToLower(strings.TrimSpace(t)); t != "" {
+				terms = append(terms, t)
+			}
+		}
+		if len(terms) > 0 {
+			productAnchorQueryTerms = terms
+		}
+	}
+	for _, t := range cfg.ExtraGenericTerms {
+		if t = strings.ToLower(strings.TrimSpace(t)); t != "" {
+			genericRecallTerms[t] = struct{}{}
+		}
+	}
+	for _, t := range cfg.ExtraCommonDistinctiveTokens {
+		if t = strings.ToLower(strings.TrimSpace(t)); t != "" {
+			commonDistinctiveTokens[t] = struct{}{}
+		}
+	}
+}
+
+// textMentionsProductAnchorTerm reports whether text names a configured product anchor.
+func textMentionsProductAnchorTerm(text string) bool {
+	low := strings.ToLower(text)
+	for _, t := range productAnchorQueryTerms {
+		if strings.Contains(low, t) {
+			return true
+		}
+	}
+	return false
+}
+
 func isBenchmarkInfraTag(tag string) bool {
 	tag = strings.ToLower(strings.TrimSpace(tag))
 	return strings.HasPrefix(tag, "bench:") || strings.HasPrefix(tag, "domain:")
@@ -411,7 +466,7 @@ func computeScoreComponents(
 			relevance += 0.95
 		}
 	}
-	if strings.Contains(strings.ToLower(req.SituationQuery), "pluribus") &&
+	if textMentionsProductAnchorTerm(req.SituationQuery) &&
 		obj.Kind == api.MemoryKindConstraint &&
 		memoryTagContains(scoringTags, "enforcement") &&
 		tagMatchScore(scoringTags, req.Tags) > 0 {
@@ -449,7 +504,7 @@ func computeScoreComponents(
 		if strongCompoundPhraseHit(req.SituationQuery, statement, scoringTags) && obj.Kind == api.MemoryKindDecision {
 			bd.WrongDomainPenalty *= 0.12
 		}
-		if strings.Contains(strings.ToLower(req.SituationQuery), "pluribus") &&
+		if textMentionsProductAnchorTerm(req.SituationQuery) &&
 			obj.Kind == api.MemoryKindConstraint &&
 			memoryTagContains(scoringTags, "enforcement") &&
 			tagMatchScore(scoringTags, req.Tags) > 0 {
@@ -530,7 +585,7 @@ func computeScoreComponents(
 		score = min(score, 0.28)
 	}
 	if queryNamedProduct(req.SituationQuery) && memoryTagContains(scoringTags, "checklist") &&
-		!strings.Contains(strings.ToLower(statement), "pluribus") {
+		!textMentionsProductAnchorTerm(statement) {
 		score = min(score, 0.05)
 	}
 	if req.RepoRoot != "" && repoRootAffinityBoost(req.RepoRoot, statement, scoringTags) == 0 {

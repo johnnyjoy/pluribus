@@ -28,7 +28,7 @@ func TestService_Promote_persistsMemoryObject(t *testing.T) {
 	sk := memorynorm.StatementKey(content)
 
 	mock.ExpectQuery(`INSERT INTO memories`).
-		WithArgs(sqlmock.AnyArg(), "decision", content, canon, sk, dedup, 8, "advisory", "active", nil, nil, nil).
+		WithArgs(sqlmock.AnyArg(), "decision", content, canon, sk, dedup, 8, "advisory", "active", nil, nil, nil, nil).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at",
 		}).AddRow(uuid.New(), api.MemoryKindDecision, content, canon, sk, 8, "advisory", "active", nil, nil, nil, time.Now(), time.Now(), nil))
@@ -71,7 +71,7 @@ func TestService_Promote_constraintUsesGoverningApplicability(t *testing.T) {
 	sk := memorynorm.StatementKey(content)
 
 	mock.ExpectQuery(`INSERT INTO memories`).
-		WithArgs(sqlmock.AnyArg(), "constraint", content, canon, sk, dedup, sqlmock.AnyArg(), "governing", "active", nil, nil, nil).
+		WithArgs(sqlmock.AnyArg(), "constraint", content, canon, sk, dedup, sqlmock.AnyArg(), "governing", "active", nil, nil, nil, nil).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at",
 		}).AddRow(uuid.New(), api.MemoryKindConstraint, content, canon, sk, 8, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
@@ -110,7 +110,7 @@ func TestService_Promote_requireReviewCreatesPending(t *testing.T) {
 	sk := memorynorm.StatementKey(content)
 
 	mock.ExpectQuery(`INSERT INTO memories`).
-		WithArgs(sqlmock.AnyArg(), "decision", content, canon, sk, dedup, 8, "advisory", string(api.StatusPending), nil, nil, nil).
+		WithArgs(sqlmock.AnyArg(), "decision", content, canon, sk, dedup, 8, "advisory", string(api.StatusPending), nil, nil, nil, nil).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at",
 		}).AddRow(uuid.New(), api.MemoryKindDecision, content, canon, sk, 8, "advisory", api.StatusPending, nil, nil, nil, time.Now(), time.Now(), nil))

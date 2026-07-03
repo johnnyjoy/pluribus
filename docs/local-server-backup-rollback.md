@@ -1,8 +1,10 @@
 # Local Pluribus Server — Backup and Rollback
 
-**Doctrine:** Rollback means **restore database backup + previous binary/config**, not reversing migrations in place.
+**Doctrine:** The memory database is **sacred**. Upgrades are **forward-only, in-place migrations against the same database** — a fresh-database upgrade path is forbidden because it destroys the hive mind's accumulated memory. Rollback means **restore database backup + previous binary/config**, not reversing migrations in place.
 
 Pluribus replays idempotent embedded SQL on boot; there is **no down-migration** and **no schema version ledger**.
+
+**Supported upgrade path:** `scripts/upgrade-in-place.sh` — takes a verified backup, swaps the binary, health-checks, asserts post-upgrade memory count is not lower than pre-upgrade, and rolls back automatically on any failure. Standalone backup/restore: `scripts/backup-memory.sh` / `scripts/restore-memory.sh`.
 
 ---
 

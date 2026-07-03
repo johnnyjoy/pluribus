@@ -435,31 +435,42 @@ func extractMCPJSON(res any) (map[string]any, error) {
 	if err := json.Unmarshal(raw, &m); err != nil {
 		return nil, err
 	}
+	// Spec-compliant results carry the payload in structuredContent; the legacy
+	// {"type":"json"} content block and serialized-JSON text blocks are also accepted.
+	if sc, ok := m["structuredContent"].(map[string]any); ok {
+		return unwrapTelemetryPayload(sc), nil
+	}
 	content, _ := m["content"].([]any)
 	for _, c := range content {
 		cm, _ := c.(map[string]any)
-		if cm["type"] != "json" {
-			continue
+		if j, ok := cm["json"].(map[string]any); ok && cm["type"] == "json" {
+			return unwrapTelemetryPayload(j), nil
 		}
-		switch j := cm["json"].(type) {
-		case map[string]any:
-			for k, v := range j {
-				if strings.HasPrefix(k, "telemetry_") {
-					if inner, ok := v.(map[string]any); ok {
-						return inner, nil
-					}
-					if s, ok := v.(string); ok {
-						var inner map[string]any
-						if json.Unmarshal([]byte(s), &inner) == nil {
-							return inner, nil
-						}
-					}
-				}
+		if s, ok := cm["text"].(string); ok && cm["type"] == "text" {
+			var j map[string]any
+			if json.Unmarshal([]byte(s), &j) == nil && j != nil {
+				return unwrapTelemetryPayload(j), nil
 			}
-			return j, nil
 		}
 	}
 	return nil, fmt.Errorf("no json content")
+}
+
+func unwrapTelemetryPayload(j map[string]any) map[string]any {
+	for k, v := range j {
+		if strings.HasPrefix(k, "telemetry_") {
+			if inner, ok := v.(map[string]any); ok {
+				return inner
+			}
+			if s, ok := v.(string); ok {
+				var inner map[string]any
+				if json.Unmarshal([]byte(s), &inner) == nil {
+					return inner
+				}
+			}
+		}
+	}
+	return j
 }
 
 func hasPositiveUtility(m map[string]any) bool {

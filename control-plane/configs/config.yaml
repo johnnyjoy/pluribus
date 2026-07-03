@@ -48,8 +48,20 @@ recall:
     weight_cross_agent_salience: 0.12
     weight_semantic_similarity: 0.4
     weight_situational_affinity: 0.35
+  # Local Ollama-compatible embedder (ollama pull nomic-embed-text; ollama serve).
+  # Embedder down/misconfigured → graceful lexical fallback ([SEMANTIC FALLBACK] logs).
+  # Column dimension must match: see migrations/0015_local_embedder_dimensions.sql (768).
+  # This file is the Docker/Compose default: host.docker.internal reaches Ollama on
+  # the docker host (compose adds the host-gateway mapping). For bare-metal runs use
+  # config.local.yaml with http://127.0.0.1:11434/v1.
   semantic_retrieval:
-    enabled: false
+    enabled: true
+    embedding_endpoint: "http://host.docker.internal:11434/v1"
+    embedding_model: "nomic-embed-text"
+    embedding_dimensions: 768
+    max_semantic_candidates: 50
+    min_cosine_similarity: 0.35
+    log_semantic_matches: false
   # evidence_in_bundle:
   #   enabled: false
   #   max_per_memory: 2
@@ -61,11 +73,40 @@ memory:
     authority_positive_delta: 0.1
     authority_negative_delta: 0.2
     expiration_authority_threshold: 2
+    # C3/auto-curation: probationary rows without TTL decay out after 30 idle days
+    # (authority below threshold, no historical-value signals).
+    probationary_expire_days: 30
+  # Corroboration (Phase 3): authority rises only when a NEW distinct agent uses
+  # the memory; authors and repeat users merge salience without self-promoting.
+  # Impact deltas restated because a partial block overrides built-in defaults.
+  recall_reinforcement:
+    require_distinct_agent_for_authority: true
+    impact_high_delta: 2
+    impact_medium_delta: 1
+    impact_low_delta: 0
+    min_signal_strength_for_low: 1
   # Exact canonical dedup on POST /v1/memory (Phase C). Omit or enabled: true = reject duplicates with 409.
   dedup:
     enabled: true
     # Phase F: recall bundle near-dup collapse (Jaccard on canonical); 0 = near-dup off (exact key collapse still on when ranking).
     near_dup_jaccard_threshold: 0.92
+
+# Phase 3 auto-curation: background loop that expires stale/probationary rows and
+# auto-promotes eligible candidates (only when promotion.auto_promote is enabled).
+# Also opens agent-driven curation chores (contradiction review, quarantine review,
+# embedding near-duplicate pairs) that visiting agents resolve via corroborated votes.
+curation_scheduler:
+  enabled: true
+  interval_minutes: 60
+  initial_delay_seconds: 30
+  # Embedding near-duplicate pair scan → duplicate_pair chores.
+  neardup_scan_enabled: true
+  neardup_cosine_threshold: 0.92
+  neardup_scan_window_days: 14
+  neardup_scan_limit: 20
+  # Distinct agents that must vote the same action before a chore applies.
+  # 2 = corroborated (recommended once several agents visit); 1 = single-agent hive.
+  chore_min_resolvers: 2
 
 slow_path:
   enabled: false

@@ -47,7 +47,31 @@ func LoadPolicyCases(path string) ([]PolicyCase, error) {
 	if err := json.Unmarshal(raw, &f); err != nil {
 		return nil, err
 	}
+	rebaseCaseTimestamps(f.Cases)
 	return f.Cases, nil
+}
+
+// rebaseCaseTimestamps shifts every fixture created_at so the newest one is
+// "now", preserving relative ages. The fixture stores absolute timestamps from
+// generation day; without rebasing, the stale-candidate window (7d) eventually
+// marks EVERY case stale and the whole suite silently degrades into
+// review_required (time-bomb found 2026-07).
+func rebaseCaseTimestamps(cases []PolicyCase) {
+	var newest time.Time
+	for _, c := range cases {
+		if ts := c.CandidateInput.CreatedAt; !ts.IsZero() && ts.After(newest) {
+			newest = ts
+		}
+	}
+	if newest.IsZero() {
+		return
+	}
+	shift := time.Now().UTC().Sub(newest)
+	for i := range cases {
+		if ts := cases[i].CandidateInput.CreatedAt; !ts.IsZero() {
+			cases[i].CandidateInput.CreatedAt = ts.Add(shift)
+		}
+	}
 }
 
 func repoRoot() string {

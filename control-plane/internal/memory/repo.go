@@ -89,6 +89,10 @@ func (r *Repo) Create(ctx context.Context, req CreateRequest) (*MemoryObject, er
 	if req.OccurredAt != nil {
 		occurredArg = *req.OccurredAt
 	}
+	var agentArg interface{}
+	if a := strings.TrimSpace(req.AgentID); a != "" {
+		agentArg = a
+	}
 	var obj MemoryObject
 	var deprecatedAt sql.NullTime
 	var ttlReturn sql.NullInt64
@@ -113,20 +117,23 @@ func (r *Repo) Create(ctx context.Context, req CreateRequest) (*MemoryObject, er
 			embUpdated = sql.NullTime{Time: meta.UpdatedAt, Valid: !meta.UpdatedAt.IsZero()}
 		}
 		err = r.DB.QueryRowContext(ctx,
-			`INSERT INTO memories (id, kind, statement, statement_canonical, statement_key, dedup_key, authority, applicability, status, ttl_seconds, payload, occurred_at, embedding,
+			`INSERT INTO memories (id, kind, statement, statement_canonical, statement_key, dedup_key, authority, applicability, status, ttl_seconds, payload, occurred_at, agent_id, embedding,
 			 embedding_model, embedding_provider, embedding_dimension, embedding_source_hash, embedding_created_at, embedding_updated_at, embedding_status)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::vector, $14, $15, $16, $17, $18, $19, $20)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::vector, $15, $16, $17, $18, $19, $20, $21)
 			 RETURNING id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at, occurred_at`,
-			id, string(req.Kind), req.Statement, canon, stmtKey, dedup, req.Authority, applicability, status, ttl, payloadArg, occurredArg, vec,
+			id, string(req.Kind), req.Statement, canon, stmtKey, dedup, req.Authority, applicability, status, ttl, payloadArg, occurredArg, agentArg, vec,
 			model, provider, dim, sourceHash, embCreated, embUpdated, embStatus,
 		).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredReturn)
 	} else {
 		err = r.DB.QueryRowContext(ctx,
-			`INSERT INTO memories (id, kind, statement, statement_canonical, statement_key, dedup_key, authority, applicability, status, ttl_seconds, payload, occurred_at)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			`INSERT INTO memories (id, kind, statement, statement_canonical, statement_key, dedup_key, authority, applicability, status, ttl_seconds, payload, occurred_at, agent_id)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 			 RETURNING id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at, occurred_at`,
-			id, string(req.Kind), req.Statement, canon, stmtKey, dedup, req.Authority, applicability, status, ttl, payloadArg, occurredArg,
+			id, string(req.Kind), req.Statement, canon, stmtKey, dedup, req.Authority, applicability, status, ttl, payloadArg, occurredArg, agentArg,
 		).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredReturn)
+	}
+	if agentArg != nil {
+		obj.AgentID = strings.TrimSpace(req.AgentID)
 	}
 	if err != nil {
 		if isPGUniqueViolation(err) {
@@ -169,11 +176,12 @@ func (r *Repo) GetByID(ctx context.Context, id uuid.UUID) (*MemoryObject, error)
 	var ttlReturn sql.NullInt64
 	var payloadReturn []byte
 	var occurredAt sql.NullTime
+	var agentID sql.NullString
 	err := r.DB.QueryRowContext(ctx,
-		`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at, occurred_at
+		`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, deprecated_at, ttl_seconds, payload, created_at, updated_at, occurred_at, agent_id
 		 FROM memories WHERE id = $1`,
 		id,
-	).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredAt)
+	).Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &deprecatedAt, &ttlReturn, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredAt, &agentID)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -189,6 +197,9 @@ func (r *Repo) GetByID(ctx context.Context, id uuid.UUID) (*MemoryObject, error)
 	}
 	if len(payloadReturn) > 0 {
 		obj.Payload = payloadReturn
+	}
+	if agentID.Valid {
+		obj.AgentID = agentID.String
 	}
 	applyOccurredAt(occurredAt, &obj)
 	obj.Tags, _ = r.tagsForMemory(ctx, obj.ID)
@@ -268,16 +279,30 @@ func (r *Repo) MarkSuperseded(ctx context.Context, id uuid.UUID, deprecatedAt ti
 	return err
 }
 
-// ListExpiredCandidates returns active memories with TTL set that have expired and authority below threshold (Task 75).
+// ListExpiredCandidates returns active memories eligible for archive (Task 75; C3 extension):
+//   - TTL path: TTL set and expired, authority below threshold.
+//   - Probationary path (when probationaryBefore non-nil): probationary-tagged rows
+//     WITHOUT a TTL, authority below threshold, created before probationaryBefore.
+//     Closes the hostile-audit gap where probationary rows never aged out.
+//
 // Phase 9B: rows with historical-value signals (utility, evidence, relationships, contradictions,
-// durable tags, material occurred_at, supersession payload) are excluded from TTL archive candidacy.
-func (r *Repo) ListExpiredCandidates(ctx context.Context, authorityThreshold int, asOf time.Time) ([]MemoryObject, error) {
+// durable tags, material occurred_at, supersession payload) are excluded from archive candidacy.
+func (r *Repo) ListExpiredCandidates(ctx context.Context, authorityThreshold int, asOf time.Time, probationaryBefore *time.Time) ([]MemoryObject, error) {
 	query := `SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.deprecated_at, m.ttl_seconds, m.payload, m.created_at, m.updated_at, m.occurred_at
 		 FROM memories m
-		 WHERE m.status = 'active' AND m.authority < $1 AND m.ttl_seconds IS NOT NULL AND m.ttl_seconds > 0
-		   AND m.created_at + (m.ttl_seconds * interval '1 second') < $2` + ttlHistoricalValueExclusionSQL
+		 WHERE m.status = 'active' AND m.authority < $1
+		   AND (
+		     (m.ttl_seconds IS NOT NULL AND m.ttl_seconds > 0
+		      AND m.created_at + (m.ttl_seconds * interval '1 second') < $2)
+		     OR (
+		       $5::timestamptz IS NOT NULL
+		       AND (m.ttl_seconds IS NULL OR m.ttl_seconds <= 0)
+		       AND m.created_at < $5
+		       AND EXISTS (SELECT 1 FROM memories_tags pt WHERE pt.memory_id = m.id AND pt.tag = 'probationary')
+		     )
+		   )` + ttlHistoricalValueExclusionSQL
 	rows, err := r.DB.QueryContext(ctx, query,
-		authorityThreshold, asOf, OccurredAtMaterialDeltaSeconds, pq.Array(DurableHistoricalTags))
+		authorityThreshold, asOf, OccurredAtMaterialDeltaSeconds, pq.Array(DurableHistoricalTags), probationaryBefore)
 	if err != nil {
 		return nil, err
 	}
@@ -315,6 +340,15 @@ func (r *Repo) UpdateStatus(ctx context.Context, id uuid.UUID, status api.Status
 	_, err := r.DB.ExecContext(ctx,
 		`UPDATE memories SET status = $1, updated_at = now() WHERE id = $2`,
 		status, id)
+	return err
+}
+
+// UpdateStatusWithReason sets status, status_reason, and updated_at (C3 remediation:
+// quarantine / soft delete carry an auditable reason).
+func (r *Repo) UpdateStatusWithReason(ctx context.Context, id uuid.UUID, status api.Status, reason string) error {
+	_, err := r.DB.ExecContext(ctx,
+		`UPDATE memories SET status = $1, status_reason = NULLIF($2, ''), updated_at = now() WHERE id = $3`,
+		status, reason, id)
 	return err
 }
 
@@ -600,6 +634,66 @@ func (r *Repo) SearchTagOnly(ctx context.Context, query string, tags []string, s
 			 LIMIT $2`,
 			status, max)
 	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []MemoryObject
+	var ids []uuid.UUID
+	for rows.Next() {
+		var obj MemoryObject
+		var payloadReturn []byte
+		var occurredAt sql.NullTime
+		if err := rows.Scan(&obj.ID, &obj.Kind, &obj.Statement, &obj.StatementCanonical, &obj.StatementKey, &obj.Authority, &obj.Applicability, &obj.Status, &payloadReturn, &obj.CreatedAt, &obj.UpdatedAt, &occurredAt); err != nil {
+			return nil, err
+		}
+		if len(payloadReturn) > 0 {
+			obj.Payload = payloadReturn
+		}
+		applyOccurredAt(occurredAt, &obj)
+		ids = append(ids, obj.ID)
+		list = append(list, obj)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	tagMap, err := r.tagsForMemories(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range list {
+		list[i].Tags = tagMap[list[i].ID]
+		enrichFromTags(&list[i], list[i].Tags)
+	}
+	return list, nil
+}
+
+// SearchFullText returns memories matching a websearch-style full-text query,
+// ranked by ts_rank then authority (H1 hybrid candidate slice; GIN index in
+// migrations/0016_fulltext_candidates.sql). Unmatched or empty queries return nil.
+func (r *Repo) SearchFullText(ctx context.Context, query, status string, max int) ([]MemoryObject, error) {
+	q := strings.TrimSpace(query)
+	if q == "" {
+		return nil, nil
+	}
+	if status == "" {
+		status = "active"
+	}
+	if max <= 0 {
+		max = 50
+	}
+	if max > 200 {
+		max = 200
+	}
+	rows, err := r.DB.QueryContext(ctx,
+		`SELECT id, kind, statement, statement_canonical, statement_key, authority, applicability, status, payload, created_at, updated_at, occurred_at
+		 FROM memories
+		 WHERE status = $1
+		   AND statement_tsv @@ websearch_to_tsquery('english', $2)
+		 ORDER BY ts_rank(statement_tsv, websearch_to_tsquery('english', $2)) DESC, authority DESC, updated_at DESC, id
+		 LIMIT $3`,
+		status, q, max)
 	if err != nil {
 		return nil, err
 	}

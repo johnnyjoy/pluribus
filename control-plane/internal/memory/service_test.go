@@ -146,8 +146,8 @@ func TestService_ApplyAuthorityEvent(t *testing.T) {
 
 	sk := memorynorm.StatementKey("A decision")
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
-			AddRow(id, api.MemoryKindDecision, "A decision", memorynorm.StatementCanonical("A decision"), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(id, api.MemoryKindDecision, "A decision", memorynorm.StatementCanonical("A decision"), sk, 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil, nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).WillReturnRows(
 		sqlmock.NewRows([]string{"tag"}).AddRow("api").AddRow("decision"))
 	mock.ExpectExec(`UPDATE memories SET authority`).WithArgs(4, id).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -203,8 +203,8 @@ func TestService_ApplyAuthorityEvent_taggedGlobal_isDowngraded(t *testing.T) {
 	id := uuid.New()
 
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
-			AddRow(id, api.MemoryKindDecision, "Global rule", memorynorm.StatementCanonical("Global rule"), memorynorm.StatementKey("Global rule"), 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(id, api.MemoryKindDecision, "Global rule", memorynorm.StatementCanonical("Global rule"), memorynorm.StatementKey("Global rule"), 5, "governing", "active", nil, nil, nil, time.Now(), time.Now(), nil, nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).WillReturnRows(
 		sqlmock.NewRows([]string{"tag"}).AddRow("global"))
 	mock.ExpectExec(`UPDATE memories SET authority`).WithArgs(4, id).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -241,7 +241,7 @@ func TestService_Create_doesNotInferProjectOrGlobalTags(t *testing.T) {
 	memID := uuid.New()
 
 	mock.ExpectQuery(`INSERT INTO memories`).
-		WithArgs(sqlmock.AnyArg(), api.MemoryKindDecision, statement, canon, sk, dedup, 7, api.ApplicabilityGoverning, "active", nil, nil, nil).
+		WithArgs(sqlmock.AnyArg(), api.MemoryKindDecision, statement, canon, sk, dedup, 7, api.ApplicabilityGoverning, "active", nil, nil, nil, nil).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at",
 		}).AddRow(memID, api.MemoryKindDecision, statement, canon, sk, 7, api.ApplicabilityGoverning, "active", nil, nil, nil, time.Now(), time.Now(), nil))
@@ -275,8 +275,8 @@ func TestService_ReinforceRecallUsage_incrementsAuthority(t *testing.T) {
 	id := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
-			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now(), nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now(), nil, nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).
 		WillReturnRows(sqlmock.NewRows([]string{"tag"}).AddRow("api"))
 	mock.ExpectExec(`UPDATE memories SET authority`).WithArgs(6, id).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -300,8 +300,8 @@ func TestService_ReinforceRecallUsageWithMeta_highImpactUsesLargerDelta(t *testi
 	id := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
 	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
-			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now(), nil))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now(), nil, nil))
 	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).
 		WillReturnRows(sqlmock.NewRows([]string{"tag"}))
 	mock.ExpectExec(`UPDATE memories SET authority`).WithArgs(7, id).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -309,6 +309,82 @@ func TestService_ReinforceRecallUsageWithMeta_highImpactUsesLargerDelta(t *testi
 	svc := &Service{Repo: &Repo{DB: db}}
 	if err := svc.ReinforceRecallUsageWithMeta(ctx, []uuid.UUID{id}, ReinforceMeta{Impact: "high", SignalStrength: 2}); err != nil {
 		t.Fatalf("ReinforceRecallUsageWithMeta: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("expectations: %v", err)
+	}
+}
+
+// TestService_ReinforceRecallUsageWithMeta_authorNeverSelfPromotes proves corroboration:
+// the memory's own author reusing it merges salience but never raises authority.
+func TestService_ReinforceRecallUsageWithMeta_authorNeverSelfPromotes(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	id := uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
+
+	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now(), nil, "agent-alpha"))
+	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).
+		WillReturnRows(sqlmock.NewRows([]string{"tag"}))
+	// Salience merge is still persisted, but no UPDATE memories SET authority.
+	mock.ExpectExec(`UPDATE memories SET payload`).WithArgs(sqlmock.AnyArg(), id).WillReturnResult(sqlmock.NewResult(0, 1))
+
+	svc := &Service{Repo: &Repo{DB: db}}
+	meta := ReinforceMeta{Impact: "high", SignalStrength: 2, AgentKey: AgentUsageKey("agent-alpha")}
+	if err := svc.ReinforceRecallUsageWithMeta(ctx, []uuid.UUID{id}, meta); err != nil {
+		t.Fatalf("ReinforceRecallUsageWithMeta: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("expectations: %v", err)
+	}
+}
+
+// TestService_ReinforceRecallUsageWithMeta_requireDistinctAgent proves strict corroboration:
+// with require_distinct_agent_for_authority, anonymous reuse never raises authority.
+func TestService_ReinforceRecallUsageWithMeta_requireDistinctAgent(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	id := uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+
+	// Anonymous call (no AgentKey): no authority update expected.
+	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now(), nil, nil))
+	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).
+		WillReturnRows(sqlmock.NewRows([]string{"tag"}))
+
+	svc := &Service{Repo: &Repo{DB: db}, Reinforcement: &RecallReinforcementConfig{
+		RequireDistinctAgentForAuthority: true,
+		ImpactHighDelta:                  2, ImpactMediumDelta: 1,
+	}}
+	if err := svc.ReinforceRecallUsageWithMeta(ctx, []uuid.UUID{id}, ReinforceMeta{Impact: "medium"}); err != nil {
+		t.Fatalf("ReinforceRecallUsageWithMeta: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("expectations: %v", err)
+	}
+
+	// A new distinct agent: reuse delta + agent bonus both apply (5 -> 7).
+	mock.ExpectQuery(`SELECT id, kind, statement`).WithArgs(id).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id"}).
+			AddRow(id, api.MemoryKindPattern, "p", memorynorm.StatementCanonical("p"), memorynorm.StatementKey("p"), 5, "advisory", "active", nil, nil, nil, time.Now(), time.Now(), nil, "agent-alpha"))
+	mock.ExpectQuery(`SELECT tag FROM memories_tags`).WithArgs(id).
+		WillReturnRows(sqlmock.NewRows([]string{"tag"}))
+	mock.ExpectExec(`UPDATE memories SET authority`).WithArgs(7, id).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE memories SET payload`).WithArgs(sqlmock.AnyArg(), id).WillReturnResult(sqlmock.NewResult(0, 1))
+
+	meta := ReinforceMeta{Impact: "medium", AgentKey: AgentUsageKey("agent-beta")}
+	if err := svc.ReinforceRecallUsageWithMeta(ctx, []uuid.UUID{id}, meta); err != nil {
+		t.Fatalf("ReinforceRecallUsageWithMeta distinct agent: %v", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("expectations: %v", err)

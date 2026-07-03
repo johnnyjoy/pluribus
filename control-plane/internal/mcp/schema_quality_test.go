@@ -54,10 +54,26 @@ func TestValidateToolArguments_recordRequiresSummary(t *testing.T) {
 	}
 }
 
-func TestValidateToolArguments_rejectsExtraProperties(t *testing.T) {
-	err := ValidateToolArguments("health", []byte(`{"unexpected":true}`))
-	if err == nil || !strings.Contains(err.Error(), "unexpected argument") {
-		t.Fatalf("expected extra property error, got %v", err)
+func TestValidateToolArguments_toleratesExtraProperties(t *testing.T) {
+	// Unknown arguments are tolerated (dropped at forwarding), never rejected:
+	// clients attach metadata like agent_id/repo_root to every call (H2).
+	if err := ValidateToolArguments("health", []byte(`{"unexpected":true}`)); err != nil {
+		t.Fatalf("extra properties must be tolerated, got %v", err)
+	}
+	if err := ValidateToolArguments("record_experience", []byte(`{"summary":"Fixed the flaky retry loop in ingest by bounding backoff and adding jitter; retries now converge.","agent_id":"cursor:fable","some_future_field":1}`)); err != nil {
+		t.Fatalf("metadata arguments must be tolerated, got %v", err)
+	}
+}
+
+func TestFilterArgumentsToSchema_dropsUndeclaredKeys(t *testing.T) {
+	out := FilterArgumentsToSchema("memory_create", []byte(`{"kind":"decision","statement":"Use pgvector for ANN.","agent_id":"a1","stray":true}`))
+	s := string(out)
+	if strings.Contains(s, "stray") {
+		t.Fatalf("undeclared keys not dropped: %s", s)
+	}
+	// agent_id is declared on memory_create (Phase 3 attribution) and must survive.
+	if !strings.Contains(s, "statement") || !strings.Contains(s, "kind") || !strings.Contains(s, "agent_id") {
+		t.Fatalf("declared keys lost: %s", s)
 	}
 }
 

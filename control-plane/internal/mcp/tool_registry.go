@@ -55,6 +55,7 @@ var (
 		p["recall_mode"] = propEnumString("Lifecycle recall mode: current (default guidance) or historical (superseded/archived context).", "current", "historical")
 		p["occurred_after"] = propString("Optional RFC3339 lower bound on memory effective time (occurred_at, else created_at).")
 		p["occurred_before"] = propString("Optional RFC3339 exclusive upper bound on effective time.")
+		p["agent_id"] = propString("Optional agent or client identifier for attribution.")
 		return schemaObject(p, nil)
 	}()
 
@@ -64,6 +65,8 @@ var (
 		"correlation_id": propString("Optional session correlation."),
 		"event_kind":     propString("Optional; becomes mcp:event:<kind> tag."),
 		"entities":       propStringArray("Optional entity tokens."),
+		"agent_id":       propString("Optional agent or client identifier for attribution (persisted with the episode)."),
+		"repo_root":      propString("Optional workspace path; basename becomes a situational tag."),
 	}, []string{"summary"})
 
 	schemaMemoryLogIfRelevant = schemaObject(map[string]any{
@@ -111,7 +114,14 @@ var (
 		"applicability": propEnumString("governing or advisory.", "governing", "advisory"),
 		"payload":       propAnyObject("Optional structured payload."),
 		"supersedes_id": propUUID("Optional UUID of memory this row replaces (marks prior row superseded)."),
+		"agent_id":      propString("Optional agent or client identifier for attribution (persisted on the memory)."),
 	}, []string{"kind", "statement"})
+
+	schemaMemoryRemediate = schemaObject(map[string]any{
+		"memory_id": propUUID("UUID of the memory to remediate."),
+		"id":        propUUID("Alias for memory_id."),
+		"reason":    propString("Why the memory is being quarantined/deleted (auditable)."),
+	}, nil)
 
 	schemaMemoryPromote = schemaObject(map[string]any{
 		"statement": propString("Statement to promote."),
@@ -145,6 +155,18 @@ var (
 	schemaCurationStrengthened = schemaObject(map[string]any{
 		"min_support": propInt("Minimum support count (default 2).", 1, 100),
 	}, nil)
+
+	schemaChoreList = schemaObject(map[string]any{
+		"limit": propInt("Max open chores to return (default 20).", 1, 100),
+	}, nil)
+
+	schemaChoreResolve = schemaObject(map[string]any{
+		"chore_id": propUUID("UUID of the curation chore to vote on."),
+		"id":       propUUID("Alias for chore_id."),
+		"action":   propString("Vote action. contradiction: keep_subject|keep_related|coexist. quarantine_review: release|delete. duplicate_pair: consolidate|distinct."),
+		"agent_id": propString("Required agent identifier; the action applies only after min_resolvers DISTINCT agents vote for it (the memory's own author never counts)."),
+		"reason":   propString("Optional short justification (auditable)."),
+	}, []string{"action", "agent_id"})
 
 	schemaEpisodeSimilar = schemaObject(map[string]any{
 		"query":           propString("Search text."),
@@ -264,10 +286,14 @@ func toolRegistry() []ToolSpec {
 		{Name: "curation_promote_candidate", Description: "Alias for curation_materialize.", InputSchema: schemaCandidateID, LoopRole: LoopCuration, Risk: RiskHigh, Backend: "POST /v1/curation/candidates/{id}/materialize", Output: "materialize result", Mutates: true, TestCoverage: "integration", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
 		{Name: "curation_reject_candidate", Description: "Reject a candidate so it will not become memory. Mutates candidate status.", InputSchema: schemaCandidateID, LoopRole: LoopCuration, Risk: RiskMedium, Backend: "POST /v1/curation/candidates/{id}/reject", Output: "reject result", Mutates: true, TestCoverage: "integration", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
 		{Name: "curation_auto_promote", Description: "Batch auto-promote when server promotion.auto_promote enabled. May return 403 if disabled. Mutates canonical store.", InputSchema: schemaEmptyObject(), LoopRole: LoopCuration, Risk: RiskCritical, Backend: "POST /v1/curation/auto-promote", Output: "auto-promote result", Mutates: true, TestCoverage: "integration", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
+		{Name: "list_chores", Description: "List open curation chores the hive would like reviewed (contradiction pairs, quarantined rows, near-duplicate pairs). When chores exist, agents should resolve or defer with reason (see initialize instructions); recall/wakeup also surface one housekeeping line. Mutates nothing.", InputSchema: schemaChoreList, LoopRole: LoopCuration, Risk: RiskLow, Backend: "GET /v1/curation/chores", Output: "chore list with statements and allowed actions", Mutates: false, TestCoverage: "unit", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
+		{Name: "resolve_chore", Description: "Vote on a curation chore (from list_chores or the housekeeping line in recall/wakeup responses). One vote per agent per chore; the action applies only after min_resolvers DISTINCT agents agree, and a memory's own author never counts. Applied outcomes are reversible (supersede, pending, soft delete) — nothing a vote does can mint an active memory. Mutates chore votes; may apply corroborated resolution.", InputSchema: schemaChoreResolve, LoopRole: LoopCuration, Risk: RiskMedium, Backend: "POST /v1/curation/chores/{id}/resolve", Output: "vote receipt (recorded, counted, applied, state)", Mutates: true, TestCoverage: "unit", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
 		{Name: "episode_search_similar", Description: "Search similar advisory episodes (non-reject bucket). Mutates nothing.", InputSchema: schemaEpisodeSimilar, LoopRole: LoopDiagnostic, Risk: RiskLow, Backend: "POST /v1/advisory-episodes/similar", Output: "similar episodes", Mutates: false, TestCoverage: "integration", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
 		{Name: "episode_distill_explicit", Description: "Explicit distill to candidates when auto-distill off. Requires distillation.enabled. Mutates candidate store.", InputSchema: schemaEpisodeDistill, LoopRole: LoopCuration, Risk: RiskMedium, Backend: "POST /v1/episodes/distill", Output: "distill result", Mutates: true, TestCoverage: "integration", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
 		{Name: "memory_recall_advanced", Description: "Mode-shaped compile (continuity|constraint|pattern|episodic). Prefer recall_context. Mutates nothing.", InputSchema: schemaRecallAdvanced, LoopRole: LoopNone, Risk: RiskLow, Backend: "POST /v1/recall/compile", Output: "recall bundle", Mutates: false, TestCoverage: "unit", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
 		{Name: "memory_preflight_check", Description: "Quick risk hint from scope stats. Not a substitute for enforcement_evaluate on real proposal text. Mutates nothing.", InputSchema: schemaPreflight, LoopRole: LoopDiagnostic, Risk: RiskLow, Backend: "POST /v1/recall/preflight", Output: "preflight stats", Mutates: false, TestCoverage: "unit", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
+		{Name: "memory_quarantine", Description: "Operator remediation: remove a memory from ALL recall (any mode) pending review. Non-destructive — row is preserved with status quarantined and an auditable reason. Use for poisoned, harmful, or wrong guidance that must stop surfacing immediately.", InputSchema: schemaMemoryRemediate, LoopRole: LoopAdmin, Risk: RiskHigh, Backend: "POST /v1/memory/{id}/quarantine", Output: "updated memory object", Mutates: true, TestCoverage: "unit", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
+		{Name: "memory_delete", Description: "Operator remediation: soft-delete a memory (tombstone status deleted; excluded from all recall including historical). Canonical rows are never hard-deleted. Prefer memory_quarantine when the row may need review.", InputSchema: schemaMemoryRemediate, LoopRole: LoopAdmin, Risk: RiskHigh, Backend: "DELETE /v1/memory/{id}", Output: "updated memory object", Mutates: true, TestCoverage: "unit", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
 		{Name: "memory_detect_contradictions", Description: "Compare two memory UUIDs for conflicts. May create contradiction record. Mutates contradiction store.", InputSchema: schemaContradictionDetect, LoopRole: LoopDiagnostic, Risk: RiskMedium, Backend: "POST /v1/contradictions/detect", Output: "detection result", Mutates: true, TestCoverage: "integration", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
 		{Name: "memory_list_contradictions", Description: "Audit contradiction queue. Mutates nothing.", InputSchema: schemaContradictionList, LoopRole: LoopDiagnostic, Risk: RiskLow, Backend: "GET /v1/contradictions/", Output: "contradiction list", Mutates: false, TestCoverage: "integration", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},
 		{Name: "evidence_attach", Description: "Create evidence and link to memory. Mutates evidence store.", InputSchema: schemaEvidenceAttach, LoopRole: LoopAdmin, Risk: RiskMedium, Backend: "POST /v1/evidence + link", Output: "evidence ids", Mutates: true, TestCoverage: "unit", CallCoverage: CoverageUnitToolsCall, CallCoverageNote: "tool_call_coverage_test.go"},

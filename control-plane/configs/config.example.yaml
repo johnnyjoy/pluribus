@@ -86,14 +86,26 @@ recall:
     # Omitted (nil) defaults to 0.4. Explicit 0 disables the semantic term and logs a warning.
     weight_semantic_similarity: 0.4
     weight_situational_affinity: 0.35  # additive query/repo/tag coverage boost (ranking only; not a partition filter)
+    # Deployment-specific term lists (M2 de-overfit). Defaults shown; override per corpus.
+    # product_anchor_terms: ["pluribus"]        # product names triggering named-product scoring branches
+    # extra_generic_terms: []                   # corpus noise tokens that must not dominate relevance
+    # extra_common_distinctive_tokens: []       # tokens too common to count as product anchors
   # Semantic candidate retrieval
   # Set enabled: false to skip embedding API calls. Missing/misaligned embedder → lexical recall; logs [SEMANTIC FALLBACK] and sets semantic_retrieval on compile. [SEMANTIC ERROR] = failed HTTP/embed or vector search on hybrid path.
   # Requires Postgres with pgvector (see docker-compose.yml) and migrations applied.
+  # Default: local Ollama embedder (ollama pull nomic-embed-text; ollama serve).
+  # The embedding column dimension must match embedding_dimensions
+  # (migrations/0015_local_embedder_dimensions.sql sets vector(768)); a different
+  # model dimension needs a corresponding migration.
+  # Backfill embeddings for existing rows: POST /v1/memory/embeddings/backfill
   semantic_retrieval:
-    enabled: false
-    # embedding_endpoint: "https://api.openai.com/v1"
-    # embedding_model: "text-embedding-3-small"
-    # embedding_dimensions: 1536
+    enabled: true
+    embedding_endpoint: "http://127.0.0.1:11434/v1"
+    embedding_model: "nomic-embed-text"
+    embedding_dimensions: 768
+    # For OpenAI instead: endpoint https://api.openai.com/v1, model
+    # text-embedding-3-small, dimensions 1536 (+ migration for vector(1536)),
+    # and EMBEDDING_API_KEY/OPENAI_API_KEY in the environment.
     # max_semantic_candidates: 50
     # min_cosine_similarity: 0.35
     # log_semantic_matches: false
@@ -146,10 +158,14 @@ memory:
   # recall_reinforcement:
   #   max_authority_delta_per_compile: 1
   #   cross_context_enabled: true
+  #   # Corroboration (Phase 3): authority rises only when a NEW distinct agent uses the
+  #   # memory; the author and repeat users merge salience without self-promoting.
+  #   require_distinct_agent_for_authority: true
   lifecycle:
     authority_positive_delta: 0.1   # on validation event
     authority_negative_delta: 0.2   # on contradiction or failure event
     expiration_authority_threshold: 2   # 0-10 scale; memories with authority < this and TTL expired get archived
+    # probationary_expire_days: 30  # archive no-TTL probationary rows idle this many days (0 = off)
   # Phase C: reject duplicate canonical rows (same project, kind, normalized scope, statement key) with HTTP 409 + existing memory_id.
   # Phase 7: memory utility / reputation foundations (feedback ledger, bounded utility score).
   # utility:
@@ -238,6 +254,24 @@ promotion:
   #   negation_guard: true
   #   authority_delta_per_reinforcement: 1
   #   max_support_count: 100
+
+# Phase 3 auto-curation: in-process background loop; each pass expires stale and
+# time-decayed probationary memories, then auto-promotes eligible candidates
+# (auto-promote only runs when promotion.auto_promote is true).
+# The loop also opens agent-driven curation chores (contradiction review,
+# quarantine review, and — when neardup_scan_enabled — embedding near-duplicate
+# pairs). Visiting agents resolve chores via POST /v1/curation/chores/{id}/resolve
+# (MCP tool resolve_chore); an action applies once chore_min_resolvers DISTINCT
+# agents vote for it (a memory's own author never counts).
+# curation_scheduler:
+#   enabled: true
+#   interval_minutes: 60
+#   initial_delay_seconds: 30
+#   neardup_scan_enabled: true
+#   neardup_cosine_threshold: 0.92
+#   neardup_scan_window_days: 14
+#   neardup_scan_limit: 20
+#   chore_min_resolvers: 2
 
 curation:
   candidate_threshold: 0.5

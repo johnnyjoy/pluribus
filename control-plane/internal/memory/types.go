@@ -144,6 +144,10 @@ type RecallReinforcementConfig struct {
 	ImpactLowDelta    int `yaml:"impact_low_delta"`
 	// MinSignalStrengthForLow skips low-impact reinforcement below this value. Default 1.
 	MinSignalStrengthForLow int `yaml:"min_signal_strength_for_low"`
+	// RequireDistinctAgentForAuthority when true grants reuse authority only when the
+	// call comes from a new distinct agent (corroboration): same-agent repetition merges
+	// salience but never self-promotes. Default false (legacy behavior).
+	RequireDistinctAgentForAuthority bool `yaml:"require_distinct_agent_for_authority"`
 }
 
 // MemoryObject is a durable typed memory (state, decision, constraint, failure, pattern).
@@ -167,6 +171,9 @@ type MemoryObject struct {
 	OccurredAt *time.Time `json:"occurred_at,omitempty"`
 	// EmbeddingMeta optional pgvector metadata (loaded from DB when present).
 	EmbeddingMeta EmbeddingMeta `json:"embedding_meta,omitempty"`
+	// AgentID attributes the memory to its authoring agent (Phase 3 attribution;
+	// loaded on GetByID, not on bulk search paths).
+	AgentID string `json:"agent_id,omitempty"`
 }
 
 // CreateRequest is the payload for creating a memory object.
@@ -195,6 +202,12 @@ type CreateRequest struct {
 	OccurredAt *time.Time `json:"occurred_at,omitempty"`
 	// FormationPath selects gate rules (direct_create, probationary_ingest, promote). Not accepted from JSON.
 	FormationPath formation.Path `json:"-"`
+	// AgentID attributes the memory to its authoring agent (Phase 3 attribution).
+	AgentID string `json:"agent_id,omitempty"`
+	// ConflictsWithID is set by contradiction-on-write detection (internal): the active
+	// memory this new row contradicts. After insert the two are linked and flagged for
+	// review so neither surfaces unreviewed.
+	ConflictsWithID *uuid.UUID `json:"-"`
 }
 
 // SearchRequest is the payload for POST /memory/search.

@@ -379,3 +379,15 @@ guarded-utility-postgres-benchmark:
 proof-guarded-utility-postgres:
 	@mkdir -p artifacts
 	cd control-plane && PROOF_GUARDED_UTILITY_POSTGRES=1 TEST_PG_DSN="$${TEST_PG_DSN}" go test -tags=integration ./internal/utilitypolicy/... -run TestProofGuardedUtilityPostgresHardThresholds -count=1 -v
+
+.PHONY: verify-integrations-static verify-integrations-mcp
+
+verify-integrations-static:
+	scripts/integrations/verify-cursor-pack.sh --static
+	scripts/integrations/verify-claude-code-plugin.sh --static
+	scripts/integrations/verify-vscode-extension.sh --static
+	scripts/integrations/verify-generic-mcp.sh --static
+	scripts/integrations/verify-mcp-surface.sh --static
+
+verify-integrations-mcp:
+	PLURIBUS_BASE_URL="$${PLURIBUS_BASE_URL:-http://127.0.0.1:8123}" scripts/integrations/verify-mcp-surface.sh

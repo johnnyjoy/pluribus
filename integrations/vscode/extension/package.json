@@ -140,6 +140,11 @@
         "icon": "$(pulse)"
       },
       {
+        "command": "pluribus.verifyMandatoryLoop",
+        "title": "Pluribus: Verify mandatory loop (checklist)",
+        "icon": "$(checklist)"
+      },
+      {
         "command": "pluribus.showMetrics",
         "title": "Pluribus: Show metrics",
         "icon": "$(graph)"

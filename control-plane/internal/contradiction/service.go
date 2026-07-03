@@ -104,6 +104,18 @@ func (s *Service) DetectConflict(ctx context.Context, memoryID1, memoryID2 uuid.
 	return false, nil
 }
 
+// RecordDetected creates an unresolved contradiction link between two memories.
+// Used by write-path detection (memory.Service contradiction-on-write): both rows
+// are then held back from recall until an operator resolves the pair.
+func (s *Service) RecordDetected(ctx context.Context, memoryID, conflictWithID uuid.UUID) error {
+	_, err := s.Create(ctx, CreateRequest{
+		MemoryID:        memoryID,
+		ConflictWithID:  conflictWithID,
+		ResolutionState: ResolutionUnresolved,
+	})
+	return err
+}
+
 // DetectAndRecord runs DetectConflict and, if conflict is found, creates an unresolved contradiction record.
 // Returns the record if created, nil if no conflict.
 func (s *Service) DetectAndRecord(ctx context.Context, memoryID, conflictWithID uuid.UUID) (*Record, error) {
