@@ -119,11 +119,11 @@ func countQualityProv(p Provenance) int {
 	return n
 }
 
-func applyQualityMutations(in *CreateInput, qr formationquality.Result) {
+func applyQualityMutations(in *CreateInput, qr formationquality.Result, hiveActive bool) {
 	if in == nil {
 		return
 	}
-	if qr.SuggestedStatus == "pending" {
+	if qr.SuggestedStatus == "pending" && !hiveActive {
 		in.Status = api.StatusPending
 	}
 	if qr.SuggestedApplicability != "" {

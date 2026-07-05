@@ -1,6 +1,6 @@
 # MCP prompt & resource proof map (L2)
 
-Links charter outcomes from [plan-pluribus-mcp-prompt-resource-hardening-20260325.md](../memory-bank/plans/plan-pluribus-mcp-prompt-resource-hardening-20260325.md) to **L1** automated checks and existing **proof-scenarios** receipts.
+Links charter outcomes from [plan-pluribus-mcp-prompt-resource-hardening-20260325.md](../archive/memory-bank/plans/plan-pluribus-mcp-prompt-resource-hardening-20260325.md) to **L1** automated checks and existing **proof-scenarios** receipts.
 
 **Surface bundle:** **`SurfaceVersion`** in `control-plane/internal/mcp/surface_version.go` (currently **1.1.0**).
 

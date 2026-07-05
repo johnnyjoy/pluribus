@@ -45,7 +45,7 @@ func TestMCPBehavior_initialize(t *testing.T) {
 		t.Fatalf("missing serverInfo: %+v", result)
 	}
 	inst, _ := result["instructions"].(string)
-	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") {
+	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") {
 		t.Fatalf("instructions missing loop tools: %q", inst)
 	}
 }

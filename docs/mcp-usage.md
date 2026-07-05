@@ -150,9 +150,11 @@ Regression coverage for **memory formation through MCP** uses the **same** **`PO
 ## Recall-driven workflow (recommended order)
 
 1. **Ground** — **`recall_context`** (or **`memory_context_resolve`**) **before** substantive work; raw **`recall_get`** / **`recall_compile`** when you need full wire control. Use **tags** + task text per [memory-doctrine.md](memory-doctrine.md).
-2. **Act** — propose or execute a bounded change.
-3. **Gate** — `enforcement_evaluate` with **proposal_text** before large refactors or policy moves (when enforcement is enabled).
-4. **Learn** — after meaningful work, **`record_experience`** (or **`mcp_episode_ingest`** / opportunistic **`memory_log_if_relevant`**); optional governed path `curation_digest` → review → `curation_materialize`.
+2. **Housekeeping** (when present) — if recall/wakeup returns **`housekeeping`** or **`list_chores`** is non-empty, **`resolve_chore`** with **`chore_id`**, **`action`**, and stable **`agent_id`** when you can judge; otherwise note deferral in **`record_experience`**. Empty chores = no-op.
+3. **Act** — propose or execute a bounded change.
+4. **Gate** — `enforcement_evaluate` with **proposal_text** before large refactors or policy moves (when enforcement is enabled).
+5. **Curate** — **`memory_feedback`** when recalled items helped or misled (no vote is neutral).
+6. **Learn** — after meaningful work, **`record_experience`** (or **`mcp_episode_ingest`** / opportunistic **`memory_log_if_relevant`**); optional governed path `curation_digest` → review → `curation_materialize`.
 
 Tool **`arguments`** must match the same JSON as the underlying REST body or GET query mapping ([http-api-index.md](http-api-index.md), Go `json` tags). They do **not** define where memory lives. See [pluribus-memory-first-ontology.md](pluribus-memory-first-ontology.md).
 

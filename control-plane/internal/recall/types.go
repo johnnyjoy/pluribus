@@ -48,7 +48,7 @@ type CompileRequest struct {
 	SkipExperienceHydration bool `json:"skip_experience_hydration,omitempty"`
 	// RecallMode selects lifecycle-aware retrieval: "current" (default) or "historical".
 	RecallMode string `json:"recall_mode,omitempty"`
-	// IncludeStatus optionally overrides recall_mode with an explicit status filter (active, superseded, archived).
+	// IncludeStatus optionally overrides recall_mode with an explicit status filter (active, pending, superseded, archived).
 	IncludeStatus []string `json:"include_status,omitempty"`
 	// OccurredAfter optionally filters canonical candidates to effective time >= bound (RFC3339).
 	// Effective time uses occurred_at when present, otherwise created_at.

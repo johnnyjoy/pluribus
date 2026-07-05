@@ -277,3 +277,50 @@ postgres:
 		t.Errorf("MaxSemanticCandidates = %d", cfg.Recall.SemanticRetrieval.MaxSemanticCandidates)
 	}
 }
+
+func TestLoadConfig_shippedHiveFormation(t *testing.T) {
+	var path string
+	for _, p := range []string{"configs/config.yaml", "control-plane/configs/config.yaml"} {
+		if _, err := os.Stat(p); err == nil {
+			path = p
+			break
+		}
+	}
+	if path == "" {
+		t.Skip("configs/config.yaml not found")
+	}
+	cfg, err := LoadConfig(path)
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if cfg.Memory.Formation == nil || !cfg.Memory.Formation.HiveDefaults {
+		t.Fatal("expected memory.formation.hive_defaults true in shipped config")
+	}
+	if cfg.Memory.Formation.DirectCreate.GoverningDefaultStatus != "active" {
+		t.Fatalf("governing_default_status=%q want active", cfg.Memory.Formation.DirectCreate.GoverningDefaultStatus)
+	}
+	if cfg.Enforcement.MinBindingAuthority != 3 {
+		t.Fatalf("min_binding_authority=%d want 3", cfg.Enforcement.MinBindingAuthority)
+	}
+}
+
+func TestLoadConfig_omittedFormationUsesHiveDefaults(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "minimal.yaml")
+	minimal := `
+server:
+  bind: ":8123"
+postgres:
+  dsn: "postgres://localhost/test"
+`
+	if err := os.WriteFile(path, []byte(minimal), 0644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	cfg, err := LoadConfig(path)
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if cfg.Memory.Formation == nil || !cfg.Memory.Formation.HiveDefaults {
+		t.Fatal("omitted formation section should default to hive profile")
+	}
+}

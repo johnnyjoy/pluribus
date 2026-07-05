@@ -88,11 +88,17 @@ The intended loop is:
 
 Pluribus is most effective when agents use a **before/after loop**: **`recall_context`** (or equivalent compile path) **before** complex reasoning or multi-step work, and **`record_experience`** **after** meaningful outcomes, failures, or reusable discoveries. Chat is not memory; the loop connects session work to the shared pool.
 
-### Ingestion vs ranking (probationary memory)
+### Ingestion vs ranking (one pool, weighted trust)
 
-**Be generous at ingestion; be ruthless at ranking** — with Phase 5 **formation gates** on what may become active memory, and Phase 11D **formation quality** rules that reject vague/garbage writes and route under-encoded or overgeneralized guidance to **pending** rather than active recall. Probationary rows from **`record_experience`** must pass **junk/vague summary rejection**; risky constraints become **pending**, not active governing. **Direct `memory_create`** is high-risk: authority is capped, governing writes default to **pending**, junk is rejected, high-risk writes require minimal provenance, and schema-specific quality defects block active guidance. See [memory-formation-quality.md](memory-formation-quality.md).
+**Be generous at ingestion; be ruthless at ranking.**
 
-Clear noise goes to the **reject bucket** (`advisory_experiences`). Valid ingest starts at **low authority (1–2)** advisory; **recall ranking**, reinforcement, consolidation, and contradiction policy separate durable signal from weak material over time.
+- **Memories are memories** — once a row exists in **`memories`**, it is part of the global pool. Recall and enforcement **rank and weight** it; they do **not** treat status as a separate tier or warehouse lane.
+- **Trust is continuous** — new and probationary rows enter at **low authority (1–4)**. Recency, utility, corroboration, and ranking decide influence. What you wrote ten seconds ago must be **recallable** in the next compile when the situation matches.
+- **`pending` is rare and misnamed** — it means *recent* or *might deserve a look-see*, not *stored elsewhere*. It should be **rarer than a four-leaf clover**. When it exists, it **slightly lowers weight** in ranking and binding; it **never** removes memory from the pool.
+- **Hard excludes are for safety only** — **`rejected`**, **`quarantined`**, and **`deleted`** rows are not agent-facing guidance. Everything else participates in hybrid retrieval.
+- **Formation quality** rejects **garbage** and **dangerous** writes; it does **not** default to spraying **`pending`**. Under-encoded material lands **active at capped authority**; agents and ranking curate upward or downward through use. See [memory-formation-quality.md](memory-formation-quality.md).
+
+Clear noise goes to the **reject bucket** (`advisory_experiences`). **Candidate** rows from distillation are **not** memory until materialized — that is the only pre-memory queue.
 
 **Advisory episodes** may be **distilled** into **candidate** rows (`POST /v1/episodes/distill`) as *possible* structured learning; those candidates are **not** memory until curated and materialized. Recall comes **before** substantive action; enforcement gates **risky** proposals; curation captures **validated** learning, not noise.
 
@@ -127,6 +133,11 @@ Details: [curation-loop.md](curation-loop.md) (Controlled Promotion + Memory evo
 - **Surfacing is optional and bounded** — at most **one** housekeeping line rides along in `recall_context` (`mcp_context.housekeeping`) and `wakeup_context` responses; it is **never** injected into the recall bundle or its ranking. Agents may also browse via **`list_chores`**. When chores exist, agents should **`resolve_chore`** (or defer with reason per initialize instructions); unresolved quarantine and contradiction work compounds pool noise.
 - **Corroboration before effect** — a vote (**`resolve_chore`** / `POST /v1/curation/chores/{id}/resolve`) requires `agent_id`; an action applies only after **`chore_min_resolvers`** (default 2) **distinct** agent hashes agree, and a memory's **own author never counts** (same self-use rule as reinforcement). One immutable vote per agent per chore.
 - **Everything applied is reversible** — consolidation and contradiction wins use **supersede** (non-destructive), quarantine review lands **`pending`** (never straight to `active`) or **soft delete** (tombstone); relationship rows carry `source='curation_chore'`. Nothing an agent vote does can mint an active memory.
+
+### Proof, smoke, and CI rows (no operator cleanup)
+
+- **Automation tags disposable rows** — benefit receipts, integration proofs, and install smoke must tag memories **`ephemeral`** plus **`proof-scenario`** or **`smoke-shared-memory`**. Agents rank down or remove via **`memory_feedback`**, **`resolve_chore`**, and delete/quarantine when justified — not operator bulk scripts.
+- **Agents finish the job** — if proof junk is still recall-visible, vote **`memory_feedback`** (`harmful` / `outdated`) and use **`resolve_chore`** / **`memory_delete`** when justified. Structural mess (dupes, quarantine, contradictions) flows through **chores**, not operator dashboards.
 
 ### Lightweight memory relationships (additive, not a graph product)
 

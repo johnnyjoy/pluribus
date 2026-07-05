@@ -213,7 +213,8 @@ func (s *Service) RecordContradictionDemotion(ctx context.Context, memoryID, con
 			return err
 		}
 	}
-	// Optional pending for governing constraint on primary memory
+	// Rare demotion via agent memory_feedback on governing constraints: pending
+	// (still recallable/bindable at dampened weight), not default ingest.
 	if s.Memory != nil {
 		exists, kind, app, st, err := s.memoryExists(ctx, memoryID)
 		if err == nil && exists && kind == api.MemoryKindConstraint &&

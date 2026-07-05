@@ -41,7 +41,9 @@ Rules are how you turn “MCP connected” into “MCP **used**.” Models defau
 ### Minimal expectations
 
 - **Recall before** architectural or multi-step decisions: **`recall_context`** (or **`memory_context_resolve`**) with raw task text.
+- **Housekeeping when chores exist:** if recall/wakeup returns **`housekeeping`** or **`list_chores`** is non-empty, **`resolve_chore`** with **`agent_id`** when you can judge (or defer with reason in **`record_experience`**).
 - **Consult memory** when requirements are ambiguous or historically noisy (tags + retrieval_query).
+- **Utility feedback** when recall items helped or misled: **`memory_feedback`**.
 - **Log outcomes** after incidents, fixes, or explicit decisions: **`record_experience`** (or **`mcp_episode_ingest`**) — summary — or REST **`POST /v1/advisory-episodes`**.
 - **Treat memory as shared:** tag for situation, not for “my chat.”
 
@@ -57,12 +59,13 @@ Short, imperative, repeatable—see [snippets/agent-rules.md](snippets/agent-rul
 
 1. **Task starts** → agent has **task text** and **tags** (situation).
 2. **Recall** → **`recall_context`** / bundle consumed; **no** plan that ignores binding constraints when recall returned them.
-3. **Work** → edits, tests, commits.
-4. **Episode** → advisory summary ingested via **`record_experience`** (MCP) or REST.
-5. **Distillation** (server policy) → **candidates** with **distill mode** metadata; **`pluribus_distill_origin`** on candidates—see [memory-doctrine.md](../memory-doctrine.md) · **ingest channel** on episodes.
-6. **Promotion** → validated candidates become **durable memory**; recall and enforcement improve over time.
+3. **Housekeeping** (when present) → **`resolve_chore`** or auditable deferral in **`record_experience`**.
+4. **Work** → edits, tests, commits; **`memory_feedback`** when recall items shaped behavior.
+5. **Episode** → advisory summary ingested via **`record_experience`** (MCP) or REST.
+6. **Distillation** (server policy) → **candidates** with **distill mode** metadata; **`pluribus_distill_origin`** on candidates—see [memory-doctrine.md](../memory-doctrine.md) · **ingest channel** on episodes.
+7. **Promotion** → validated candidates become **durable memory**; recall and enforcement improve over time.
 
-If step 2 or 4 is always skipped, you have a connected database and a **disconnected** agent.
+If step 2, 3, or 5 is always skipped, you have a connected database and a **disconnected** agent.
 
 ---
 

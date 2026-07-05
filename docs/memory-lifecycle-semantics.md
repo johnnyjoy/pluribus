@@ -15,7 +15,7 @@ This document defines how Pluribus distinguishes **current guidance** from **his
 - Archived does **not** mean deleted.
 - Outdated does **not** mean wrong.
 - Low utility does **not** mean untrue.
-- Pending is **not** approved current guidance.
+- **`pending`** is **recallable memory with slightly lower weight** — labeled `pending_context` in bundles. It is **not** a separate store and **not** excluded from compile or binding. It should be **exceptionally rare** in a healthy hive.
 
 Pluribus does **not** implement persistence classes, half-life decay, or automatic durable/ephemeral classification in Phase 8.
 
@@ -25,9 +25,9 @@ Pluribus does **not** implement persistence classes, half-life decay, or automat
 
 Used when `recall_mode` is omitted or explicitly set to `current`.
 
-**Includes:** `active` memories.
+**Includes:** `active` and **`pending`** memories (same pool; pending ranked with a small trust dampener).
 
-**Excludes by default:** `pending`, `superseded`, `archived`, `rejected`.
+**Excludes by default:** `superseded`, `archived`, `rejected`, `quarantined`, `deleted`.
 
 **Legacy compatibility:** When the retrieval query explicitly asks about lifecycle change (keywords such as `deprecated`, `superseded`, `obsolete`, `legacy`, or certain `sqlite` + `still`/`use` patterns), compile may merge **superseded** candidates and label them — this preserves recall-benchmark behavior for migration queries without treating all history as current guidance.
 
@@ -37,9 +37,9 @@ Utility ranking and contradiction policy still apply.
 
 Used for history, change, supersession, archival, outdated, or refuted queries.
 
-**Includes:** `active`, `superseded`, `archived` (when relevant to query).
+**Includes:** `active`, `pending`, `superseded`, `archived` (when relevant to query).
 
-**Excludes:** `pending`, `rejected` (not approved for agent-facing recall).
+**Excludes:** `rejected`, `quarantined`, `deleted`.
 
 **Behavior:**
 

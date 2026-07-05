@@ -31,9 +31,23 @@ else
   FAIL=1
 fi
 
+if grep -qE 'housekeeping|resolve_chore' "$PLUGIN/hooks/session-start.sh" && [[ -f "$PLUGIN/skills/resolve-chore/SKILL.md" ]]; then
+  echo "ok: housekeeping hook + resolve-chore skill"
+else
+  echo "plugin missing housekeeping enforcement" >&2
+  FAIL=1
+fi
+
 for sh in hooks/session-start.sh hooks/user-prompt-recall.sh hooks/post-tool-failure-hint.sh; do
   test -f "$PLUGIN/$sh" || { echo "missing $sh" >&2; FAIL=1; }
 done
+
+if grep -qE 'curation/chores|housekeeping|resolve_chore' "$PLUGIN/hooks/user-prompt-recall.sh"; then
+  echo "ok: user-prompt-recall housekeeping/chores hint"
+else
+  echo "user-prompt-recall.sh missing chore hint" >&2
+  FAIL=1
+fi
 
 if [[ "$STATIC" -eq 0 ]] && curl -fsS -m 2 "${PLURIBUS_BASE_URL:-http://127.0.0.1:8123}/healthz" >/dev/null 2>&1; then
   echo "== hook dry-run health =="

@@ -9,7 +9,8 @@ It is **not** a general AI eval framework, embedding benchmark, or second produc
 | Layer | Where | Purpose |
 |-------|--------|---------|
 | **automated_core** | `go test ./...` (default tags) | Cheap validation: YAML loads, ids unique, required fields present (`internal/proofscenarios`). |
-| **integration** | **`make regression`** (Docker + Postgres) | Receipts against real DB + full API router (`TestIntegration_proofScenarioSuite`). |
+| **integration** | **`make regression`** (Docker + Postgres) | Receipts against real DB + full API router (`TestIntegration_proofScenarioSuite`) with **proof-friendly formation defaults** (seeded memories land **active**). |
+| **deployed benefit receipts** | **`./scripts/proof-deployed-benefit-receipts.sh`** | Same scenario suite against a **live** `CONTROL_PLANE_URL` / `PLURIBUS_PROOF_BASE_URL` — real formation/recall policy, not proof defaults. Artifact: [`artifacts/deployed-benefit-receipts-latest.md`](../artifacts/deployed-benefit-receipts-latest.md). |
 | **manual** | Operator / release | Documented checks not worth automating yet; keep rare. |
 
 ## Scenario files
@@ -37,9 +38,15 @@ cd control-plane && go test ./internal/proofscenarios/ -count=1
 
 # Full receipts (same as CI regression)
 cd /path/to/recall && make regression
+
+# Deployed benefit receipts (live control-plane; real formation policy)
+CONTROL_PLANE_URL=http://host:8123 ./scripts/proof-deployed-benefit-receipts.sh
+# or: make proof-deployed-benefit-receipts CONTROL_PLANE_URL=http://host:8123
 ```
 
 Integration proof suite entrypoint: `TestIntegration_proofScenarioSuite` in [`cmd/controlplane/proof_scenarios_integration_test.go`](../control-plane/cmd/controlplane/proof_scenarios_integration_test.go). The API is wired via [`internal/apiserver`](../control-plane/internal/apiserver/router.go) (same as `cmd/controlplane`).
+
+**Deployed vs CI:** CI boots an in-process server with proof-friendly formation so seeds are immediately **active** at capped authority. Deployed receipts hit a running server as configured; warehouse defaults or consolidate into non-recallable sinks break benefit claims — not because `pending` is a separate tier from recall.
 
 ### Optional results file
 
@@ -49,7 +56,7 @@ RECALL_PROOF_RESULTS_OUT=/path/to/proof-scenario-results-latest.md \
   go test -tags=integration -count=1 ./cmd/controlplane -run TestIntegration_proofScenarioSuite
 ```
 
-See [`memory-bank/plans/proof-scenario-results-latest.md`](../memory-bank/plans/proof-scenario-results-latest.md) for the canonical artifact path in this repo.
+See [`archive/memory-bank/plans/proof-scenario-results-latest.md`](../archive/memory-bank/plans/proof-scenario-results-latest.md) for the canonical artifact path in this repo.
 
 ## Adding a scenario
 

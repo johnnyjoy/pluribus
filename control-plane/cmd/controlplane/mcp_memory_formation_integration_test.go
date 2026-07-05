@@ -23,6 +23,7 @@ import (
 	"control-plane/internal/app"
 	"control-plane/internal/migrate"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
 
@@ -163,6 +164,37 @@ func TestIntegration_HTTP_MCP_initializeAndToolsList(t *testing.T) {
 	}
 }
 
+// runMCPRecordExperienceRecallContinuity proves record_experience → immediate recall_context continuity.
+func runMCPRecordExperienceRecallContinuity(t *testing.T, base string) {
+	t.Helper()
+	marker := fmt.Sprintf("CONTINUITY-MCP-RECALL-%s", uuid.NewString())
+	text3, isErr3 := mcpToolText(t, base, "record_experience", map[string]any{
+		"summary": fmt.Sprintf("Decision: integration continuity marker %s must appear in the next recall compile.", marker),
+		"tags":    []string{"integration", "mcp", "continuity-proof"},
+	})
+	if isErr3 {
+		t.Fatalf("record_experience continuity: %s", text3)
+	}
+	text4, isErr4 := mcpToolText(t, base, "recall_context", map[string]any{
+		"task": fmt.Sprintf("integration continuity recall for marker %s", marker),
+		"tags": []string{"integration", "mcp", "continuity-proof"},
+	})
+	if isErr4 || !strings.Contains(text4, marker) {
+		t.Fatalf("recall after record_experience: isErr=%v want marker %q in %.400q", isErr4, marker, text4)
+	}
+}
+
+// TestIntegration_HTTP_MCP_recordExperienceRecallContinuity locks hive doctrine: write → immediate recall.
+func TestIntegration_HTTP_MCP_recordExperienceRecallContinuity(t *testing.T) {
+	dsn := os.Getenv("TEST_PG_DSN")
+	if dsn == "" {
+		t.Skip("TEST_PG_DSN not set")
+	}
+	srv, _, cleanup := bootMCPProof(t, dsn, true)
+	defer cleanup()
+	runMCPRecordExperienceRecallContinuity(t, srv.URL)
+}
+
 // TestIntegration_HTTP_MCP_memoryLoopSequence simulates a multi-step agent path: initialize → recall_context → record_experience.
 func TestIntegration_HTTP_MCP_memoryLoopSequence(t *testing.T) {
 	dsn := os.Getenv("TEST_PG_DSN")
@@ -197,6 +229,8 @@ func TestIntegration_HTTP_MCP_memoryLoopSequence(t *testing.T) {
 	if !strings.Contains(text2, "mcp_affordance") && !strings.Contains(text2, `"id"`) {
 		t.Fatalf("record_experience: expected advisory JSON, got %.300q", text2)
 	}
+
+	runMCPRecordExperienceRecallContinuity(t, base)
 }
 
 // TestIntegration_HTTP_MCP_parityToolsRegistered ensures agent-parity tools appear in tools/list (MCP parity sprint).

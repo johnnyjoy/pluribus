@@ -8,9 +8,10 @@
 | Step | DO |
 |------|-----|
 | 1 | **`recall_context`** (pre-action **Pluribus**) |
-| 1b | If **`housekeeping`** / **`list_chores`**: **`resolve_chore`** or defer in **`record_experience`** |
+| 1b | If **`housekeeping`** / **`list_chores`**: **`resolve_chore`** with **`agent_id`** (or defer in **`record_experience`**) |
 | 2 | **Plan / reason** on bundle |
 | 3 | **Act** |
+| 3b | If recall surfaced memories you used or rejected: **`memory_feedback`** (helpful / harmful / wrong / outdated) |
 | 4 | **`record_experience`** (post-action **Pluribus**) |
 
 **Forbidden:** Substantive **Pluribus** work before step 1; meaningful close without step 4. **Legacy:** **`memory_context_resolve`**, **`mcp_episode_ingest`**.

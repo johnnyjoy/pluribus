@@ -38,7 +38,7 @@ func TestToolDefinitions_recallRecordLoopDescriptions(t *testing.T) {
 func TestInitializeResult_memoryLoopInstructions(t *testing.T) {
 	res := InitializeResult("test", "0.0.0")
 	inst, _ := res["instructions"].(string)
-	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") {
+	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") {
 		t.Fatalf("instructions: %q", inst)
 	}
 }

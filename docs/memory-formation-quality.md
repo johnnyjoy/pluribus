@@ -1,6 +1,6 @@
 # Memory Formation Quality
 
-Phase 11D adds **deterministic formation-time quality gates**. Pluribus does not write memories with an LLM. The agent curates; Pluribus evaluates whether an encoded memory is safe and useful enough to become **active guidance**.
+Phase 11D adds **deterministic formation-time quality gates**. Pluribus does not write memories with an LLM. The agent curates; Pluribus evaluates whether an encoded memory is safe enough to **enter the pool**.
 
 ## Why formation quality matters
 
@@ -42,16 +42,16 @@ Unknown `schema_type` values **fail** evaluation.
 
 | Decision | Meaning |
 |----------|---------|
-| `accept_active` | Passes quality checks for active recall eligibility |
-| `accept_pending` | Accept with pending status (soft issues or warnings) |
-| `needs_curation` | Hard defects; must not become active without curation |
+| `accept_active` | Passes quality checks; enters pool at requested/capped authority |
+| `accept_pending` | Soft warnings only — **hive default: still `active` at capped authority**; `pending` status is reserved for explicit review holds (rare) |
+| `needs_curation` | Hard defects — **active at low authority** under hive defaults, or `pending` only when warehouse/review mode is explicitly enabled |
 | `reject_garbage` | Vague or misleading; rejected |
 | `reject_dangerous` | Refuted/superseded active guidance; rejected |
 
 Integrated into `formation.Gate` on **direct create**, **promote**, and **probationary ingest** (`record_experience`). See [formation-escape-hatches.md](formation-escape-hatches.md).
 
 - `reject_garbage` / `reject_dangerous` → HTTP/MCP error
-- `needs_curation` / `accept_pending` → `pending` (preserves authority cap from Phase 5 gate)
+- `accept_pending` / `needs_curation` → **`active` at capped authority** when `hive_defaults: true` (shipped default); ranking and agents curate trust over time
 
 ## Retrieval cue quality
 
@@ -65,7 +65,7 @@ Universal patterns (`Always…`, `Never…`, `All agents should…`) require exp
 
 ## Provenance and authority
 
-`agent_inferred` preferences cannot become high-authority active guidance. Governing direct creates without provenance are flagged unsafe and routed to pending. `benchmark_proven` and `user_stated` constraints expect stronger provenance fields.
+`agent_inferred` preferences cannot become high-authority active guidance. Governing direct creates without provenance are flagged unsafe — **active at capped authority** under hive defaults, or **`pending` only in warehouse/review mode**. `benchmark_proven` and `user_stated` constraints expect stronger provenance fields.
 
 ## Use instructions
 

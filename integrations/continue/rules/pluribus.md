@@ -22,6 +22,14 @@ Run **`recall_context`** (tags + `retrieval_query` / situation text) **before** 
 
 **Do not** skip **Pluribus** recall because the task “seems small” once you have read files—if it matches the list, **`recall_context`** first.
 
+## Housekeeping (when chores exist)
+
+After recall/wakeup, if **`housekeeping`** is present or **`list_chores`** is non-empty: call **`resolve_chore`** with **`chore_id`**, **`action`**, and **`agent_id`** when you can judge; otherwise defer with reason in **`record_experience`**. See **[`pluribus-instructions.md`](../pluribus-instructions.md#housekeeping-when-chores-exist)**.
+
+## Curate (utility feedback)
+
+When recall items helped or misled you: **`memory_feedback`** (`helpful`, `harmful`, `wrong`, `outdated`). No vote is neutral.
+
 ## Record (after outcomes)
 
 Run **`record_experience`** after you:

@@ -319,3 +319,19 @@ func tagOverlap(filter []string, episode []string) bool {
 	}
 	return false
 }
+
+// PruneRejectedBatch deletes rejected advisory episodes older than the cutoff.
+func (s *Service) PruneRejectedBatch(ctx context.Context, olderThanHours, limit int) (int, error) {
+	if s == nil || s.Repo == nil {
+		return 0, errors.New("similarity: repo not configured")
+	}
+	if olderThanHours <= 0 {
+		olderThanHours = 720
+	}
+	if limit <= 0 {
+		limit = 1000
+	}
+	cutoff := time.Now().Add(-time.Duration(olderThanHours) * time.Hour)
+	n, err := s.Repo.DeleteRejectedOlderThan(ctx, cutoff, limit)
+	return int(n), err
+}

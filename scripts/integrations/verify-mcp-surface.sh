@@ -46,6 +46,12 @@ else
   for t in "${CORE_LOOP_TOOLS[@]}"; do
     grep -q "\`$t\`" "$DOC" || { echo "doc missing $t" >&2; FAIL=1; }
   done
+  if grep -q housekeeping "$REPO_ROOT/control-plane/internal/mcp/init.go" && grep -q resolve_chore "$REPO_ROOT/control-plane/internal/mcp/init.go"; then
+    echo "ok: MCP init instructions mention housekeeping"
+  else
+    echo "init.go missing housekeeping / resolve_chore" >&2
+    FAIL=1
+  fi
 fi
 
 echo "== integration MCP URLs =="

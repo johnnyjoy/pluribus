@@ -8,8 +8,9 @@ description: Retrieve durable Pluribus context before substantive work. Use when
 Before planning or editing:
 
 1. Call the Pluribus MCP tool **`recall_context`** (alias `memory_context_resolve` if your client lists that name).
-2. Pass **tags** (situation / topic, not workspace silos) and **`retrieval_query`** or task text that states what you are about to do.
-3. Read **`recall_bundle`** / **`mcp_context`** and fold constraints and prior failures into your plan.
+2. If recall/wakeup surfaced **`housekeeping`** or open chores, call **`resolve_chore`** with **`agent_id`** when you can judge — see skill **`resolve-chore`**.
+3. Pass **tags** (situation / topic, not workspace silos) and **`retrieval_query`** or task text that states what you are about to do.
+4. Read **`recall_bundle`** / **`mcp_context`** and fold constraints and prior failures into your plan.
 
 **Do not** skip recall because the task “seems small” once you have read a few files—if it matches the trigger list above, recall first.
 

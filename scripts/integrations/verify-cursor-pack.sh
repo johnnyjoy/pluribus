@@ -52,6 +52,20 @@ else
   FAIL=1
 fi
 
+if instructions_has_housekeeping "$REPO_ROOT/integrations/pluribus-instructions.md" && grep -q resolve_chore "$PACK/pluribus.mdc"; then
+  echo "ok: cursor housekeeping enforcement"
+else
+  echo "cursor pack missing housekeeping step" >&2
+  FAIL=1
+fi
+
+if [[ -f "$PACK/skills/pluribus-housekeeping/SKILL.md" ]] && grep -q resolve_chore "$PACK/skills/pluribus-housekeeping/SKILL.md"; then
+  echo "ok: pluribus-housekeeping skill"
+else
+  echo "missing skills/pluribus-housekeeping/SKILL.md" >&2
+  FAIL=1
+fi
+
 if [[ -x "$PACK/helper/verify-mcp" ]]; then
   echo "ok: verify-mcp executable"
 else

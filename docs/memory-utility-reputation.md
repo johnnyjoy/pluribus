@@ -84,7 +84,7 @@ After meaningful recall use, agents may submit `memory_feedback` with `memory_id
 
 ## Contradiction Demotion
 
-Creating a contradiction record triggers `refuted` utility events for both involved memories (bounded score decrease). High-risk governing constraints may move to `pending`.
+Creating a contradiction record triggers `refuted` utility events for both involved memories (bounded score decrease). High-risk governing constraints may move to **`pending`** (rare operator hold; still recallable and bindable with lower weight) or **`quarantined`** when harmful-advice screen fires.
 
 ## Honest Limits (Phase 7)
 

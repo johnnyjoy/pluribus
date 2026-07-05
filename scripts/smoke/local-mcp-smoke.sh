@@ -24,7 +24,7 @@ require_cmd jq
 
 MCP_URL="${BASE_URL}/v1/mcp"
 auth=()
-[[ -n "$API_KEY" ]] && auth=(-H "Authorization: Bearer ${API_KEY}")
+[[ -n "$API_KEY" ]] && auth=(-H "X-API-Key: ${API_KEY}")
 
 rpc() {
   local id="$1" method="$2" params="${3:-{}}"

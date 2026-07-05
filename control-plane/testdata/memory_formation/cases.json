@@ -10,9 +10,10 @@
         "applicability": "governing",
         "status": "active"
       },
-      "expected_outcome": "pending",
-      "must_not_create_active_memory": true,
-      "expected_reason_contains": ["governing", "review"]
+      "expected_outcome": "allow",
+      "must_not_create_active_memory": false,
+      "max_authority": 4,
+      "expected_reason_contains": ["capped"]
     },
     {
       "id": "direct_create_authority_10_pattern",

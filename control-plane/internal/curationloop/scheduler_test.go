@@ -41,6 +41,28 @@ func (f *fakeEmbedBackfill) BackfillEmbeddingBatch(ctx context.Context, batchSiz
 	return 2, 5, nil
 }
 
+type fakeRejectedPruner struct {
+	calls atomic.Int32
+	err   error
+}
+
+func (f *fakeRejectedPruner) PruneRejectedBatch(ctx context.Context, olderThanHours, limit int) (int, error) {
+	f.calls.Add(1)
+	if f.err != nil {
+		return 0, f.err
+	}
+	return 4, nil
+}
+
+func TestRunOnce_callsPruneRejected(t *testing.T) {
+	pr := &fakeRejectedPruner{}
+	s := &Scheduler{Interval: time.Hour, Rejected: pr}
+	s.RunOnce(context.Background())
+	if pr.calls.Load() != 1 {
+		t.Fatalf("expected prune rejected call, got %d", pr.calls.Load())
+	}
+}
+
 func TestRunOnce_callsEmbedBackfill(t *testing.T) {
 	emb := &fakeEmbedBackfill{}
 	s := &Scheduler{Interval: time.Hour, Embeddings: emb, EmbedBackfillBatchSize: 10}

@@ -6,7 +6,7 @@
 
 1. **Wire MCP** in the client (HTTP to `/v1/mcp` preferred). Reachability: `curl` **`/healthz`** and **`/readyz`** on the API base.
 2. **Add rules** so the model is nudged every session—see [agent-rules.md](agent-rules.md). Without rules, tools sit unused.
-3. **Default tool loop:** **`recall_context`** before substantive work; **`record_experience`** (or opportunistic **`memory_log_if_relevant`**) after learning signals. Aliases **`memory_context_resolve`** / **`mcp_episode_ingest`** unchanged. Order and options: [mcp-usage.md](../../mcp-usage.md#recall-driven-workflow-recommended-order).
+3. **Default tool loop:** **`recall_context`** before substantive work; if **`housekeeping`** is present → **`resolve_chore`** with **`agent_id`**; **`memory_feedback`** when recall items mattered; **`record_experience`** after learning signals. Aliases **`memory_context_resolve`** / **`mcp_episode_ingest`** unchanged. Order: [mcp-usage.md](../../mcp-usage.md#recall-driven-workflow-recommended-order).
 
 ## What MCP gives you
 

@@ -5,6 +5,22 @@ import (
 	"testing"
 )
 
+func TestFilterRegistryByTier_coreIncludesMemoryFeedback(t *testing.T) {
+	t.Cleanup(func() { SetToolsTier(ToolsTierAll) })
+	reg := toolRegistry()
+	core := filterRegistryByTier(reg, ToolsTierCore)
+	found := false
+	for _, spec := range core {
+		if spec.Name == "memory_feedback" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("memory_feedback must be in core tier for connect-time curation")
+	}
+}
+
 func TestFilterRegistryByTier_core(t *testing.T) {
 	t.Cleanup(func() { SetToolsTier(ToolsTierAll) })
 	reg := toolRegistry()

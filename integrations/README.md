@@ -1,6 +1,15 @@
 # Integration packs (behavioral) — **Pluribus**
 
-**Pluribus** is the product surface agents connect to via MCP (or HTTP). **Canonical behavior:** [`pluribus-instructions.md`](pluribus-instructions.md) — mandatory **Pluribus** **`recall_context` → plan → act → `record_experience`** when tools are available; one copy, platform packs wrap or point to it.
+**Pluribus** is the product surface agents connect to via MCP (or HTTP). **Canonical behavior:** [`pluribus-instructions.md`](pluribus-instructions.md) — mandatory **Pluribus** loop when tools are available:
+
+```text
+wakeup_context / recall_context
+  → housekeeping (resolve_chore + agent_id when chores exist)
+  → plan → act → memory_feedback (when recall items mattered)
+  → record_experience
+```
+
+One copy in **`pluribus-instructions.md`**; platform packs wrap or point to it.
 
 Each folder is a **Pluribus control surface**: **`rules.md`** (pointer + native path), **`skill.md`**, **`snippets/context-prime.txt`**, **`README.md`**, **`mcp-config.example.json`**, and optional **`skills/pluribus/`**. **Native** artifacts vary: e.g. **Cursor** — full pack in **`cursor/`** (`plugin-plan.md`, `prompts.md`, `commands.md`, `mcp-config.json`, `helper/`); prefer **user** Pluribus MCP + **user rules** + **`~/.cursor/skills/`**, with **`pluribus.mdc`** optional per-repo; **Continue** **`.continue/rules/pluribus.md`**, **VS Code** **`.github/copilot-instructions.md`**, **Claude Code** **`CLAUDE.md`**.
 

@@ -36,6 +36,20 @@ After **`recall_context`** or **`wakeup_context`**, check for hive maintenance w
 
 **Do not** treat empty chores as failure — when the pool is clean, this step is a no-op.
 
+## Proof and smoke rows (automation hygiene)
+
+When **you** create throwaway test or demo memories (CI receipts, local smoke, scenario markers), tag them **`ephemeral`** plus **`proof-scenario`** or **`smoke-shared-memory`**. Do **not** leave durable-looking constraints in the shared pool without ephemeral tags — agents use **`memory_feedback`** and chores if any slip through.
+
+## Curate (utility feedback)
+
+After you act on work informed by **`recall_context`** or **`wakeup_context`**, vote on memories that shaped your behavior:
+
+1. **If a recalled memory helped:** **`memory_feedback`** with **`event_type: helpful`** (and optional **`reason`**).
+2. **If it misled or was wrong:** **`harmful`**, **`wrong`**, or **`outdated`** as appropriate.
+3. **If you did not use recalled items:** no call — **no vote is neutral**.
+
+This is how agents on a trusted network police the shared pool without a separate curator AI. Ranking uses utility over time; chores handle structural mess (dupes, contradictions, quarantine).
+
 ## Record (after outcomes)
 
 Run **`record_experience`** after you:

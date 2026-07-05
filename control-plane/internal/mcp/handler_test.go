@@ -57,7 +57,7 @@ func TestHTTPHandler_initialize(t *testing.T) {
 		t.Fatalf("serverInfo.version = %v", si["version"])
 	}
 	inst, _ := out.Result["instructions"].(string)
-	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") {
+	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") {
 		t.Fatalf("initialize instructions should bias the memory loop, got %q", inst)
 	}
 }

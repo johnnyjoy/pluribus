@@ -8,9 +8,10 @@ description: Memory loop — recall before work, record after outcomes.
 ## Loop
 
 1. recall_context (before work)
-2. If housekeeping is present: resolve_chore when you can judge, or defer with reason in record_experience
+2. If housekeeping is present: `resolve_chore` with `chore_id`, `action`, and stable `agent_id` when you can judge, or defer with reason in `record_experience`
 3. plan / act
-4. record_experience (after outcome)
+4. If recall surfaced memories you used or rejected: memory_feedback (helpful / harmful / wrong / outdated)
+5. record_experience (after outcome)
 
 ## Use When
 

@@ -97,5 +97,19 @@
         "candidate_id": "00000000-0000-4000-8000-000000000001"
       }
     }
+  },
+  "tools_call_resolve_chore": {
+    "jsonrpc": "2.0",
+    "id": 10,
+    "method": "tools/call",
+    "params": {
+      "name": "resolve_chore",
+      "arguments": {
+        "chore_id": "00000000-0000-4000-8000-000000000002",
+        "action": "delete",
+        "agent_id": "generic-mcp-example",
+        "reason": "Example vote after list_chores / housekeeping line"
+      }
+    }
   }
 }

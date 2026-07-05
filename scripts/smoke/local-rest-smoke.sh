@@ -32,7 +32,7 @@ echo "$health" | jq -e '.status == "ok" or . == "ok" or .ok == true' >/dev/null 
 }
 pass "healthz"
 
-ready_code="$(curl -sS -o /tmp/pluribus-ready.json -w '%{http_code}' "${BASE_URL}/readyz" ${API_KEY:+-H "Authorization: Bearer ${API_KEY}"})"
+ready_code="$(curl -sS -o /tmp/pluribus-ready.json -w '%{http_code}' "${BASE_URL}/readyz" ${API_KEY:+-H "X-API-Key: ${API_KEY}"})"
 [[ "$ready_code" == "200" ]] || fail "readyz HTTP ${ready_code}"
 pass "readyz HTTP 200"
 

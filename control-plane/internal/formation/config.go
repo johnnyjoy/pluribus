@@ -34,15 +34,28 @@ type RecordExperienceConfig struct {
 
 // Config is the memory formation quality gate configuration.
 type Config struct {
-	DirectCreate     DirectCreateConfig     `yaml:"direct_create"`
-	RecordExperience RecordExperienceConfig `yaml:"record_experience"`
+	// HiveDefaults enables agent-weighted ingest: active at low authority, ranking/utility curate later.
+	// When true, ApplyHiveDefaults overlays direct_create and record_experience for hive operation.
+	HiveDefaults         bool                   `yaml:"hive_defaults"`
+	DirectCreate         DirectCreateConfig     `yaml:"direct_create"`
+	RecordExperience     RecordExperienceConfig `yaml:"record_experience"`
 	// ContradictionOnWrite when true runs lightweight negation check for high-risk governing writes.
 	ContradictionOnWrite bool `yaml:"contradiction_on_write"`
 }
 
-// DefaultConfig returns safe production defaults for Phase 5.
+// DefaultConfig returns shipped production defaults: hive profile (generous ingest, ruthless ranking).
 func DefaultConfig() Config {
+	c := WarehouseConfig()
+	c.HiveDefaults = true
+	c.ApplyHiveDefaults()
+	return c
+}
+
+// WarehouseConfig returns explicit review-board / warehouse formation (pending governing defaults).
+// Use in tests or operator configs that intentionally require human review before active recall.
+func WarehouseConfig() Config {
 	return Config{
+		HiveDefaults: false,
 		DirectCreate: DirectCreateConfig{
 			Enabled:                       true,
 			RequireAdminForGoverning:      true,
@@ -86,4 +99,39 @@ func (c *Config) Normalize() {
 	}
 	// Booleans default true when unset — DirectCreate.Enabled and RejectJunk use zero=false;
 	// callers should use Gate which applies DefaultConfig when cfg is nil.
+	if c.HiveDefaults {
+		c.ApplyHiveDefaults()
+	}
+}
+
+// HiveConfig returns the default agent-weighted formation profile (generous ingest, ruthless ranking).
+func HiveConfig() Config {
+	return DefaultConfig()
+}
+
+// ApplyHiveDefaults overlays hive ingest policy: memories enter active at capped authority;
+// utility feedback and recall ranking demote weak signal over time.
+func (c *Config) ApplyHiveDefaults() {
+	if c == nil {
+		return
+	}
+	c.HiveDefaults = true
+	dc := &c.DirectCreate
+	dc.Enabled = true
+	dc.RejectJunk = true
+	dc.GoverningDefaultStatus = "active"
+	dc.RequireAdminForGoverning = false
+	dc.RequireProvenanceForGoverning = false
+	dc.RequireProvenanceAuthorityGE = 11
+	dc.AllowActiveHighRiskGoverning = true
+	dc.AllowActiveWithQualityWarnings = true
+	dc.AllowActiveDespiteQualityReview = true
+	dc.AllowActivePromotedGoverning = true
+	if dc.MaxClientAuthority <= 0 {
+		dc.MaxClientAuthority = DefaultConfig().DirectCreate.MaxClientAuthority
+	}
+	c.RecordExperience.RiskyConstraintPending = false
+	if !c.RecordExperience.RejectJunk {
+		c.RecordExperience.RejectJunk = true
+	}
 }

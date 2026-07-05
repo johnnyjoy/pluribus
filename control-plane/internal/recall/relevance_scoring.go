@@ -332,6 +332,8 @@ func memoryTagsForScoring(tags []string) []string {
 	return out
 }
 
+const pendingTrustDampener = api.PendingTrustDampener
+
 func authorityMultiplier(authNorm float64) float64 {
 	if authNorm > 1 {
 		authNorm = 1
@@ -532,6 +534,9 @@ func computeScoreComponents(
 	bd.RelevanceScore = relevance
 
 	score := relevance * bd.AuthorityMultiplier
+	if obj.Status == api.StatusPending {
+		score *= pendingTrustDampener
+	}
 	if req.SituationQuery == "" {
 		score += bd.RecencyScore
 	} else if relevance >= 0.05 {

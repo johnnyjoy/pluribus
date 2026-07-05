@@ -41,6 +41,25 @@ OUT=$(echo "$RESP" | jq -r '
 ' 2>/dev/null || echo "")
 
 if [[ -z "${OUT// }" ]] || [[ "$OUT" == "## Pluribus recall (preview)" ]]; then
+  OUT=""
+fi
+
+# Optional: one open curation chore (same REST surface as list_chores).
+CHORE_RESP=$(curl -fsS -m 8 -X GET "${BASE}/v1/curation/chores?limit=1" "${HDR[@]}" 2>/dev/null) || CHORE_RESP=""
+if [[ -n "$CHORE_RESP" ]]; then
+  HK=$(echo "$CHORE_RESP" | jq -r '.chores[0] | if . then "Housekeeping: \(.chore_type) chore open (id=\(.id)) — call MCP resolve_chore with agent_id when you can judge." else empty end' 2>/dev/null) || HK=""
+  if [[ -n "$HK" ]]; then
+    if [[ -n "${OUT// }" ]]; then
+      OUT="${OUT}
+
+${HK}"
+    else
+      OUT="${HK}"
+    fi
+  fi
+fi
+
+if [[ -z "${OUT// }" ]]; then
   exit 0
 fi
 

@@ -66,6 +66,11 @@ func applyHistoricalScoreCap(mode RecallMode, obj memory.MemoryObject, score flo
 		if score > 0.68 {
 			return 0.68
 		}
+	case api.StatusPending:
+		// Pending in historical mode must not outrank true current guidance.
+		if score > 0.75 {
+			return 0.75
+		}
 	}
 	return score
 }

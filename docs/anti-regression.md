@@ -75,3 +75,16 @@ See `control-plane/internal/guardrails/` tests. **CI:** `go test ./...` in `cont
 ## F. Failure mode
 
 If container language slips back in **without** updating doctrine and **without** failing tests, the sprint failed — fix forward by reverting the copy or tightening the guard.
+
+---
+
+## G. Pending status (memory lifecycle — not a warehouse tier)
+
+Do **not** reintroduce these regressions:
+
+1. **Hard-excluding `pending` from recall compile or enforcement binding** — pending is the same pool with a small trust dampener (`api.PendingTrustDampener`, currently **0.88**).
+2. **Defaulting formation to warehouse mode** — shipped default is **`hive_defaults: true`** (active at capped authority). Use **`WarehouseConfig()`** only in explicit review tests/config.
+3. **Docs that teach** “pending rows do not appear until approved” for agent-facing recall — admin **`POST /v1/memory/search`** may default to `active`; **compile** must include matching pending rows.
+4. **Semantic consolidate authority bumps on pending rows** — prefer active merge targets.
+
+**Allowed rare pending:** explicit `require_review`, warehouse config, contradiction-on-write holds, operator chore `release`.

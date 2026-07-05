@@ -22,6 +22,14 @@ This page **surfaces receipts** for what the system has actually demonstrated in
 | **Proof scenario suite** | Memory, recall, curation, enforcement, **continuity** behaviors against real Postgres + full router | `make regression` → `TestIntegration_proofScenarioSuite` — [proof-scenarios.md](proof-scenarios.md), [`control-plane/proof-scenarios/`](../control-plane/proof-scenarios/) |
 | **YAML + integration runners** | Structured pass/fail per scenario id (not hand-wavy demos) | [`proof_scenarios_integration_test.go`](../control-plane/cmd/controlplane/proof_scenarios_integration_test.go) |
 
+## Deployed benefit receipts (live control-plane)
+
+| Receipt | What it proves | Where |
+|---------|----------------|--------|
+| **Deployed benefit receipts** | Same scenario suite against a **running** server (`CONTROL_PLANE_URL` / `PLURIBUS_PROOF_BASE_URL`) under **real** formation/recall policy — closes CI ↔ deploy gap | `./scripts/proof-deployed-benefit-receipts.sh` or `make proof-deployed-benefit-receipts` — latest: [artifacts/deployed-benefit-receipts-latest.md](../artifacts/deployed-benefit-receipts-latest.md) |
+
+CI receipts use proof-friendly formation (seeds **active** at capped authority). Deployed receipts fail when the hive cannot **recall** or **bind** governing memory the scenarios create — usually formation drift (warehouse defaults, or consolidate into non-recallable sinks), not because `pending` is a separate tier.
+
 ---
 
 ## Scenario categories (integration)
@@ -76,6 +84,7 @@ This page **surfaces receipts** for what the system has actually demonstrated in
 - Operational semantic defaults and fallback: [pluribus-operational-guide.md](pluribus-operational-guide.md), [evaluation.md](evaluation.md), [pluribus-release-scope.md](pluribus-release-scope.md).
 - **True multi-host** continuity under network partitions — simulated proof is **in-process**; see limitations in continuity results doc.
 - **Full multi-tenant isolation** — exercise your auth model if you deploy shared infrastructure.
+- **Deployed benefit by default** — CI pass does not imply live benefit. Re-run **deployed benefit receipts** after deploy; see [artifacts/deployed-benefit-receipts-latest.md](../artifacts/deployed-benefit-receipts-latest.md).
 
 ---
 

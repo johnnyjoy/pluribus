@@ -25,8 +25,8 @@ func includeSupersededCandidates(query string) bool {
 }
 
 // fetchLifecycleCandidates loads compile candidates according to recall_mode / include_status.
-// Current mode: active only, plus legacy keyword merge for superseded on lifecycle queries.
-// Historical mode: active + superseded + archived; pending/rejected never included.
+// Current mode: active + pending (pending weighted lower in ranking); legacy keyword merge for superseded.
+// Historical mode: active + pending + superseded + archived; rejected never included.
 func (c *Compiler) fetchLifecycleCandidates(ctx context.Context, req CompileRequest, mode RecallMode, statuses []api.Status, situationQuery string) ([]memory.MemoryObject, error) {
 	if c.Memory == nil {
 		return nil, nil
@@ -126,11 +126,15 @@ func filterLifecycleCandidates(mode RecallMode, objs []memory.MemoryObject) []me
 	}
 	allowed := map[api.Status]struct{}{
 		api.StatusActive:     {},
+		api.StatusPending:    {},
 		api.StatusSuperseded: {},
 		api.StatusArchived:   {},
 	}
 	if mode == RecallModeCurrent {
-		allowed = map[api.Status]struct{}{api.StatusActive: {}}
+		allowed = map[api.Status]struct{}{
+			api.StatusActive:  {},
+			api.StatusPending: {},
+		}
 	}
 	out := objs[:0]
 	for _, o := range objs {
@@ -138,11 +142,11 @@ func filterLifecycleCandidates(mode RecallMode, objs []memory.MemoryObject) []me
 		if st == "" {
 			st = api.StatusActive
 		}
-		if st == api.StatusPending || st == api.StatusRejected {
+		if st == api.StatusRejected || st == api.StatusQuarantined || st == api.StatusDeleted {
 			continue
 		}
 		if mode == RecallModeCurrent {
-			if st == api.StatusActive {
+			if st == api.StatusActive || st == api.StatusPending {
 				out = append(out, o)
 				continue
 			}

@@ -14,7 +14,7 @@ done
 
 json_ok "$GEN/examples.json" || FAIL=1
 
-for key in initialize tools_list tools_call_recall_context tools_call_record_experience tools_call_wakeup_context; do
+for key in initialize tools_list tools_call_recall_context tools_call_record_experience tools_call_wakeup_context tools_call_resolve_chore; do
   python3 -c "import json; d=json.load(open('$GEN/examples.json')); assert '$key' in d" || {
     echo "examples.json missing $key" >&2
     FAIL=1
@@ -28,14 +28,15 @@ else
   FAIL=1
 fi
 
-if grep -q '55' "$GEN/README.md" && grep -q '/v1/mcp' "$GEN/README.md"; then
+if grep -q '59' "$GEN/README.md" && grep -q '/v1/mcp' "$GEN/README.md"; then
   echo "ok: README documents endpoint + tool count"
 else
-  echo "generic README missing 55-tool note or endpoint" >&2
+  echo "generic README missing 59-tool note or endpoint" >&2
   FAIL=1
 fi
 
 instructions_has_loop "$REPO_ROOT/integrations/pluribus-instructions.md" || FAIL=1
+instructions_has_housekeeping "$REPO_ROOT/integrations/pluribus-instructions.md" || FAIL=1
 
 if [[ "$STATIC" -eq 0 ]] && curl -fsS -m 2 "${PLURIBUS_BASE_URL:-http://127.0.0.1:8123}/healthz" >/dev/null 2>&1; then
   INIT=$(python3 -c "import json; print(json.dumps(json.load(open('$GEN/examples.json'))['initialize']))")

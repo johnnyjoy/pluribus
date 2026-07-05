@@ -52,6 +52,7 @@ var coreToolNames = map[string]struct{}{
 	"enforcement_evaluate":   {},
 	"list_chores":            {},
 	"resolve_chore":          {},
+	"memory_feedback":        {},
 	"health":                 {},
 }
 
@@ -59,7 +60,6 @@ var standardExtraToolNames = map[string]struct{}{
 	"memory_log_if_relevant":       {},
 	"auto_log_episode_if_relevant": {},
 	"memory_create":                {},
-	"memory_feedback":              {},
 	"memory_promote":               {},
 	"memory_quarantine":            {},
 	"memory_delete":                {},

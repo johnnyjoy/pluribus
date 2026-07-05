@@ -79,13 +79,13 @@ func TestPromoteBlocksSupersededActiveGuidance(t *testing.T) {
 	}
 }
 
-func TestPromoteKeepsUnderEncodedCandidatePending(t *testing.T) {
+func TestPromoteKeepsUnderEncodedCandidateActiveAtCap(t *testing.T) {
 	c := findEscape(t, loadEscapeCases(t), "promote_under_encoded_candidate_pending")
 	d, err := gateEval(t, c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d.Outcome != formation.OutcomePending {
+	if d.Outcome != formation.OutcomeAllow {
 		t.Fatalf("outcome=%s", d.Outcome)
 	}
 }
@@ -96,7 +96,7 @@ func TestPromoteRequiresScopeForConstraint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d.Outcome != formation.OutcomePending {
+	if d.Outcome != formation.OutcomeAllow {
 		t.Fatalf("outcome=%s", d.Outcome)
 	}
 }
@@ -107,7 +107,7 @@ func TestPromoteRequiresProvenanceForHighAuthority(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d.Outcome != formation.OutcomePending {
+	if d.Outcome != formation.OutcomeAllow {
 		t.Fatalf("outcome=%s", d.Outcome)
 	}
 }
@@ -149,13 +149,13 @@ func TestProbationaryIngestRejectsVagueSummary(t *testing.T) {
 	}
 }
 
-func TestProbationaryIngestMarksUnderEncodedPending(t *testing.T) {
+func TestProbationaryIngestMarksUnderEncodedActiveAtLowAuthority(t *testing.T) {
 	c := findEscape(t, loadEscapeCases(t), "probationary_under_encoded_pending")
 	d, err := gateEval(t, c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d.Outcome != formation.OutcomePending {
+	if d.Outcome != formation.OutcomeAllow {
 		t.Fatalf("outcome=%s", d.Outcome)
 	}
 }

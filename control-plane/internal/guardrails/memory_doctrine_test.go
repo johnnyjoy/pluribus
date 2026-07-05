@@ -205,6 +205,62 @@ func collectJSONFieldNames(t *testing.T, typ reflect.Type, seen map[reflect.Type
 	}
 }
 
+// pendingRecallDriftPatterns catch docs/skills that teach warehouse semantics (pending excluded from recall).
+var pendingRecallDriftPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)held back from recall`),
+	regexp.MustCompile(`(?i)pending rows do not appear until approved`),
+	regexp.MustCompile(`(?i)pending.{0,60}(do not|does not|don't|won't|cannot|can't|must not).{0,40}(appear|surface|show|included?).{0,40}recall`),
+	regexp.MustCompile(`(?i)not (recalled|recallable|in recall).{0,40}pending`),
+	regexp.MustCompile(`(?i)pending.{0,40}warehouse tier`),
+}
+
+var pendingDriftExemptDocs = map[string]bool{
+	"docs/anti-regression.md":           true,
+	"docs/audit-2026-07-hostile.md":     true,
+	"docs/audit-2026-07-hive-memory-objectives.md": true,
+	"docs/curation-loop.md":             true,
+	"docs/episodic-similarity.md":       true,
+	"docs/rest-test-matrix.md":          true,
+}
+
+func assertNoPendingRecallDrift(t *testing.T, relPath, content string) {
+	t.Helper()
+	if pendingDriftExemptDocs[relPath] {
+		return
+	}
+	for _, re := range pendingRecallDriftPatterns {
+		if loc := re.FindStringIndex(content); loc != nil {
+			t.Errorf("%s: pending/recall doctrine drift matched %q", relPath, content[loc[0]:loc[1]])
+		}
+	}
+}
+
+func TestMemoryDoctrine_pendingIncludedInRecallPool(t *testing.T) {
+	root := recallRepositoryRoot(t)
+	paths := []string{
+		filepath.Join(root, "integrations", "pluribus-instructions.md"),
+		filepath.Join(root, "docs", "agent-loop-contract.md"),
+		filepath.Join(root, "docs", "get-started.md"),
+		filepath.Join(root, "docs", "memory-formation-quality.md"),
+		filepath.Join(root, "docs", "memory-lifecycle-semantics.md"),
+		filepath.Join(root, "integrations", "cursor", "skill.md"),
+		filepath.Join(root, "integrations", "cursor", "skills", "pluribus", "SKILL.md"),
+		filepath.Join(root, "integrations", "generic-mcp", "skill.md"),
+		filepath.Join(root, "integrations", "generic-mcp", "skills", "pluribus", "SKILL.md"),
+		filepath.Join(root, "integrations", "claude-code", "skill.md"),
+		filepath.Join(root, "integrations", "claude-code", "skills", "pluribus", "SKILL.md"),
+		filepath.Join(root, "integrations", "vscode", "skill.md"),
+	}
+	for _, p := range paths {
+		if _, err := os.Stat(p); err != nil {
+			t.Fatalf("missing doctrine path %s: %v", p, err)
+		}
+		rel, _ := filepath.Rel(root, p)
+		body := readFile(t, p)
+		assertNoPendingRecallDrift(t, rel, body)
+	}
+}
+
 func TestMemoryDoctrine_coreRequestJSONTags(t *testing.T) {
 	types := []reflect.Type{
 		reflect.TypeOf(recall.CompileRequest{}),

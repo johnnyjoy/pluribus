@@ -26,9 +26,10 @@ func TestDirectCreateFormationGate_pendingGoverning(t *testing.T) {
 		sqlmock.NewRows([]string{"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at"}).
 			AddRow("11111111-1111-1111-1111-111111111111", "constraint", "test", "test", "key", 4, "governing", "pending", nil, nil, nil, now, now, nil))
 
+	cfg := formation.WarehouseConfig()
 	svc := &memory.Service{
 		Repo:      &memory.Repo{DB: db},
-		Formation: formation.NewGate(nil),
+		Formation: formation.NewGate(&cfg),
 	}
 	obj, err := svc.Create(context.Background(), memory.CreateRequest{
 		FormationPath: formation.PathDirectCreate,

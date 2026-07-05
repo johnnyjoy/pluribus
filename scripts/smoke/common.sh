@@ -31,7 +31,7 @@ parse_smoke_args() {
 curl_json() {
   local method="$1" path="$2" body="${3:-}"
   local args=(-sS -f -X "$method" "${BASE_URL}${path}" -H "Content-Type: application/json")
-  [[ -n "$API_KEY" ]] && args+=(-H "Authorization: Bearer ${API_KEY}")
+  [[ -n "$API_KEY" ]] && args+=(-H "X-API-Key: ${API_KEY}")
   if [[ -n "$body" ]]; then
     args+=(-d "$body")
   fi

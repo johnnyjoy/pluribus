@@ -266,6 +266,36 @@ func (h *Handlers) remediate(w http.ResponseWriter, r *http.Request, apply func(
 	httpx.WriteJSON(w, obj)
 }
 
+// MergeTagsRequest is the body for PUT /v1/memory/{id}/tags (additive tag merge).
+type MergeTagsRequest struct {
+	Tags []string `json:"tags"`
+}
+
+// MergeTags handles PUT /v1/memory/{id}/tags — merges tags without replacing existing.
+func (h *Handlers) MergeTags(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid memory id: expected a UUID")
+		return
+	}
+	var req MergeTagsRequest
+	if err := httpx.DecodeJSON(r, &req); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	obj, err := h.Service.MergeTags(r.Context(), id, req.Tags)
+	if err != nil {
+		if err.Error() == "memory not found" {
+			httpx.WriteError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		httpx.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	httpx.WriteJSON(w, obj)
+}
+
 // SetAttributesRequest is the body for PUT /v1/memory/{id}/attributes (Task 78: constraint attributes).
 type SetAttributesRequest struct {
 	Attributes map[string]string `json:"attributes"`

@@ -9,6 +9,11 @@ Append **`snippets/context-prime.txt`** from this pack.
 
 ## Pluribus (summary)
 
-When **Pluribus** MCP tools are connected: **`recall_context`** → plan → act → **`record_experience`**. Full triggers, doctrine, and “tools unavailable” handling are in **`pluribus-instructions.md`**.
+When **Pluribus** MCP tools are connected:
 
-Legacy: **`memory_context_resolve`**, **`mcp_episode_ingest`**. **Pluribus** uses **tags + situation** only — not project/workspace/task memory partitions.
+1. **`recall_context`** or **`wakeup_context`** before substantive work
+2. If **`housekeeping`** / open chores → **`resolve_chore`** with **`agent_id`** (or defer in **`record_experience`**)
+3. Plan → act → **`memory_feedback`** when recall items helped or misled
+4. **`record_experience`** after meaningful outcomes
+
+Full triggers: **`pluribus-instructions.md`**. Legacy: **`memory_context_resolve`**, **`mcp_episode_ingest`**. **Tags + situation** only.

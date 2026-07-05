@@ -27,28 +27,45 @@ import (
 )
 
 // TestIntegration_proofScenarioSuite runs YAML-defined integration proof scenarios (benefit receipts).
-// Requires TEST_PG_DSN (same as make regression). Set RECALL_PROOF_RESULTS_OUT to write a markdown summary.
+//
+// Local (CI / make regression): requires TEST_PG_DSN; boots an in-process server with
+// proof-friendly formation defaults (seeded memories active immediately).
+//
+// Deployed benefit receipts: set PLURIBUS_PROOF_BASE_URL (or CONTROL_PLANE_URL) to a running
+// control-plane base URL. No local Postgres boot. Optional CONTROL_PLANE_API_KEY / PLURIBUS_API_KEY
+// for X-API-Key. Set RECALL_PROOF_RESULTS_OUT to write a markdown summary.
+//
+// Deployed runs exercise the server's real formation/recall policy (not proof defaults).
 func TestIntegration_proofScenarioSuite(t *testing.T) {
-	dsn := os.Getenv("TEST_PG_DSN")
-	if dsn == "" {
-		t.Skip("TEST_PG_DSN not set")
+	base := strings.TrimRight(strings.TrimSpace(os.Getenv("PLURIBUS_PROOF_BASE_URL")), "/")
+	if base == "" {
+		base = strings.TrimRight(strings.TrimSpace(os.Getenv("CONTROL_PLANE_URL")), "/")
 	}
-	cfg := loadIntegrationConfig(t)
-	cfg.Postgres.DSN = dsn
+	deployed := base != ""
+	if !deployed {
+		dsn := os.Getenv("TEST_PG_DSN")
+		if dsn == "" {
+			t.Skip("TEST_PG_DSN not set (or set PLURIBUS_PROOF_BASE_URL for deployed benefit receipts)")
+		}
+		cfg := loadIntegrationConfig(t)
+		cfg.Postgres.DSN = dsn
 
-	container, err := app.Boot(cfg)
-	if err != nil {
-		t.Fatalf("boot: %v", err)
-	}
-	defer container.DB.Close()
+		container, err := app.Boot(cfg)
+		if err != nil {
+			t.Fatalf("boot: %v", err)
+		}
+		defer container.DB.Close()
 
-	rtr, err := apiserver.NewRouter(cfg, container)
-	if err != nil {
-		t.Fatalf("router: %v", err)
+		rtr, err := apiserver.NewRouter(cfg, container)
+		if err != nil {
+			t.Fatalf("router: %v", err)
+		}
+		srv := httptest.NewServer(rtr)
+		defer srv.Close()
+		base = srv.URL
+	} else {
+		t.Logf("deployed benefit receipts against %s", base)
 	}
-	srv := httptest.NewServer(rtr)
-	defer srv.Close()
-	base := srv.URL
 
 	dir := filepath.Join(controlPlaneModuleRoot(t), "proof-scenarios")
 	scenarios, err := proofscenarios.LoadDir(dir)
@@ -100,17 +117,52 @@ func TestIntegration_proofScenarioSuite(t *testing.T) {
 
 	if p := strings.TrimSpace(os.Getenv("RECALL_PROOF_RESULTS_OUT")); p != "" {
 		env := "integration TEST_PG_DSN"
+		if deployed {
+			env = "deployed benefit receipts " + base
+		}
 		if err := proofscenarios.WriteMarkdownSummary(p, env, rows); err != nil {
 			t.Logf("write proof results: %v", err)
 		}
 	}
 }
 
+// proofAPIKey returns the optional API key for deployed benefit receipts.
+func proofAPIKey() string {
+	if k := strings.TrimSpace(os.Getenv("CONTROL_PLANE_API_KEY")); k != "" {
+		return k
+	}
+	return strings.TrimSpace(os.Getenv("PLURIBUS_API_KEY"))
+}
+
+// proofHTTPClient returns an HTTP client; for deployed runs it injects X-API-Key when configured.
+func proofHTTPClient() *http.Client {
+	key := proofAPIKey()
+	if key == "" {
+		return http.DefaultClient
+	}
+	return &http.Client{Transport: &proofAuthTransport{key: key, base: http.DefaultTransport}}
+}
+
+type proofAuthTransport struct {
+	key  string
+	base http.RoundTripper
+}
+
+func (t *proofAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	r := req.Clone(req.Context())
+	r.Header.Set("X-API-Key", t.key)
+	base := t.base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	return base.RoundTrip(r)
+}
+
 // --- HTTP helpers ---
 
 func postJSON(t *testing.T, url string, body string) *http.Response {
 	t.Helper()
-	return postJSONClient(t, http.DefaultClient, url, body)
+	return postJSONClient(t, proofHTTPClient(), url, body)
 }
 
 func postJSONClient(t *testing.T, client *http.Client, urlStr string, body string) *http.Response {
@@ -127,7 +179,7 @@ func postJSONClient(t *testing.T, client *http.Client, urlStr string, body strin
 
 func getJSON(t *testing.T, url string) *http.Response {
 	t.Helper()
-	return getJSONClient(t, http.DefaultClient, url)
+	return getJSONClient(t, proofHTTPClient(), url)
 }
 
 func getJSONClient(t *testing.T, client *http.Client, urlStr string) *http.Response {
@@ -156,9 +208,53 @@ func readBody(t *testing.T, resp *http.Response) []byte {
 	return b
 }
 
+const proofEphemeralTTLSeconds = 3600
+
+func mergeProofEphemeralTags(tags []string) []string {
+	seen := map[string]struct{}{}
+	for _, t := range tags {
+		if t != "" {
+			seen[t] = struct{}{}
+		}
+	}
+	for _, t := range []string{api.TagEphemeral, api.TagProofScenario} {
+		seen[t] = struct{}{}
+	}
+	out := make([]string, 0, len(seen))
+	for t := range seen {
+		out = append(out, t)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func proofMemoryCreateBody(fields map[string]any) string {
+	if fields == nil {
+		fields = map[string]any{}
+	}
+	var tags []string
+	if raw, ok := fields["tags"].([]string); ok {
+		tags = raw
+	}
+	fields["tags"] = mergeProofEphemeralTags(tags)
+	if _, ok := fields["ttl_seconds"]; !ok {
+		fields["ttl_seconds"] = proofEphemeralTTLSeconds
+	}
+	b, err := json.Marshal(fields)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
 func createConstraintPostgres(t *testing.T, base string) {
 	t.Helper()
-	body := `{"kind":"constraint","authority":9,"applicability":"governing","statement":"All durable project data must use Postgres; SQLite is not permitted."}`
+	body := proofMemoryCreateBody(map[string]any{
+		"kind":          "constraint",
+		"authority":     9,
+		"applicability": "governing",
+		"statement":     "All durable project data must use Postgres; SQLite is not permitted.",
+	})
 	resp := postJSON(t, base+"/v1/memory", body)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -185,7 +281,7 @@ func postEnforcement(t *testing.T, base string, proposal, intent string) enforce
 
 func compileRecall(t *testing.T, base string, taskID uuid.UUID) recall.RecallBundle {
 	t.Helper()
-	return compileRecallClient(t, http.DefaultClient, base, taskID)
+	return compileRecallClient(t, proofHTTPClient(), base, taskID)
 }
 
 func compileRecallClient(t *testing.T, client *http.Client, base string, taskID uuid.UUID) recall.RecallBundle {
@@ -267,14 +363,18 @@ func runProofRecallBindingConstraint(t *testing.T, base string) {
 
 func runProofRecallDecisionRelevant(t *testing.T, base string) {
 	stmt := fmt.Sprintf("We will use feature flags for rollout of the new API surface. [proof-recall-decision:%s]", uuid.New())
-	body := fmt.Sprintf(`{"kind":"decision","authority":7,"statement":%q}`, stmt)
+	body := proofMemoryCreateBody(map[string]any{
+		"kind":      "decision",
+		"authority": 7,
+		"statement": stmt,
+	})
 	resp2 := postJSON(t, base+"/v1/memory", body)
 	defer resp2.Body.Close()
 	if resp2.StatusCode != http.StatusOK {
 		b := readBody(t, resp2)
 		t.Fatalf("POST decision memory status=%d body=%s", resp2.StatusCode, b)
 	}
-	b := compileRecallClientWithRetrieval(t, http.DefaultClient, base, uuid.Nil, "feature flags rollout API")
+	b := compileRecallClientWithRetrieval(t, proofHTTPClient(), base, uuid.Nil, "feature flags rollout API")
 	if !bundleHasKindSubstring(b, "decision", "feature flags") {
 		t.Fatalf("expected decision about feature flags in bundle, got decisions=%+v", b.Decisions)
 	}
@@ -358,12 +458,18 @@ func runProofCurationThenRecall(t *testing.T, base string) {
 // runProofSimulatedMultiAgentContinuity proves two distinct HTTP clients share the same global memory pool:
 // A writes a tagged marker constraint; B recalls from a fresh HTTP client and still surfaces it (global memory pool).
 func runProofSimulatedMultiAgentContinuity(t *testing.T, base string) {
-	agentA := &http.Client{}
-	agentB := &http.Client{}
+	// Distinct client instances (shared auth transport when API key is set).
+	agentA := proofHTTPClient()
+	agentB := proofHTTPClient()
 	marker := fmt.Sprintf("SIM-MA-CONTINUITY-%s", uuid.New().String())
 	tag := fmt.Sprintf("proof-multi-agent-%s", strings.ReplaceAll(uuid.New().String(), "-", ""))
 
-	memBody := fmt.Sprintf(`{"kind":"constraint","authority":9,"statement":%q,"tags":["%s"]}`, marker, tag)
+	memBody := proofMemoryCreateBody(map[string]any{
+		"kind":      "constraint",
+		"authority": 9,
+		"statement": marker,
+		"tags":      []string{tag},
+	})
 	respMem := postJSONClient(t, agentA, base+"/v1/memory", memBody)
 	defer respMem.Body.Close()
 	if respMem.StatusCode != http.StatusOK {

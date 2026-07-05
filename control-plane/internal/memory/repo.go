@@ -740,7 +740,8 @@ func filterEmptyStringSlice(tags []string) []string {
 	return out
 }
 
-// ListBindingMemory returns active memories that may bind for pre-change enforcement.
+// ListBindingMemory returns active and rare pending memories that may bind for pre-change enforcement.
+// Pending rows pass only when api.EffectiveBindingAuthority meets MinAuthority (0.88 dampener).
 // Memory-first rule: binding lookup is not project-partitioned.
 func (r *Repo) ListBindingMemory(ctx context.Context, req ListBindingRequest) ([]MemoryObject, error) {
 	kinds := req.Kinds
@@ -763,7 +764,7 @@ func (r *Repo) ListBindingMemory(ctx context.Context, req ListBindingRequest) ([
 	rows, err := r.DB.QueryContext(ctx,
 		`SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.payload, m.created_at, m.updated_at, m.occurred_at
 		 FROM memories m
-		 WHERE m.status = 'active'
+		 WHERE m.status IN ('active', 'pending')
 		   AND m.authority >= $1
 		   AND m.kind = ANY($2)
 		   AND m.applicability != 'advisory'
@@ -794,6 +795,20 @@ func (r *Repo) ListBindingMemory(ctx context.Context, req ListBindingRequest) ([
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	minBind := float64(req.MinAuthority)
+	if minBind <= 0 {
+		minBind = 1
+	}
+	filtered := list[:0]
+	filteredIDs := ids[:0]
+	for i, obj := range list {
+		if api.EffectiveBindingAuthority(obj.Authority, obj.Status) >= minBind {
+			filtered = append(filtered, obj)
+			filteredIDs = append(filteredIDs, ids[i])
+		}
+	}
+	list = filtered
+	ids = filteredIDs
 	tagMap, err := r.tagsForMemories(ctx, ids)
 	if err != nil {
 		return nil, err

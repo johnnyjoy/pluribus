@@ -52,7 +52,7 @@ var (
 		p["entities"] = propStringArray("Optional entity tokens merged into tags.")
 		p["correlation_id"] = propString("Optional session correlation (e.g. mcp:session:…).")
 		p["session_id"] = propString("Alias for correlation_id.")
-		p["recall_mode"] = propEnumString("Lifecycle recall mode: current (default guidance) or historical (superseded/archived context).", "current", "historical")
+		p["recall_mode"] = propEnumString("Lifecycle recall mode: current (active + rare pending, weighted lower) or historical (superseded/archived context).", "current", "historical")
 		p["occurred_after"] = propString("Optional RFC3339 lower bound on memory effective time (occurred_at, else created_at).")
 		p["occurred_before"] = propString("Optional RFC3339 exclusive upper bound on effective time.")
 		p["agent_id"] = propString("Optional agent or client identifier for attribution.")
@@ -84,7 +84,7 @@ var (
 		"retrieval_query": propString("Situation text for recall."),
 		"tags":            schemaTags(),
 		"mode":            propString("Compile mode (continuity, thread, …)."),
-		"recall_mode":     propEnumString("Lifecycle recall: current or historical.", "current", "historical"),
+		"recall_mode":     propEnumString("Lifecycle recall: current (active + rare pending) or historical.", "current", "historical"),
 		"include_status":  propStringArray("Optional status filter (active, superseded, archived)."),
 		"occurred_after":  propString("Optional RFC3339 lower bound (occurred_at, else created_at)."),
 		"occurred_before": propString("Optional RFC3339 exclusive upper bound on effective time."),

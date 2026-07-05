@@ -10,11 +10,11 @@ Before material change           →  enforcement_evaluate
 After meaningful outcome           →  record_experience (or mcp_episode_ingest)
 ```
 
-**Formation (Phase 5):** `record_experience` is the canonical write path for agent learnings. Vague junk summaries are rejected; **`memory_create`** is admin/high-risk (authority cap, governing→pending).
+**Formation (Phase 5):** `record_experience` is the canonical write path for agent learnings. Vague junk summaries are rejected; **`memory_create`** is admin/high-risk (authority cap; **active at capped authority** under shipped defaults — **`pending` only for explicit review holds or warehouse mode).
 
 **Utility (Phase 7):** After recall, agents may submit structured feedback via **`memory_feedback`** (or `POST /v1/memory/{id}/feedback`). Event types: `helpful`, `harmful`, `wrong`, `outdated`, `irrelevant`. This updates **utility score** (separate from authority) and can influence recall ranking in a bounded way. Recall alone and duplicate writes do **not** increase authority or utility by default.
 
-**Lifecycle recall (Phase 8):** Default **`recall_context`** uses **`recall_mode: current`** (current guidance only). For history, supersession, archival, or “what changed” questions, use **`recall_mode: historical`**. Historical results are labeled (`lifecycle_role`, `status`) and must not be treated as present guidance. See [memory-lifecycle-semantics.md](memory-lifecycle-semantics.md).
+**Lifecycle recall (Phase 8):** Default **`recall_context`** uses **`recall_mode: current`** (**active** plus rare **`pending`**, weighted lower). For history, supersession, archival, or “what changed” questions, use **`recall_mode: historical`**. Historical results are labeled (`lifecycle_role`, `status`) and must not be treated as present guidance. See [memory-lifecycle-semantics.md](memory-lifecycle-semantics.md).
 
 ## 1. Session
 

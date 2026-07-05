@@ -80,7 +80,8 @@ type Service struct {
 }
 
 // ContradictionLinker records an unresolved contradiction between two memories
-// so both are held back from recall until reviewed. *contradiction.Service satisfies it.
+// for operator review. Rows stay in the pool (pending is recallable and bindable
+// at dampened weight). *contradiction.Service satisfies it.
 type ContradictionLinker interface {
 	RecordDetected(ctx context.Context, memoryID, conflictWithID uuid.UUID) error
 }
@@ -358,6 +359,7 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*MemoryObject,
 			return merged, nil
 		}
 	}
+	ApplyEphemeralDefaults(&req)
 	s.maybeEmbedOnCreate(ctx, &req)
 	if merged, err := s.tryMergeSemanticNearDuplicate(ctx, &req); err != nil {
 		return nil, err
@@ -385,7 +387,7 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*MemoryObject,
 	}
 	if req.ConflictsWithID != nil && *req.ConflictsWithID != uuid.Nil {
 		// Contradiction-on-write hit: link the pair (typed edge + unresolved
-		// contradiction record) so both are held for review instead of surfacing.
+		// contradiction record). New row is pending (same pool, dampened weight).
 		if s.Relationships != nil {
 			if _, err := s.Relationships.CreateRelationship(ctx, obj.ID, *req.ConflictsWithID, RelContradicts,
 				"contradiction detected at write time", "memory_create_contradiction_on_write"); err != nil {
@@ -453,9 +455,8 @@ func (s *Service) applyFormationGate(ctx context.Context, req *CreateRequest) er
 //   - probationary lessons from advisory ingest: checked against active
 //     memories of the same kind, regardless of authority.
 //
-// On a hit the new row lands pending (never surfaces unreviewed) and
-// ConflictsWithID is stashed so Create links the pair after insert, which also
-// holds the opposing memory back from recall until an operator resolves it.
+// On a hit the new row lands pending (recallable at lower weight; linked for review)
+// and ConflictsWithID is stashed so Create links the pair after insert.
 func (s *Service) applyContradictionOnWrite(ctx context.Context, req *CreateRequest) error {
 	if s == nil || s.Repo == nil || req == nil {
 		return nil
@@ -754,6 +755,31 @@ func (s *Service) setRemediationStatus(ctx context.Context, memoryID uuid.UUID, 
 	}
 	obj.Status = status
 	return obj, nil
+}
+
+// MergeTags appends tags to a memory (deduped case-insensitively vs existing).
+func (s *Service) MergeTags(ctx context.Context, memoryID uuid.UUID, tags []string) (*MemoryObject, error) {
+	if s == nil || s.Repo == nil {
+		return nil, fmt.Errorf("memory service not configured")
+	}
+	obj, err := s.Repo.GetByID(ctx, memoryID)
+	if err != nil {
+		return nil, err
+	}
+	if obj == nil {
+		return nil, fmt.Errorf("memory not found")
+	}
+	if len(tags) == 0 {
+		return obj, nil
+	}
+	if err := s.Repo.MergeTagsIntoMemory(ctx, memoryID, tags); err != nil {
+		return nil, err
+	}
+	if s.Cache != nil {
+		_ = s.Cache.DeleteByPrefix(ctx, "memory:tags:")
+		s.invalidateRecallBundleCache(ctx)
+	}
+	return s.Repo.GetByID(ctx, memoryID)
 }
 
 // SetAttributes replaces all attributes for a memory (Task 78: constraint attributes for conflict detection).

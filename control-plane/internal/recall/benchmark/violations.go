@@ -37,6 +37,8 @@ func resolveAllowedStatuses(c FixtureCase) []api.Status {
 			switch strings.ToLower(strings.TrimSpace(s)) {
 			case "active":
 				out = append(out, api.StatusActive)
+			case "pending":
+				out = append(out, api.StatusPending)
 			case "superseded":
 				out = append(out, api.StatusSuperseded)
 			case "archived":
@@ -49,7 +51,7 @@ func resolveAllowedStatuses(c FixtureCase) []api.Status {
 	if mode == "historical" {
 		return []api.Status{api.StatusActive, api.StatusSuperseded, api.StatusArchived}
 	}
-	return []api.Status{api.StatusActive}
+	return []api.Status{api.StatusActive, api.StatusPending}
 }
 
 func parseOptionalTime(s string) *time.Time {
@@ -87,8 +89,8 @@ func ComputeViolations(c FixtureCase, lc *LoadedCorpus, hits []RankedHit) Violat
 		if st == "" {
 			st = api.StatusActive
 		}
-		// Lifecycle / mode violations
-		if st == api.StatusPending || st == api.StatusRejected {
+		// Lifecycle / mode violations — rejected never recallable; pending is valid in current mode.
+		if st == api.StatusRejected {
 			vm.LifecycleViolationCount++
 			vm.ModeViolationCount++
 			vm.LifecycleViolators = append(vm.LifecycleViolators, h.Label)

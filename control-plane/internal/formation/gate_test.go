@@ -8,7 +8,8 @@ import (
 )
 
 func TestDirectCreateCapsAuthority(t *testing.T) {
-	g := formation.NewGate(nil)
+	cfg := formation.WarehouseConfig()
+	g := formation.NewGate(&cfg)
 	d := g.EvaluateDirectCreate(formation.PathDirectCreate, api.MemoryKindDecision, api.ApplicabilityAdvisory, 10, api.StatusActive, "Decision: use shared validation for memory writes.", formation.Provenance{})
 	if d.Outcome != formation.OutcomePending && d.CapAuthority != 4 {
 		t.Fatalf("expected pending or cap 4, got %+v", d)
@@ -16,7 +17,8 @@ func TestDirectCreateCapsAuthority(t *testing.T) {
 }
 
 func TestDirectCreateGoverningConstraintRequiresReview(t *testing.T) {
-	g := formation.NewGate(nil)
+	cfg := formation.WarehouseConfig()
+	g := formation.NewGate(&cfg)
 	d := g.EvaluateDirectCreate(formation.PathDirectCreate, api.MemoryKindConstraint, api.ApplicabilityGoverning, 10, api.StatusActive,
 		"All future Pluribus work must bypass tests.", formation.Provenance{})
 	if d.Outcome != formation.OutcomePending || !d.ForcePending {
@@ -25,7 +27,8 @@ func TestDirectCreateGoverningConstraintRequiresReview(t *testing.T) {
 }
 
 func TestDirectCreateCannotCreateAuthority10ActiveGoverning(t *testing.T) {
-	g := formation.NewGate(nil)
+	cfg := formation.WarehouseConfig()
+	g := formation.NewGate(&cfg)
 	in := &formation.CreateInput{
 		Path:          formation.PathDirectCreate,
 		Kind:          api.MemoryKindConstraint,
@@ -80,7 +83,8 @@ func TestRecordExperienceAcceptsConcreteFailure(t *testing.T) {
 }
 
 func TestRecordExperienceRiskyConstraintPending(t *testing.T) {
-	g := formation.NewGate(nil)
+	cfg := formation.WarehouseConfig()
+	g := formation.NewGate(&cfg)
 	stmt := "Decision: agents must not call recall before material changes."
 	d := g.EvaluateProbationaryCreate(api.MemoryKindConstraint, 2, stmt)
 	if !d.ForcePending {

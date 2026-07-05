@@ -71,6 +71,12 @@ type CurationSchedulerConfig struct {
 	EmbedBackfillEnabled bool `yaml:"embed_backfill_enabled"`
 	// EmbedBackfillBatchSize rows per pass when embed backfill is enabled. Default 50.
 	EmbedBackfillBatchSize int `yaml:"embed_backfill_batch_size"`
+	// PruneRejectedEnabled deletes rejected advisory_experiences older than the cutoff each pass.
+	PruneRejectedEnabled bool `yaml:"prune_rejected_enabled"`
+	// PruneRejectedOlderThanHours cutoff for rejected rows (default 720 = 30 days).
+	PruneRejectedOlderThanHours int `yaml:"prune_rejected_older_than_hours"`
+	// PruneRejectedLimit max rows deleted per pass (default 1000).
+	PruneRejectedLimit int `yaml:"prune_rejected_limit"`
 }
 
 // LexicalConfig gates experimental BM25 retrieval against a projection table (not canonical memories).
@@ -472,7 +478,7 @@ func applyMemoryFormationDefaults(m *MemoryConfig) {
 		return
 	}
 	if m.Formation == nil {
-		d := formation.DefaultConfig()
+		d := formation.HiveConfig()
 		m.Formation = &d
 		return
 	}

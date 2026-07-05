@@ -1,5 +1,8 @@
-# Control-plane defaults for docker-compose (postgres + redis service names).
-# Image default: CONFIG=/config/config.yaml (see Dockerfile). For host-local overrides, use config.local.yaml (gitignored) and set CONFIG.
+# Compose/runtime config (postgres + redis service names). Mounted into the container
+# by docker-compose.yml — edits here apply on restart (no image rebuild).
+# Host-local dev without Docker: copy config.example.yaml → config.local.yaml and
+# set CONFIG=configs/config.local.yaml. The image does NOT bake this file; it ships
+# config.example.yaml as a template only.
 
 server:
   bind: ":8123"
@@ -69,6 +72,23 @@ recall:
   #   summary_max_chars: 256
 
 memory:
+  # Phase 1 hive ingest: active at capped authority; utility/ranking curate after use (not pending warehouse).
+  formation:
+    hive_defaults: true
+    direct_create:
+      enabled: true
+      reject_junk: true
+      max_client_authority: 4
+      governing_default_status: active
+      require_admin_for_governing: false
+      require_provenance_for_governing: false
+      allow_active_high_risk_governing: true
+      allow_active_with_quality_warnings: true
+      allow_active_despite_quality_review: true
+      allow_active_promoted_governing: true
+    record_experience:
+      reject_junk: true
+      risky_constraint_pending: false
   lifecycle:
     authority_positive_delta: 0.1
     authority_negative_delta: 0.2
@@ -90,6 +110,8 @@ memory:
     enabled: true
     # Phase F: recall bundle near-dup collapse (Jaccard on canonical); 0 = near-dup off (exact key collapse still on when ranking).
     near_dup_jaccard_threshold: 0.92
+    # P2.9: reinforce semantically near-duplicates at create instead of inserting (requires semantic retrieval).
+    semantic_consolidate_threshold: 0.93
 
 # Phase 3 auto-curation: background loop that expires stale/probationary rows and
 # auto-promotes eligible candidates (only when promotion.auto_promote is enabled).
@@ -110,6 +132,10 @@ curation_scheduler:
   # Bounded embedding backfill each pass (rows missing/stale vectors).
   embed_backfill_enabled: true
   embed_backfill_batch_size: 50
+  # Prune rejected advisory episodes older than 30 days each pass.
+  prune_rejected_enabled: true
+  prune_rejected_older_than_hours: 720
+  prune_rejected_limit: 1000
 
 slow_path:
   enabled: false
@@ -148,7 +174,11 @@ curation:
   digest_statement_max_bytes: 2048
   digest_reason_max_bytes: 1024
 
-# Pre-change enforcement (RC1 default on when section omitted). Uncomment to disable:
+# Pre-change enforcement (RC1 default on when section omitted).
+enforcement:
+  min_binding_authority: 3   # hive agents write low authority; binding still applies at recall/enforcement
+
+# To disable enforcement:
 # enforcement:
 #   enabled: false
 #   min_binding_authority: 7

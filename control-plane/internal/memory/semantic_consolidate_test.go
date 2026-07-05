@@ -47,6 +47,12 @@ func TestTryMergeSemanticNearDuplicate_reinforcesDistinctAgent(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"memory_id", "tag"}))
 
 	mock.ExpectQuery(`SELECT id, kind, statement`).
+		WithArgs(sqlmock.AnyArg(), "pending", sqlmock.AnyArg(), sqlmock.AnyArg(), 10).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "payload", "created_at", "updated_at", "occurred_at", "vec_dist",
+		}))
+
+	mock.ExpectQuery(`SELECT id, kind, statement`).
 		WithArgs(existingID).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "deprecated_at", "ttl_seconds", "payload", "created_at", "updated_at", "occurred_at", "agent_id",
@@ -107,6 +113,12 @@ func TestTryMergeSemanticNearDuplicate_sameAuthorNoAuthorityBump(t *testing.T) {
 
 	mock.ExpectQuery(`SELECT memory_id, tag FROM memories_tags`).
 		WillReturnRows(sqlmock.NewRows([]string{"memory_id", "tag"}))
+
+	mock.ExpectQuery(`SELECT id, kind, statement`).
+		WithArgs(sqlmock.AnyArg(), "pending", sqlmock.AnyArg(), sqlmock.AnyArg(), 10).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "kind", "statement", "statement_canonical", "statement_key", "authority", "applicability", "status", "payload", "created_at", "updated_at", "occurred_at", "vec_dist",
+		}))
 
 	mock.ExpectQuery(`SELECT id, kind, statement`).
 		WithArgs(existingID).

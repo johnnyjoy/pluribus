@@ -11,6 +11,7 @@ Two integration paths:
 |------|-----------|
 | **Health** | `GET /healthz` on activate, on config change, and on a configurable interval |
 | **Auto recall** | `POST /v1/recall/compile` on **task start** and **debug start** (optional: debounced **save**) |
+| **Housekeeping** | Extension REST path does not auto-vote chores — use **MCP** (`resolve_chore` when recall/wakeup shows **`housekeeping`**) per [`pluribus-instructions.md`](../pluribus-instructions.md) |
 | **Auto record** | `POST /v1/advisory-episodes` with `source: vscode-orchestrator` on **task process non-zero exit**; optional **debug end** (off by default — noisy) |
 | **Manual** | Recall / record commands remain; tags default from settings |
 | **Visibility** | Explorer sidebar (connection, metrics line, last auto/manual snippets), **Output → Pluribus**, **status bar** |

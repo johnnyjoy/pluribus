@@ -143,17 +143,20 @@ recall:
   #   large_change_files_threshold: 25
 
 memory:
-  # Phase 5: memory formation quality gate (direct create + record_experience). Omitted = safe defaults.
+  # Phase 5: memory formation quality gate (direct create + record_experience).
+  # Omitted section → HiveConfig() (active ingest at capped authority; see hive_defaults).
+  # Warehouse / review-board mode: set hive_defaults: false and governing_default_status: pending.
   # formation:
+  #   hive_defaults: true
   #   direct_create:
   #     enabled: true
   #     max_client_authority: 4
-  #     governing_default_status: pending
-  #     require_provenance_for_governing: true
+  #     governing_default_status: active
+  #     require_provenance_for_governing: false
   #     reject_junk: true
   #   record_experience:
   #     reject_junk: true
-  #     risky_constraint_pending: true
+  #     risky_constraint_pending: false
   #   contradiction_on_write: true
   # Optional: cap authority delta per reinforce call; cross-context salience in payload (default on when omitted).
   # recall_reinforcement:
@@ -276,6 +279,9 @@ promotion:
 #   chore_min_resolvers: 2
 #   embed_backfill_enabled: true
 #   embed_backfill_batch_size: 50
+#   prune_rejected_enabled: true
+#   prune_rejected_older_than_hours: 720
+#   prune_rejected_limit: 1000
 
 curation:
   candidate_threshold: 0.5

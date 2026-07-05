@@ -35,6 +35,11 @@ type EmbeddingBackfiller interface {
 	BackfillEmbeddingBatch(ctx context.Context, batchSize int) (embedded, remaining int, err error)
 }
 
+// RejectedPruner deletes stale rejected advisory episodes.
+type RejectedPruner interface {
+	PruneRejectedBatch(ctx context.Context, olderThanHours, limit int) (deleted int, err error)
+}
+
 // Scheduler runs the curation loop. Zero-value fields are skipped.
 type Scheduler struct {
 	// Interval between runs (required; caller applies the config default).
@@ -45,6 +50,11 @@ type Scheduler struct {
 	Promoter     AutoPromoter
 	Chores       ChorePassRunner
 	Embeddings   EmbeddingBackfiller
+	Rejected     RejectedPruner
+	// PruneRejectedOlderThanHours cutoff when Rejected is set (default 720).
+	PruneRejectedOlderThanHours int
+	// PruneRejectedLimit max deletes per pass (default 1000).
+	PruneRejectedLimit int
 	// EmbedBackfillBatchSize caps rows embedded per pass (default 50).
 	EmbedBackfillBatchSize int
 }
@@ -124,9 +134,27 @@ func (s *Scheduler) RunOnce(ctx context.Context) {
 			embedded, embedRemaining = n, rem
 		}
 	}
+	rejectedPruned := 0
+	if s.Rejected != nil {
+		hours := s.PruneRejectedOlderThanHours
+		if hours <= 0 {
+			hours = 720
+		}
+		limit := s.PruneRejectedLimit
+		if limit <= 0 {
+			limit = 1000
+		}
+		n, err := s.Rejected.PruneRejectedBatch(ctx, hours, limit)
+		if err != nil {
+			slog.Warn("[CURATION LOOP] prune rejected failed", "error", err.Error())
+		} else {
+			rejectedPruned = n
+		}
+	}
 	slog.Info("[CURATION LOOP] pass complete",
 		"archived", archived, "promoted", promoted, "promote_skipped", skipped,
 		"chores_opened", choresOpened,
 		"embeddings_backfilled", embedded, "embeddings_remaining", embedRemaining,
+		"rejected_pruned", rejectedPruned,
 		"elapsed_ms", time.Since(start).Milliseconds())
 }

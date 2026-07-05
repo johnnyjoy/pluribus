@@ -485,10 +485,16 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			sched.Embeddings = &memoryEmbedBackfill{svc: memorySvc}
 			sched.EmbedBackfillBatchSize = cfg.CurationScheduler.EmbedBackfillBatchSize
 		}
+		if cfg.CurationScheduler.PruneRejectedEnabled {
+			sched.Rejected = simSvc
+			sched.PruneRejectedOlderThanHours = cfg.CurationScheduler.PruneRejectedOlderThanHours
+			sched.PruneRejectedLimit = cfg.CurationScheduler.PruneRejectedLimit
+		}
 		go sched.Run(context.Background())
 		slog.Info("[CURATION LOOP] scheduled", "interval", interval.String(),
 			"auto_promote", cfg.Promotion.AutoPromote,
-			"embed_backfill", cfg.CurationScheduler.EmbedBackfillEnabled)
+			"embed_backfill", cfg.CurationScheduler.EmbedBackfillEnabled,
+			"prune_rejected", cfg.CurationScheduler.PruneRejectedEnabled)
 	}
 
 	complianceHandlers := &compliance.Handlers{Service: complianceSvc}
@@ -511,6 +517,7 @@ func NewRouter(cfg *app.Config, container *app.Container) (http.Handler, error) 
 			r.Post("/promote", memoryHandlers.Promote)
 			r.Post("/search", memoryHandlers.Search)
 			r.Put("/{id}/attributes", memoryHandlers.SetAttributes)
+			r.Put("/{id}/tags", memoryHandlers.MergeTags)
 			r.Post("/{id}/authority/event", memoryHandlers.ApplyAuthorityEvent)
 			r.Post("/{id}/quarantine", memoryHandlers.Quarantine)
 			r.Delete("/{id}", memoryHandlers.Delete)

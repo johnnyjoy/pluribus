@@ -32,6 +32,10 @@ func (g *Gate) Config() Config {
 	return g.cfg
 }
 
+func (g *Gate) hiveActive() bool {
+	return g != nil && g.cfg.HiveDefaults
+}
+
 // EvaluateDirectCreate applies guardrails for POST /v1/memory and MCP memory_create.
 func (g *Gate) EvaluateDirectCreate(path Path, kind api.MemoryKind, applicability api.Applicability, authority int, status api.Status, statement string, prov Provenance) Decision {
 	if g == nil {
@@ -59,35 +63,40 @@ func (g *Gate) EvaluateDirectCreate(path Path, kind api.MemoryKind, applicabilit
 
 	// Authority cap for non-admin direct create
 	if authority > dc.MaxClientAuthority {
+		if g.hiveActive() {
+			return Decision{Outcome: OutcomeAllow, Reason: "authority capped (hive active ingest)", CapAuthority: dc.MaxClientAuthority}
+		}
 		if highRisk || governing {
 			return Decision{Outcome: OutcomePending, Reason: "authority exceeds client cap; requires review", CapAuthority: dc.MaxClientAuthority, ForcePending: true}
 		}
 		return Decision{Outcome: OutcomeAllow, Reason: "authority capped", CapAuthority: dc.MaxClientAuthority}
 	}
 
-	// Governing constraints cannot become active immediately
-	if kind == api.MemoryKindConstraint && (governing || applicability == api.ApplicabilityGoverning) {
-		if dc.RequireAdminForGoverning && status == api.StatusActive {
-			return Decision{Outcome: OutcomePending, Reason: "governing constraint requires review before active recall", ForcePending: true}
+	if !g.hiveActive() {
+		// Governing constraints cannot become active immediately (warehouse / review-board mode).
+		if kind == api.MemoryKindConstraint && (governing || applicability == api.ApplicabilityGoverning) {
+			if dc.RequireAdminForGoverning && status == api.StatusActive {
+				return Decision{Outcome: OutcomePending, Reason: "governing constraint requires review before active recall", ForcePending: true}
+			}
 		}
-	}
-	if applicability == api.ApplicabilityGoverning && status == api.StatusActive && dc.GoverningDefaultStatus == "pending" {
-		return Decision{Outcome: OutcomePending, Reason: "governing memory default status is pending", ForcePending: true}
-	}
-
-	// Provenance for high-risk / governing
-	needProv := (dc.RequireProvenanceForGoverning && (governing || kind == api.MemoryKindConstraint)) ||
-		(authority >= dc.RequireProvenanceAuthorityGE)
-	if needProv && !prov.HasMinimumForHighRisk() {
-		if status == api.StatusActive {
-			return Decision{Outcome: OutcomePending, Reason: "high-risk write missing provenance; pending review", ForcePending: true}
+		if applicability == api.ApplicabilityGoverning && status == api.StatusActive && dc.GoverningDefaultStatus == "pending" {
+			return Decision{Outcome: OutcomePending, Reason: "governing memory default status is pending", ForcePending: true}
 		}
-	}
 
-	// Block active high-authority governing without review
-	if status == api.StatusActive && highRisk && (governing || authority >= dc.HighRiskAuthorityThreshold) {
-		if !dc.AllowActiveHighRiskGoverning {
-			return Decision{Outcome: OutcomePending, Reason: "high-risk active memory requires review", ForcePending: true}
+		// Provenance for high-risk / governing
+		needProv := (dc.RequireProvenanceForGoverning && (governing || kind == api.MemoryKindConstraint)) ||
+			(authority >= dc.RequireProvenanceAuthorityGE)
+		if needProv && !prov.HasMinimumForHighRisk() {
+			if status == api.StatusActive {
+				return Decision{Outcome: OutcomePending, Reason: "high-risk write missing provenance; pending review", ForcePending: true}
+			}
+		}
+
+		// Block active high-authority governing without review
+		if status == api.StatusActive && highRisk && (governing || authority >= dc.HighRiskAuthorityThreshold) {
+			if !dc.AllowActiveHighRiskGoverning {
+				return Decision{Outcome: OutcomePending, Reason: "high-risk active memory requires review", ForcePending: true}
+			}
 		}
 	}
 
@@ -263,7 +272,7 @@ func (g *Gate) applyQualityLayer(in *CreateInput, d *Decision) error {
 			!formationquality.HasHardDefects(qr) {
 			return nil
 		}
-		applyQualityMutations(in, qr)
+		applyQualityMutations(in, qr, g.hiveActive())
 		quality := d.Quality
 		*d = Decision{
 			Outcome:       OutcomePending,

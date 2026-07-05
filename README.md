@@ -84,6 +84,14 @@ curl -sS http://127.0.0.1:8123/readyz
 
 Both should return `ok` when startup has finished.
 
+**Confirm shared memory works (one command):**
+
+```bash
+make smoke-shared-memory
+```
+
+You should see `PASS: Shared memory works.` — write, recall, and enforcement all responded correctly.
+
 **Next — use an AI agent with Pluribus:** add MCP (**`http://127.0.0.1:8123/v1/mcp`**) in your editor and paste the loop from **[`integrations/pluribus-instructions.md`](integrations/pluribus-instructions.md)** (or your platform’s pack under **[`integrations/`](integrations/)**). Full walkthrough: **[`docs/pluribus-quickstart.md`](docs/pluribus-quickstart.md)** §4 and **[`docs/mcp-usage.md`](docs/mcp-usage.md)**. **Cursor:** **[`integrations/cursor/README.md`](integrations/cursor/README.md)**.
 
 **Prefer a published image (no local build)?** Use **`docker-compose.install.yml`** and a registry image—see [INSTALL.md](INSTALL.md) and [docs/pluribus-container-install.md](docs/pluribus-container-install.md).
@@ -260,7 +268,7 @@ Build details: [BUILD.md](BUILD.md). Image build from source: `make image` (see 
 
 ## Configuration
 
-- **Compose (default):** the `controlplane` container uses **`CONFIG=/config/config.yaml`**. The baked-in defaults match the Compose service names (`postgres`, `redis`). Source: [control-plane/configs/config.yaml](control-plane/configs/config.yaml).
+- **Compose (default):** **`control-plane/configs/config.yaml`** is **mounted** into the container at **`/config/config.yaml`** (`CONFIG` env). Edit that file on the host; restart the service to apply — no image rebuild. The image ships **`config.example.yaml`** as a template only, not a live config.
 - **Local overrides (not committed):** **`control-plane/configs/config.local.yaml`** is gitignored; set **`CONFIG`** to that path when running on the host. See [.gitignore](.gitignore).
 - **Environment (Compose):** optional **`PLURIBUS_API_KEY`** for API key auth—see [docker-compose.yml](docker-compose.yml) comment and [docs/authentication.md](docs/authentication.md).
 - **Deeper topics** (recall weights, promotion gates, Redis, evidence paths): [control-plane/README.md](control-plane/README.md) and [docs/pluribus-operational-guide.md](docs/pluribus-operational-guide.md).

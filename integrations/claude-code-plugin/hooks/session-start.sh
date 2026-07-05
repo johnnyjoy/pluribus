@@ -74,6 +74,16 @@ if [[ "${PLURIBUS_HOOK_WAKEUP:-on}" != "off" ]] \
             end)
           ] | join("\n")
         ' 2>/dev/null) || WAKE_BLOCK=""
+        HK=$(echo "$WAKE_JSON" | jq -r '.housekeeping // empty' 2>/dev/null) || HK=""
+        if [[ -n "$HK" ]]; then
+          WAKE_BLOCK="${WAKE_BLOCK}
+
+### Pluribus housekeeping
+
+${HK}
+
+Call \`resolve_chore\` with \`chore_id\`, \`action\`, and stable \`agent_id\` (e.g. \`claude-code:$(hostname)\`) when you can judge; otherwise defer with reason in \`record_experience\`."
+        fi
       fi
     fi
   fi

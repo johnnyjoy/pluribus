@@ -1,6 +1,16 @@
 #!/bin/sh
 set -eu
 
-echo "startup: controlplane entrypoint begin"
+CONFIG="${CONFIG:-/config/config.yaml}"
+
+if [ ! -f "$CONFIG" ]; then
+	echo "startup: FATAL: config file not found: $CONFIG" >&2
+	echo "startup: Mount a YAML config at that path (Compose: control-plane/configs/config.yaml)." >&2
+	echo "startup: Template: /config/config.example.yaml in the image, or configs/config.example.yaml in the repo." >&2
+	echo "startup: Example: docker run -v ./control-plane/configs/config.yaml:/config/config.yaml:ro ..." >&2
+	exit 1
+fi
+
+echo "startup: controlplane entrypoint begin (CONFIG=$CONFIG)"
 echo "startup: launching /usr/local/bin/controlplane (DB wait + baseline SQL replay in app.Boot — not a versioned DB upgrade)"
 exec /usr/local/bin/controlplane

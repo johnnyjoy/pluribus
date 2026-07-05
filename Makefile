@@ -97,6 +97,31 @@ api-test:
 integration-test:
 	cd control-plane && TEST_PG_DSN="$${TEST_PG_DSN}" go test -tags=integration -v ./cmd/controlplane
 
+# Deployed benefit receipts: same proof-scenario suite against a live control-plane.
+# Requires CONTROL_PLANE_URL or PLURIBUS_PROOF_BASE_URL (e.g. http://host:8123).
+.PHONY: proof-deployed-benefit-receipts
+proof-deployed-benefit-receipts:
+	@chmod +x scripts/proof-deployed-benefit-receipts.sh
+	@./scripts/proof-deployed-benefit-receipts.sh
+
+# Doctrine drift regression (unit): pending-in-pool guardrails, lifecycle recall fixtures, binding dampener, MCP doc sync.
+.PHONY: doctrine-regression
+doctrine-regression:
+	cd control-plane && go test ./internal/guardrails/... ./internal/recall/lifecyclebenchmark/... ./pkg/api/... ./internal/recall/... \
+		-run 'TestMemoryDoctrine|TestApplyHistoricalScoreCap|TestEffectiveBinding|TestLifecycleRecallBenchmark' -count=1
+	cd control-plane && go test ./internal/mcp/... -run TestMCPToolsDocMatchesRegistry -count=1
+
+# Doctrine integration proofs (ephemeral Postgres): YAML benefit receipts + MCP record→recall continuity.
+.PHONY: doctrine-regression-integration
+doctrine-regression-integration:
+	@./scripts/run-integration-tests -run 'TestIntegration_proofScenarioSuite|TestIntegration_HTTP_MCP_recordExperienceRecallContinuity' -count=1 -v
+
+# Phase 2 install smoke: one command after docker compose — shared memory write/recall/enforcement.
+.PHONY: smoke-shared-memory
+smoke-shared-memory:
+	@chmod +x scripts/smoke-shared-memory.sh
+	@./scripts/smoke-shared-memory.sh
+
 # Reasonable one-command technical-preview proof path.
 test-drive: test eval
 
@@ -388,6 +413,7 @@ verify-integrations-static:
 	scripts/integrations/verify-vscode-extension.sh --static
 	scripts/integrations/verify-generic-mcp.sh --static
 	scripts/integrations/verify-mcp-surface.sh --static
+	scripts/integrations/verify-housekeeping-enforcement.sh --static
 
 verify-integrations-mcp:
 	PLURIBUS_BASE_URL="$${PLURIBUS_BASE_URL:-http://127.0.0.1:8123}" scripts/integrations/verify-mcp-surface.sh

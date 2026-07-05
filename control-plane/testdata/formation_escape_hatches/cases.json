@@ -29,10 +29,11 @@
         "status": "active"
       },
       "expected_quality_decision": "needs_curation",
-      "expected_gate_outcome": "pending",
-      "expected_active_eligibility": false,
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
+      "max_authority": 4,
       "expected_defects": ["constraint_without_scope"],
-      "escape_hatch_result": "pending_not_active"
+      "escape_hatch_result": "active_at_capped_authority"
     },
     {
       "id": "promote_refuted_active_rejected",
@@ -84,9 +85,10 @@
         "status": "active"
       },
       "expected_quality_decision": "needs_curation",
-      "expected_gate_outcome": "pending",
-      "expected_active_eligibility": false,
-      "escape_hatch_result": "pending_not_active"
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
+      "max_authority": 4,
+      "escape_hatch_result": "active_at_capped_authority"
     },
     {
       "id": "promote_high_authority_without_provenance_pending",
@@ -103,9 +105,10 @@
         "retrieval_cues": ["deploy", "signed", "artifacts", "production"]
       },
       "expected_quality_decision": "needs_curation",
-      "expected_gate_outcome": "pending",
-      "expected_active_eligibility": false,
-      "escape_hatch_result": "pending_not_active"
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
+      "max_authority": 4,
+      "escape_hatch_result": "active_at_capped_authority"
     },
     {
       "id": "promote_valid_cue_rich_candidate_accepted",
@@ -142,8 +145,8 @@
         "retrieval_cues": ["formation", "memory", "deploy", "validate"]
       },
       "expected_quality_decision": "needs_curation",
-      "expected_gate_outcome": "pending",
-      "expected_active_eligibility": false,
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
       "max_authority": 4,
       "escape_hatch_result": "authority_capped"
     },
@@ -175,9 +178,9 @@
         "status": "active"
       },
       "expected_quality_decision": "needs_curation",
-      "expected_gate_outcome": "pending",
-      "expected_active_eligibility": false,
-      "escape_hatch_result": "pending_not_active"
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
+      "escape_hatch_result": "active_at_capped_authority"
     },
     {
       "id": "probationary_overgeneralized_pending",
@@ -191,9 +194,9 @@
         "applicability": "advisory"
       },
       "expected_quality_decision": "needs_curation",
-      "expected_gate_outcome": "pending",
-      "expected_active_eligibility": false,
-      "escape_hatch_result": "pending_not_active"
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
+      "escape_hatch_result": "active_at_capped_authority"
     },
     {
       "id": "probationary_missing_scope_pending",
@@ -208,9 +211,9 @@
         "retrieval_cues": ["proof", "formation", "merge"]
       },
       "expected_quality_decision": "needs_curation",
-      "expected_gate_outcome": "pending",
-      "expected_active_eligibility": false,
-      "escape_hatch_result": "pending_not_active"
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
+      "escape_hatch_result": "active_at_capped_authority"
     },
     {
       "id": "probationary_agent_inferred_high_authority_blocked",
@@ -226,8 +229,8 @@
         "retrieval_cues": ["frontend", "tabs", "formatting"]
       },
       "expected_quality_decision": "needs_curation",
-      "expected_gate_outcome": "pending",
-      "expected_active_eligibility": false,
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
       "max_authority": 2,
       "escape_hatch_result": "authority_capped"
     },
@@ -259,8 +262,8 @@
         "retrieval_cues": ["formation", "memory", "validate", "deploy"]
       },
       "expected_quality_decision": "accept_pending",
-      "expected_gate_outcome": "pending",
-      "expected_active_eligibility": false,
+      "expected_gate_outcome": "allow",
+      "expected_active_eligibility": true,
       "escape_hatch_result": "allowed"
     },
     {
@@ -297,9 +300,10 @@
         "use_instruction": "Apply when testing MCP/REST formation parity."
       },
       "expected_quality_decision": "accept_active",
-      "expected_gate_outcome": "pending",
+      "expected_gate_outcome": "allow",
       "expected_active_eligibility": false,
-      "escape_hatch_result": "allowed"
+      "max_authority": 4,
+      "escape_hatch_result": "explicit_pending_hold"
     },
     {
       "id": "record_experience_isolation_and_parity",

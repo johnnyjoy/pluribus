@@ -22,14 +22,14 @@ Phase 11D integrated `formationquality` into **direct create** (`memory_create` 
 ### Promote behavior
 
 - Vague / refuted / superseded active → **reject**
-- Under-encoded / missing scope / missing provenance → **pending**
-- Valid cue-rich candidates → **allow** (subject to Phase 5 authority/review rules)
+- Under-encoded / missing scope / missing provenance → **`active` at capped authority** (hive default); **`pending` only in explicit warehouse/review mode**
+- Valid cue-rich candidates → **allow** (subject to authority cap)
 - Authority cap preserved
 
 ### Probationary ingest behavior
 
 - Junk / vague → **reject** (junk gate + quality)
-- Under-encoded / overgeneralized / missing scope → **pending**
+- Under-encoded / overgeneralized / missing scope → **`active` at low authority** (hive default); not held `pending`
 - Agent-inferred high authority → **authority capped** to ≤2
 - Concrete advisory failures/decisions → **allow** with quality score on `Decision.Quality`
 

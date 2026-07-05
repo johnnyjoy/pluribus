@@ -85,6 +85,21 @@ Load balancers should use **`readyz`** for traffic.
 
 ---
 
+## Agent identity (`agent_id`) for curation votes
+
+**`resolve_chore`** requires **`agent_id`**. Corroboration counts **distinct** agent hashes; a memory's **own author never counts**.
+
+| Client | Suggested `agent_id` |
+|--------|----------------------|
+| Cursor | `cursor:<hostname>` or user **`PLURIBUS_AGENT_ID`** |
+| Claude Code plugin | `claude-code:<hostname>` |
+| VS Code Copilot / extension | `vscode:<hostname>` |
+| CI / scripts | `ci:<job>:<run_id>` |
+
+Set **`PLURIBUS_AGENT_ID`** in the environment when using stdio **`pluribus-mcp`** so clients do not omit attribution on chore votes and **`record_experience`**.
+
+---
+
 ## Troubleshooting
 
 - **503 on `/readyz`:** DB down or core tables missing after boot — check logs and DSN; ensure Postgres is empty/greenfield for first start.

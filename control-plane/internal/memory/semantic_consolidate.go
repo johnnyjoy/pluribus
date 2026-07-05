@@ -30,7 +30,7 @@ func (s *Service) tryMergeSemanticNearDuplicate(ctx context.Context, req *Create
 	}
 	cands, sims, err := s.SearchSimilarCandidates(ctx, req.Embedding, SearchRequest{
 		Tags:     req.Tags,
-		Statuses: []string{string(api.StatusActive)},
+		Statuses: []string{string(api.StatusActive), string(api.StatusPending)},
 		Kinds:    []api.MemoryKind{req.Kind},
 	}, 10, threshold)
 	if err != nil {
@@ -50,7 +50,7 @@ func (s *Service) tryMergeSemanticNearDuplicate(ctx context.Context, req *Create
 		if sim < threshold {
 			continue
 		}
-		if best == nil || sim > bestSim || (sim == bestSim && o.Authority > best.Authority) {
+		if best == nil || semanticConsolidateBetter(o, best, sim, bestSim) {
 			best = o
 			bestSim = sim
 		}
@@ -76,7 +76,7 @@ func (s *Service) tryMergeSemanticNearDuplicate(ctx context.Context, req *Create
 			return nil, err
 		}
 	}
-	if !sameAuthor {
+	if !sameAuthor && best.Status == api.StatusActive {
 		newAuth := best.Authority + 1
 		if newAuth > 10 {
 			newAuth = 10
@@ -132,4 +132,21 @@ func stringsTrimEqual(a, b string) bool {
 	a = strings.TrimSpace(a)
 	b = strings.TrimSpace(b)
 	return a != "" && b != "" && a == b
+}
+
+// semanticConsolidateBetter reports whether cand should replace current as merge target.
+func semanticConsolidateBetter(cand, current *MemoryObject, candSim, currentSim float64) bool {
+	if candSim > currentSim {
+		return true
+	}
+	if candSim < currentSim {
+		return false
+	}
+	if cand.Status == api.StatusActive && current.Status == api.StatusPending {
+		return true
+	}
+	if cand.Status == api.StatusPending && current.Status == api.StatusActive {
+		return false
+	}
+	return cand.Authority > current.Authority
 }

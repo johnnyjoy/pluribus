@@ -98,8 +98,8 @@ verify_mcp_live() {
   local count
   count="$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('result',{}).get('tools',[])))")"
   echo "tools/list count: $count"
-  if [[ "$count" != "55" ]]; then
-    echo "expected 55 tools, got $count" >&2
+  if [[ "$count" != "59" ]]; then
+    echo "expected 59 tools, got $count" >&2
     return 1
   fi
   local t
@@ -129,4 +129,9 @@ verify_mcp_live() {
 instructions_has_loop() {
   local f="$1"
   grep -q recall_context "$f" && grep -q record_experience "$f" && grep -qE 'server owns|Pluribus owns|control plane|control-plane' "$f"
+}
+
+instructions_has_housekeeping() {
+  local f="$1"
+  grep -q housekeeping "$f" && grep -q resolve_chore "$f" && grep -q agent_id "$f"
 }

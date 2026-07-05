@@ -9,9 +9,10 @@ alwaysApply: true
 ## Loop
 
 1. Use `recall_context` BEFORE complex reasoning or multi-step work.
-2. If `mcp_context.housekeeping` or `housekeeping` is present (or `list_chores` is non-empty): call `resolve_chore` when you can judge, or defer with reason in the next `record_experience`.
+2. If `mcp_context.housekeeping` or `housekeeping` is present (or `list_chores` is non-empty): call `resolve_chore` with `chore_id`, `action`, and stable `agent_id` when you can judge, or defer with reason in the next `record_experience`.
 3. Perform planning and actions.
-4. Use `record_experience` AFTER meaningful outcomes.
+4. If recall surfaced memories you used or rejected: call `memory_feedback` (helpful / harmful / wrong / outdated); no vote is neutral.
+5. Use `record_experience` AFTER meaningful outcomes.
 
 ## When to Use
 

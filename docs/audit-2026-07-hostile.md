@@ -1,5 +1,7 @@
 # Hostile Audit — Pluribus vs "durable hive-mind memory that makes AI agents more effective" (July 2026)
 
+> **Superseded for formation/recall policy** by [audit-2026-07-hive-memory-objectives.md](audit-2026-07-hive-memory-objectives.md) and [memory-doctrine.md](memory-doctrine.md). This document remains as a historical adversarial record; claims that **`pending` excludes recall** or that **`record_experience` must default to pending** are **no longer normative**.
+
 **Stance:** adversarial. The objective is durable, shared, cross-agent long-term memory over MCP. I attacked the freshly redeployed live server (`10.1.1.79:8123`, empty DB — ideal for controlled experiments) and read the code looking for ways the system fails its own mission, not ways it succeeds. Every finding below is reproduced live or pinned to a specific code path.
 
 Severity = impact on the stated objective, not generic CVSS.
