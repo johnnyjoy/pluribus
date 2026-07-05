@@ -1,6 +1,8 @@
 # Recall stack — one command from repo root:
 #   docker compose up -d
 # Starts: postgres, redis, controlplane (:8123). Migrations run when controlplane starts.
+# Runtime config: control-plane/configs/config.yaml is mounted into the container (not baked
+# into the image). Edit on the host, then restart controlplane to apply.
 #
 # Databases only (run controlplane on the host instead):
 #   docker compose up -d postgres redis
@@ -58,6 +60,9 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
+      # Host config wins over the COPY baked into the image at build time. Without
+      # this mount, edits to control-plane/configs/config.yaml on the host are ignored.
+      - ./control-plane/configs/config.yaml:/config/config.yaml:ro
     environment:
       CONFIG: /config/config.yaml
       # Optional: PLURIBUS_API_KEY=sk-...  (require X-API-Key on API; see docs/api-contract.md)

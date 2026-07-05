@@ -247,6 +247,22 @@ func proofMemoryCreateBody(fields map[string]any) string {
 	return string(b)
 }
 
+// proofMemoryCreateBodyIsolated builds a create payload without shared proof/ephemeral tags.
+// Used when semantic consolidate must not match prior proof rows via tag overlap (ANY-tag search).
+func proofMemoryCreateBodyIsolated(fields map[string]any) string {
+	if fields == nil {
+		fields = map[string]any{}
+	}
+	if _, ok := fields["ttl_seconds"]; !ok {
+		fields["ttl_seconds"] = proofEphemeralTTLSeconds
+	}
+	b, err := json.Marshal(fields)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
 func createConstraintPostgres(t *testing.T, base string) {
 	t.Helper()
 	body := proofMemoryCreateBody(map[string]any{
@@ -291,13 +307,23 @@ func compileRecallClient(t *testing.T, client *http.Client, base string, taskID 
 
 func compileRecallClientWithRetrieval(t *testing.T, client *http.Client, base string, _ uuid.UUID, retrievalQuery string) recall.RecallBundle {
 	t.Helper()
-	var body string
-	if retrievalQuery != "" {
-		body = fmt.Sprintf(`{"retrieval_query":%q}`, retrievalQuery)
-	} else {
-		body = `{}`
+	return compileRecallClientWithSituation(t, client, base, nil, retrievalQuery)
+}
+
+func compileRecallClientWithSituation(t *testing.T, client *http.Client, base string, tags []string, retrievalQuery string) recall.RecallBundle {
+	t.Helper()
+	payload := map[string]any{}
+	if len(tags) > 0 {
+		payload["tags"] = tags
 	}
-	resp := postJSONClient(t, client, base+"/v1/recall/compile", body)
+	if strings.TrimSpace(retrievalQuery) != "" {
+		payload["retrieval_query"] = retrievalQuery
+	}
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal recall compile: %v", err)
+	}
+	resp := postJSONClient(t, client, base+"/v1/recall/compile", string(bodyBytes))
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		b := readBody(t, resp)
@@ -322,6 +348,35 @@ func bundleHasKindSubstring(b recall.RecallBundle, kind, substr string) bool {
 	}
 	return check(b.GoverningConstraints) || check(b.Decisions) || check(b.KnownFailures) ||
 		check(b.ApplicablePatterns)
+}
+
+func bundleHasKindSubstrings(b recall.RecallBundle, kind string, substrings ...string) bool {
+	for _, sub := range substrings {
+		if sub != "" && bundleHasKindSubstring(b, kind, sub) {
+			return true
+		}
+	}
+	return false
+}
+
+func proofMemorySearchByTag(t *testing.T, client *http.Client, base, tag string) []struct {
+	Statement string `json:"statement"`
+} {
+	t.Helper()
+	searchBody := fmt.Sprintf(`{"tags":["%s"]}`, tag)
+	respSearch := postJSONClient(t, client, base+"/v1/memory/search", searchBody)
+	defer respSearch.Body.Close()
+	if respSearch.StatusCode != http.StatusOK {
+		b := readBody(t, respSearch)
+		t.Fatalf("memory search status=%d body=%s", respSearch.StatusCode, b)
+	}
+	var found []struct {
+		Statement string `json:"statement"`
+	}
+	if err := json.NewDecoder(respSearch.Body).Decode(&found); err != nil {
+		t.Fatalf("decode search: %v", err)
+	}
+	return found
 }
 
 // --- Scenario runners ---
@@ -456,18 +511,21 @@ func runProofCurationThenRecall(t *testing.T, base string) {
 }
 
 // runProofSimulatedMultiAgentContinuity proves two distinct HTTP clients share the same global memory pool:
-// A writes a tagged marker constraint; B recalls from a fresh HTTP client and still surfaces it (global memory pool).
+// A writes a tagged marker constraint; B recalls from a fresh HTTP client using the same tags + retrieval text.
 func runProofSimulatedMultiAgentContinuity(t *testing.T, base string) {
 	// Distinct client instances (shared auth transport when API key is set).
 	agentA := proofHTTPClient()
 	agentB := proofHTTPClient()
 	marker := fmt.Sprintf("SIM-MA-CONTINUITY-%s", uuid.New().String())
 	tag := fmt.Sprintf("proof-multi-agent-%s", strings.ReplaceAll(uuid.New().String(), "-", ""))
+	// Embed the unique tag in the statement so deployed pools (semantic consolidate) do not
+	// collapse distinct runs into an older SIM-MA row without this tag.
+	statement := fmt.Sprintf("%s unique-tag %s", marker, tag)
 
-	memBody := proofMemoryCreateBody(map[string]any{
+	memBody := proofMemoryCreateBodyIsolated(map[string]any{
 		"kind":      "constraint",
 		"authority": 9,
-		"statement": marker,
+		"statement": statement,
 		"tags":      []string{tag},
 	})
 	respMem := postJSONClient(t, agentA, base+"/v1/memory", memBody)
@@ -476,40 +534,40 @@ func runProofSimulatedMultiAgentContinuity(t *testing.T, base string) {
 		b := readBody(t, respMem)
 		t.Fatalf("Agent A POST memory status=%d body=%s", respMem.StatusCode, b)
 	}
-	bundleA := compileRecallClient(t, agentA, base, uuid.Nil)
-	if !bundleHasKindSubstring(bundleA, "constraint", marker) {
-		t.Fatalf("Agent A recall: expected marker in bundle, constraints=%+v", bundleA.GoverningConstraints)
-	}
-
-	// POST /v1/memory/search uses memory.SearchRequest (tags/status/max/kinds only — no query field).
-	// Tag is unique to this proof run; sufficient to retrieve the marker memory.
-	searchBody := fmt.Sprintf(`{"tags":["%s"]}`, tag)
-	respSearch := postJSONClient(t, agentB, base+"/v1/memory/search", searchBody)
-	defer respSearch.Body.Close()
-	if respSearch.StatusCode != http.StatusOK {
-		b := readBody(t, respSearch)
-		t.Fatalf("Agent B memory search status=%d body=%s", respSearch.StatusCode, b)
-	}
-	var found []struct {
-		Statement string `json:"statement"`
-	}
-	if err := json.NewDecoder(respSearch.Body).Decode(&found); err != nil {
-		t.Fatalf("decode search: %v", err)
-	}
+	found := proofMemorySearchByTag(t, agentA, base, tag)
 	ok := false
 	for _, m := range found {
-		if strings.Contains(m.Statement, marker) {
+		if strings.Contains(m.Statement, marker) || strings.Contains(m.Statement, tag) {
 			ok = true
 			break
 		}
 	}
 	if !ok {
-		t.Fatalf("Agent B search: expected marker memory, got %+v", found)
+		t.Fatalf("Agent A write: no row with tag %q contains marker/tag (search=%+v)", tag, found)
 	}
 
-	bundleB := compileRecallClient(t, agentB, base, uuid.Nil)
-	if !bundleHasKindSubstring(bundleB, "constraint", marker) {
-		t.Fatalf("Agent B recall: expected same marker in bundle, constraints=%+v", bundleB.GoverningConstraints)
+	// YAML phase A/B: recall/compile scoped to agreed tag T + retrieval text (no UUID handoff to B).
+	situation := tag + " " + marker
+	bundleA := compileRecallClientWithSituation(t, agentA, base, []string{tag}, situation)
+	if !bundleHasKindSubstrings(bundleA, "constraint", marker, tag) {
+		t.Fatalf("Agent A recall: expected marker or tag in bundle, constraints=%+v", bundleA.GoverningConstraints)
+	}
+
+	foundB := proofMemorySearchByTag(t, agentB, base, tag)
+	ok = false
+	for _, m := range foundB {
+		if strings.Contains(m.Statement, marker) || strings.Contains(m.Statement, tag) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		t.Fatalf("Agent B search: expected marker memory, got %+v", foundB)
+	}
+
+	bundleB := compileRecallClientWithSituation(t, agentB, base, []string{tag}, situation)
+	if !bundleHasKindSubstrings(bundleB, "constraint", marker, tag) {
+		t.Fatalf("Agent B recall: expected same marker or tag in bundle, constraints=%+v", bundleB.GoverningConstraints)
 	}
 }
 

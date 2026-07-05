@@ -46,6 +46,9 @@ services:
     image: ${PLURIBUS_IMAGE:?Set PLURIBUS_IMAGE in .env or use --env-file pluribus.install.env.example}
     ports:
       - "8123:8123"
+    volumes:
+      # Required: image ships config.example.yaml only; runtime config must be mounted.
+      - ./control-plane/configs/config.yaml:/config/config.yaml:ro
     environment:
       CONFIG: /config/config.yaml
     depends_on:
