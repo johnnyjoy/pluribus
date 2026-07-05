@@ -19,3 +19,7 @@ stimulus:
 expected:
   decision: block
   first_trigger_reason_code: normative_conflict
+does_not_prove:
+  - Independent coverage from enforcement-sqlite-forbidden (duplicate stimulus; not a second anti-drift mechanism)
+  - Agent-driven chore resolution or memory_feedback when enforcement blocks
+  - MCP enforcement tool invocation path

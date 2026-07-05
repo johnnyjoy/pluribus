@@ -70,7 +70,13 @@ if [[ "$status" != "active" && "$status" != "pending" ]]; then
   step_fail "memory create status=${status:-<missing>} (expected active; pending still recallable)"
 fi
 if [[ "$consolidated" == "true" ]]; then
-  step_ok "constraint reinforced existing memory (consolidated, status=${status})"
+  search_body='{"tags":["smoke-shared-memory"],"max":30}'
+  search="$(curl_json POST /v1/memory/search "$search_body")"
+  tag_found="$(echo "$search" | jq -r --arg m "$MARKER" '[.[] | select((.statement // "") | contains($m))] | length')"
+  if [[ "${tag_found:-0}" -lt 1 ]]; then
+    step_fail "consolidated=true but smoke marker not found via tag search — write not independently verifiable"
+  fi
+  step_ok "constraint reinforced existing memory (consolidated; marker verified via tag search)"
 else
   step_ok "constraint stored (status=${status})"
 fi
@@ -88,6 +94,7 @@ if [[ "$consolidated" == "true" ]]; then
           and ((.statement // "") | ascii_downcase | contains("sqlite"))
         )] | length
   ')"
+  echo "  note — consolidated write: recall checks Postgres/SQLite constraint text, not unique marker (see docs/proof-scenarios.md honesty contract)"
 else
   found="$(echo "$bundle" | jq -r --arg m "$MARKER" --arg id "$mem_id" '
     [.governing_constraints[]?, .decisions[]?, .known_failures[]?, .applicable_patterns[]?]

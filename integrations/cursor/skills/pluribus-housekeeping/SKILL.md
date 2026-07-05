@@ -5,7 +5,7 @@ description: Vote on Pluribus curation chores when recall or wakeup surfaces hou
 
 # Pluribus housekeeping (Cursor)
 
-When **`recall_context`**, **`wakeup_context`**, or **`list_chores`** shows hive maintenance work:
+When **`recall_context`**, **`wakeup_context`**, or **`list_chores`** shows open **pool maintenance** (curation chores):
 
 1. Read chore type, statements, allowed **`actions`**.
 2. Call **`resolve_chore`** with **`chore_id`**, **`action`**, and stable **`agent_id`** (e.g. `cursor:<hostname>`).

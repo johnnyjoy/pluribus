@@ -22,7 +22,7 @@ Run **`recall_context`** (tags + `retrieval_query` / situation text) **before** 
 
 ## Housekeeping (when chores exist)
 
-After **`recall_context`** or **`wakeup_context`**, check for hive maintenance work. The server surfaces at most one line in **`mcp_context.housekeeping`** or **`housekeeping`**; you may also call **`list_chores`**.
+After **`recall_context`** or **`wakeup_context`**, check for **pool maintenance** (open curation chores). The server surfaces at most one line in **`mcp_context.housekeeping`** or **`housekeeping`**; you may also call **`list_chores`**.
 
 **If** a chore is present:
 

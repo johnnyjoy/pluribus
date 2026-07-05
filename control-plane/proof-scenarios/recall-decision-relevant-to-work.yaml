@@ -17,3 +17,8 @@ stimulus:
 expected:
   bundle_contains_kind: decision
   bundle_statement_substring: feature flags
+does_not_prove:
+  - Task-scoped compile binding (uses situation tag + retrieval_query; taskID parameter in helper is unused)
+  - MCP recall_context tool path
+  - Decision ranking vs unrelated decisions in a noisy pool when situation tag omitted from compile
+  - Success when create consolidates without situation tag retrieval of this run's marker (hostile verify fails that)

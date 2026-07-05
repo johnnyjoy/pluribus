@@ -28,8 +28,14 @@ func (s *Service) tryMergeSemanticNearDuplicate(ctx context.Context, req *Create
 	if s.Semantic == nil || !s.Semantic.RetrievalEnabled() {
 		return nil, nil
 	}
+	situationTags := api.SituationTagsForSemanticConsolidate(req.Tags)
+	if len(situationTags) == 0 {
+		// Without situational tags, ANY overlap on shared proof/ephemeral tags would
+		// merge unrelated automation writes — skip create-time semantic consolidate.
+		return nil, nil
+	}
 	cands, sims, err := s.SearchSimilarCandidates(ctx, req.Embedding, SearchRequest{
-		Tags:     req.Tags,
+		Tags:     situationTags,
 		Statuses: []string{string(api.StatusActive), string(api.StatusPending)},
 		Kinds:    []api.MemoryKind{req.Kind},
 	}, 10, threshold)
@@ -43,6 +49,9 @@ func (s *Service) tryMergeSemanticNearDuplicate(ctx context.Context, req *Create
 	var bestSim float64
 	for i := range cands {
 		o := &cands[i]
+		if !memoryHasAllTags(o.Tags, situationTags) {
+			continue
+		}
 		if o.StatementKey != "" && o.StatementKey == req.StatementKey {
 			continue
 		}
@@ -82,6 +91,11 @@ func (s *Service) tryMergeSemanticNearDuplicate(ctx context.Context, req *Create
 			newAuth = 10
 		}
 		if err := s.Repo.UpdateAuthority(ctx, best.ID, newAuth); err != nil {
+			return nil, err
+		}
+	}
+	if len(req.Tags) > 0 {
+		if err := s.Repo.MergeTagsIntoMemory(ctx, best.ID, req.Tags); err != nil {
 			return nil, err
 		}
 	}
@@ -126,6 +140,29 @@ func mergeSemanticConsolidatePayload(existing []byte, incomingStatementKey strin
 	}
 	root["semantic_consolidation"] = cons
 	return json.Marshal(root)
+}
+
+func memoryHasAllTags(memTags, required []string) bool {
+	if len(required) == 0 {
+		return true
+	}
+	seen := make(map[string]struct{}, len(memTags))
+	for _, t := range memTags {
+		key := strings.ToLower(strings.TrimSpace(t))
+		if key != "" {
+			seen[key] = struct{}{}
+		}
+	}
+	for _, r := range required {
+		key := strings.ToLower(strings.TrimSpace(r))
+		if key == "" {
+			continue
+		}
+		if _, ok := seen[key]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func stringsTrimEqual(a, b string) bool {

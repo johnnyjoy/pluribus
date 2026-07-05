@@ -28,3 +28,8 @@ expected:
   shared_tag_recall_parity: true
   no_manual_uuid_handoff_to_b: true
   recall_marker_present_for_b: true
+does_not_prove:
+  - Real MCP agents, agent_id attribution, resolve_chore, or memory_feedback loops
+  - Ranking quality under a noisy long-lived pool (only tag-scoped compile parity)
+  - That "Agent A/B" are more than distinct http.Client instances (not separate processes or models)
+  - Passive-continuity slug protocol without agreed per-run situation tags

@@ -26,6 +26,9 @@ type Scenario struct {
 	Mode         string         `yaml:"mode"`
 	Category     string         `yaml:"category"`
 	BenefitClaim string         `yaml:"benefit_claim"`
+	// DoesNotProve lists benefit claims this scenario intentionally does NOT establish.
+	// Required for mode=integration (honesty contract — see docs/proof-scenarios.md).
+	DoesNotProve []string       `yaml:"does_not_prove,omitempty"`
 	Tags         []string       `yaml:"tags,omitempty"`
 	Seed         map[string]any `yaml:"seed,omitempty"`
 	Stimulus     map[string]any `yaml:"stimulus,omitempty"`
@@ -89,6 +92,14 @@ func Validate(sc *Scenario) error {
 	}
 	if strings.TrimSpace(sc.BenefitClaim) == "" {
 		return fmt.Errorf("id=%s: missing benefit_claim", sc.ID)
+	}
+	if sc.Mode == ModeIntegration && len(sc.DoesNotProve) == 0 {
+		return fmt.Errorf("id=%s: integration scenarios must document does_not_prove (honesty requirement)", sc.ID)
+	}
+	for i, line := range sc.DoesNotProve {
+		if strings.TrimSpace(line) == "" {
+			return fmt.Errorf("id=%s: does_not_prove[%d] is empty", sc.ID, i)
+		}
 	}
 	return nil
 }

@@ -16,3 +16,7 @@ stimulus:
 expected:
   bundle_contains_kind: constraint
   bundle_statement_substring: Postgres
+does_not_prove:
+  - Empty compile recall ranking (uses retrieval_query hint, not bare {})
+  - Recall latency SLOs or bundle size limits under production pool noise
+  - MCP recall_context / wakeup_context tool paths

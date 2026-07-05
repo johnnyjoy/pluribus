@@ -66,6 +66,9 @@ func TestIntegration_proofScenarioSuite(t *testing.T) {
 	} else {
 		t.Logf("deployed benefit receipts against %s", base)
 	}
+	for _, line := range proofscenarios.SuiteHonestyNotes {
+		t.Logf("SUITE LIMIT: %s", line)
+	}
 
 	dir := filepath.Join(controlPlaneModuleRoot(t), "proof-scenarios")
 	scenarios, err := proofscenarios.LoadDir(dir)
@@ -85,6 +88,11 @@ func TestIntegration_proofScenarioSuite(t *testing.T) {
 		}
 	}
 	sort.Strings(ids)
+
+	scByID := make(map[string]proofscenarios.Scenario, len(scenarios))
+	for _, sc := range scenarios {
+		scByID[sc.ID] = sc
+	}
 
 	runners := map[string]func(*testing.T, string){
 		"anti-drift-known-bad-pattern":        runProofAntiDriftKnownBad,
@@ -106,6 +114,9 @@ func TestIntegration_proofScenarioSuite(t *testing.T) {
 		}
 		start := time.Now()
 		okRun := t.Run(id, func(t *testing.T) {
+			if sc, ok := scByID[id]; ok {
+				proofLogScenarioHonesty(t, sc)
+			}
 			fn(t, base)
 		})
 		rows = append(rows, proofscenarios.ResultRow{
@@ -120,7 +131,7 @@ func TestIntegration_proofScenarioSuite(t *testing.T) {
 		if deployed {
 			env = "deployed benefit receipts " + base
 		}
-		if err := proofscenarios.WriteMarkdownSummary(p, env, rows); err != nil {
+		if err := proofscenarios.WriteMarkdownSummary(p, env, rows, scenarios); err != nil {
 			t.Logf("write proof results: %v", err)
 		}
 	}
@@ -156,6 +167,184 @@ func (t *proofAuthTransport) RoundTrip(req *http.Request) (*http.Response, error
 		base = http.DefaultTransport
 	}
 	return base.RoundTrip(r)
+}
+
+// --- Proof honesty (hostile / skeptical contract) ---
+
+func proofLogScenarioHonesty(t *testing.T, sc proofscenarios.Scenario) {
+	t.Helper()
+	t.Logf("PROVES (claim): %s", sc.BenefitClaim)
+	for _, line := range sc.DoesNotProve {
+		t.Logf("DOES NOT PROVE: %s", line)
+	}
+}
+
+type proofMemoryCreateOutcome struct {
+	ID           string
+	Statement    string
+	Consolidated bool
+	Status       string
+}
+
+func proofDecodeMemoryCreateFromBody(t *testing.T, body []byte) proofMemoryCreateOutcome {
+	t.Helper()
+	var raw struct {
+		ID           string `json:"id"`
+		Statement    string `json:"statement"`
+		Consolidated bool   `json:"consolidated"`
+		Status       string `json:"status"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		t.Fatalf("decode memory create: %v", err)
+	}
+	return proofMemoryCreateOutcome{
+		ID:           raw.ID,
+		Statement:    raw.Statement,
+		Consolidated: raw.Consolidated,
+		Status:       raw.Status,
+	}
+}
+
+// proofRequireVerifiableWrite fails when a create response claims success but the situation tag
+// cannot retrieve the marker — including consolidated=true merges that drop situational tags.
+func proofRequireVerifiableWrite(t *testing.T, base, situationTag, marker string, created proofMemoryCreateOutcome) {
+	t.Helper()
+	if created.Consolidated {
+		t.Logf("HOSTILE: create returned consolidated=true id=%s — verifying independent tag retrieval anyway", created.ID)
+	}
+	found := proofMemorySearchByTag(t, proofHTTPClient(), base, situationTag)
+	for _, m := range found {
+		if strings.Contains(m.Statement, marker) {
+			if created.Consolidated && !strings.Contains(created.Statement, marker) {
+				t.Logf("HOSTILE NOTE: marker visible via tag search but consolidated row statement differs: %q", created.Statement)
+			}
+			return
+		}
+	}
+	t.Fatalf("HOSTILE FAIL: write not independently verifiable — consolidated=%v id=%q tag=%q marker=%q search=%+v",
+		created.Consolidated, created.ID, situationTag, marker, found)
+}
+
+func proofNewSituationTag(prefix string) string {
+	prefix = strings.ToLower(strings.TrimSpace(prefix))
+	if prefix == "" {
+		prefix = "proof-situation"
+	}
+	return fmt.Sprintf("%s-%s", prefix, strings.ReplaceAll(uuid.New().String(), "-", ""))
+}
+
+type proofMaterializeOutcome struct {
+	MemoryID           string
+	Statement          string
+	Consolidated       bool
+	ConsolidatedIntoID string
+	Created            bool
+}
+
+func proofDecodeMaterializeFromBody(t *testing.T, body []byte) proofMaterializeOutcome {
+	t.Helper()
+	var raw struct {
+		Memory struct {
+			ID           string `json:"id"`
+			Statement    string `json:"statement"`
+			Consolidated bool   `json:"consolidated"`
+		} `json:"memory"`
+		Created                  bool    `json:"created"`
+		ConsolidatedIntoMemoryID *string `json:"consolidated_into_memory_id,omitempty"`
+		Strengthened             bool    `json:"strengthened"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		t.Fatalf("decode materialize: %v", err)
+	}
+	out := proofMaterializeOutcome{
+		MemoryID:     raw.Memory.ID,
+		Statement:    raw.Memory.Statement,
+		Consolidated: raw.Memory.Consolidated || raw.Strengthened || raw.ConsolidatedIntoMemoryID != nil,
+		Created:      raw.Created,
+	}
+	if raw.ConsolidatedIntoMemoryID != nil {
+		out.ConsolidatedIntoID = *raw.ConsolidatedIntoMemoryID
+	}
+	return out
+}
+
+func proofRequireVerifiableMaterialize(t *testing.T, base, situationTag, marker string, mat proofMaterializeOutcome) {
+	t.Helper()
+	if mat.Consolidated {
+		msg := fmt.Sprintf("HOSTILE: materialize consolidated/strengthened memory_id=%s", mat.MemoryID)
+		if mat.ConsolidatedIntoID != "" {
+			msg += fmt.Sprintf(" consolidated_into=%s", mat.ConsolidatedIntoID)
+		}
+		t.Log(msg)
+	}
+	proofRequireVerifiableWrite(t, base, situationTag, marker, proofMemoryCreateOutcome{
+		ID:           mat.MemoryID,
+		Statement:    mat.Statement,
+		Consolidated: mat.Consolidated,
+	})
+}
+
+// proofDigestMaterializeFeatureFlagsDecision runs digest→materialize with a unique situation tag + marker.
+func proofDigestMaterializeFeatureFlagsDecision(t *testing.T, base, tagPrefix string) (situationTag, marker string, mat proofMaterializeOutcome) {
+	t.Helper()
+	situationTag = proofNewSituationTag(tagPrefix)
+	marker = fmt.Sprintf("[%s:%s]", tagPrefix, uuid.New())
+	decision := fmt.Sprintf("We will use feature flags for rollout of the new API surface. %s", marker)
+	digestPayload, err := json.Marshal(map[string]any{
+		"work_summary":     "Proof scenario work summary for digest pipeline minimum length.",
+		"signals":          []string{situationTag},
+		"curation_answers": map[string]string{"decision": decision},
+	})
+	if err != nil {
+		t.Fatalf("marshal digest: %v", err)
+	}
+	resp := postJSON(t, base+"/v1/curation/digest", string(digestPayload))
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b := readBody(t, resp)
+		t.Fatalf("digest status=%d body=%s", resp.StatusCode, b)
+	}
+	var dr struct {
+		Proposals []struct {
+			CandidateID string `json:"candidate_id"`
+			Kind        string `json:"kind"`
+		} `json:"proposals"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&dr); err != nil {
+		t.Fatalf("decode digest: %v", err)
+	}
+	if len(dr.Proposals) < 1 || dr.Proposals[0].CandidateID == "" {
+		t.Fatalf("expected at least one proposal with candidate_id")
+	}
+	if dr.Proposals[0].Kind != string(api.MemoryKindDecision) {
+		t.Fatalf("kind=%q want decision", dr.Proposals[0].Kind)
+	}
+	candID := dr.Proposals[0].CandidateID
+	mresp := postJSON(t, fmt.Sprintf("%s/v1/curation/candidates/%s/materialize", base, candID), "{}")
+	defer mresp.Body.Close()
+	if mresp.StatusCode != http.StatusCreated {
+		b := readBody(t, mresp)
+		t.Fatalf("materialize status=%d body=%s", mresp.StatusCode, b)
+	}
+	mat = proofDecodeMaterializeFromBody(t, readBody(t, mresp))
+	if mat.MemoryID == "" {
+		t.Fatal("materialize: missing memory id")
+	}
+	proofRequireVerifiableMaterialize(t, base, situationTag, marker, mat)
+	return situationTag, marker, mat
+}
+
+func proofPostMemoryCreateVerified(t *testing.T, base string, fields map[string]any, situationTag, marker string) proofMemoryCreateOutcome {
+	t.Helper()
+	resp := postJSON(t, base+"/v1/memory", proofMemoryCreateBody(fields))
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b := readBody(t, resp)
+		t.Fatalf("POST memory status=%d body=%s", resp.StatusCode, b)
+	}
+	created := proofDecodeMemoryCreateFromBody(t, readBody(t, resp))
+	proofRequireVerifiableWrite(t, base, situationTag, marker, created)
+	return created
 }
 
 // --- HTTP helpers ---
@@ -237,22 +426,6 @@ func proofMemoryCreateBody(fields map[string]any) string {
 		tags = raw
 	}
 	fields["tags"] = mergeProofEphemeralTags(tags)
-	if _, ok := fields["ttl_seconds"]; !ok {
-		fields["ttl_seconds"] = proofEphemeralTTLSeconds
-	}
-	b, err := json.Marshal(fields)
-	if err != nil {
-		panic(err)
-	}
-	return string(b)
-}
-
-// proofMemoryCreateBodyIsolated builds a create payload without shared proof/ephemeral tags.
-// Used when semantic consolidate must not match prior proof rows via tag overlap (ANY-tag search).
-func proofMemoryCreateBodyIsolated(fields map[string]any) string {
-	if fields == nil {
-		fields = map[string]any{}
-	}
 	if _, ok := fields["ttl_seconds"]; !ok {
 		fields["ttl_seconds"] = proofEphemeralTTLSeconds
 	}
@@ -417,96 +590,35 @@ func runProofRecallBindingConstraint(t *testing.T, base string) {
 }
 
 func runProofRecallDecisionRelevant(t *testing.T, base string) {
-	stmt := fmt.Sprintf("We will use feature flags for rollout of the new API surface. [proof-recall-decision:%s]", uuid.New())
-	body := proofMemoryCreateBody(map[string]any{
+	situationTag := proofNewSituationTag("proof-recall-decision")
+	marker := fmt.Sprintf("[proof-recall-decision:%s]", uuid.New())
+	stmt := fmt.Sprintf("We will use feature flags for rollout of the new API surface. %s", marker)
+	proofPostMemoryCreateVerified(t, base, map[string]any{
 		"kind":      "decision",
 		"authority": 7,
 		"statement": stmt,
-	})
-	resp2 := postJSON(t, base+"/v1/memory", body)
-	defer resp2.Body.Close()
-	if resp2.StatusCode != http.StatusOK {
-		b := readBody(t, resp2)
-		t.Fatalf("POST decision memory status=%d body=%s", resp2.StatusCode, b)
-	}
-	b := compileRecallClientWithRetrieval(t, proofHTTPClient(), base, uuid.Nil, "feature flags rollout API")
-	if !bundleHasKindSubstring(b, "decision", "feature flags") {
-		t.Fatalf("expected decision about feature flags in bundle, got decisions=%+v", b.Decisions)
+		"tags":      []string{situationTag},
+	}, situationTag, marker)
+	tagsT := mergeProofEphemeralTags([]string{situationTag})
+	b := compileRecallClientWithSituation(t, proofHTTPClient(), base, tagsT, situationTag+" feature flags rollout API")
+	if !bundleHasKindSubstrings(b, "decision", marker, "feature flags") {
+		t.Fatalf("expected decision with marker and feature flags in bundle, got decisions=%+v", b.Decisions)
 	}
 }
 
 func runProofCurationDigestMaterialize(t *testing.T, base string) {
-	digestBody := fmt.Sprintf(`{"work_summary":"Proof scenario work summary for digest pipeline minimum length.","curation_answers":{"decision":%q}}`,
-		fmt.Sprintf("We will use feature flags for rollout of the new API surface. [proof-digest-mat:%s]", uuid.New()))
-	resp := postJSON(t, base+"/v1/curation/digest", digestBody)
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		b := readBody(t, resp)
-		t.Fatalf("digest status=%d body=%s", resp.StatusCode, b)
-	}
-	var dr struct {
-		Proposals []struct {
-			CandidateID string `json:"candidate_id"`
-			Kind        string `json:"kind"`
-		} `json:"proposals"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&dr); err != nil {
-		t.Fatalf("decode digest: %v", err)
-	}
-	if len(dr.Proposals) < 1 || dr.Proposals[0].CandidateID == "" {
-		t.Fatalf("expected at least one proposal with candidate_id")
-	}
-	candID := dr.Proposals[0].CandidateID
-	if dr.Proposals[0].Kind != string(api.MemoryKindDecision) {
-		t.Fatalf("kind=%q want decision", dr.Proposals[0].Kind)
-	}
-	matURL := fmt.Sprintf("%s/v1/curation/candidates/%s/materialize", base, candID)
-	mresp := postJSON(t, matURL, "{}")
-	defer mresp.Body.Close()
-	if mresp.StatusCode != http.StatusCreated {
-		b := readBody(t, mresp)
-		t.Fatalf("materialize status=%d body=%s", mresp.StatusCode, b)
-	}
-	var matOut struct {
-		Memory struct {
-			Kind string `json:"kind"`
-		} `json:"memory"`
-	}
-	if err := json.NewDecoder(mresp.Body).Decode(&matOut); err != nil {
-		t.Fatalf("decode materialize outcome: %v", err)
-	}
-	if matOut.Memory.Kind != string(api.MemoryKindDecision) {
-		t.Fatalf("memory kind=%q want decision", matOut.Memory.Kind)
+	_, marker, mat := proofDigestMaterializeFeatureFlagsDecision(t, base, "proof-digest-mat")
+	if !strings.Contains(mat.Statement, marker) {
+		t.Fatalf("materialized statement missing marker %q: %q", marker, mat.Statement)
 	}
 }
 
 func runProofCurationThenRecall(t *testing.T, base string) {
-	digestBody := fmt.Sprintf(`{"work_summary":"Proof scenario work summary for digest pipeline minimum length.","curation_answers":{"decision":%q}}`,
-		fmt.Sprintf("We will use feature flags for rollout of the new API surface. [proof-digest-recall:%s]", uuid.New()))
-	resp := postJSON(t, base+"/v1/curation/digest", digestBody)
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		b := readBody(t, resp)
-		t.Fatalf("digest status=%d body=%s", resp.StatusCode, b)
-	}
-	var dr struct {
-		Proposals []struct {
-			CandidateID string `json:"candidate_id"`
-		} `json:"proposals"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&dr); err != nil {
-		t.Fatalf("decode digest: %v", err)
-	}
-	candID := dr.Proposals[0].CandidateID
-	mresp := postJSON(t, base+"/v1/curation/candidates/"+candID+"/materialize", "{}")
-	defer mresp.Body.Close()
-	if mresp.StatusCode != http.StatusCreated {
-		b := readBody(t, mresp)
-		t.Fatalf("materialize status=%d body=%s", mresp.StatusCode, b)
-	}
-	b := compileRecall(t, base, uuid.Nil)
-	if !bundleHasKindSubstring(b, "decision", "feature flags") {
-		t.Fatalf("expected materialized decision in recall bundle")
+	situationTag, marker, _ := proofDigestMaterializeFeatureFlagsDecision(t, base, "proof-digest-recall")
+	tagsT := mergeProofEphemeralTags([]string{situationTag})
+	b := compileRecallClientWithSituation(t, proofHTTPClient(), base, tagsT, situationTag+" feature flags")
+	if !bundleHasKindSubstrings(b, "decision", marker, "feature flags") {
+		t.Fatalf("expected materialized decision with marker in recall bundle")
 	}
 }
 
@@ -518,14 +630,12 @@ func runProofSimulatedMultiAgentContinuity(t *testing.T, base string) {
 	agentB := proofHTTPClient()
 	marker := fmt.Sprintf("SIM-MA-CONTINUITY-%s", uuid.New().String())
 	tag := fmt.Sprintf("proof-multi-agent-%s", strings.ReplaceAll(uuid.New().String(), "-", ""))
-	// Embed the unique tag in the statement so deployed pools (semantic consolidate) do not
-	// collapse distinct runs into an older SIM-MA row without this tag.
-	statement := fmt.Sprintf("%s unique-tag %s", marker, tag)
+	tagsT := mergeProofEphemeralTags([]string{tag})
 
-	memBody := proofMemoryCreateBodyIsolated(map[string]any{
+	memBody := proofMemoryCreateBody(map[string]any{
 		"kind":      "constraint",
 		"authority": 9,
-		"statement": statement,
+		"statement": marker,
 		"tags":      []string{tag},
 	})
 	respMem := postJSONClient(t, agentA, base+"/v1/memory", memBody)
@@ -534,27 +644,18 @@ func runProofSimulatedMultiAgentContinuity(t *testing.T, base string) {
 		b := readBody(t, respMem)
 		t.Fatalf("Agent A POST memory status=%d body=%s", respMem.StatusCode, b)
 	}
-	found := proofMemorySearchByTag(t, agentA, base, tag)
-	ok := false
-	for _, m := range found {
-		if strings.Contains(m.Statement, marker) || strings.Contains(m.Statement, tag) {
-			ok = true
-			break
-		}
-	}
-	if !ok {
-		t.Fatalf("Agent A write: no row with tag %q contains marker/tag (search=%+v)", tag, found)
-	}
+	created := proofDecodeMemoryCreateFromBody(t, readBody(t, respMem))
+	proofRequireVerifiableWrite(t, base, tag, marker, created)
 
 	// YAML phase A/B: recall/compile scoped to agreed tag T + retrieval text (no UUID handoff to B).
 	situation := tag + " " + marker
-	bundleA := compileRecallClientWithSituation(t, agentA, base, []string{tag}, situation)
+	bundleA := compileRecallClientWithSituation(t, agentA, base, tagsT, situation)
 	if !bundleHasKindSubstrings(bundleA, "constraint", marker, tag) {
 		t.Fatalf("Agent A recall: expected marker or tag in bundle, constraints=%+v", bundleA.GoverningConstraints)
 	}
 
 	foundB := proofMemorySearchByTag(t, agentB, base, tag)
-	ok = false
+	ok := false
 	for _, m := range foundB {
 		if strings.Contains(m.Statement, marker) || strings.Contains(m.Statement, tag) {
 			ok = true
@@ -565,42 +666,22 @@ func runProofSimulatedMultiAgentContinuity(t *testing.T, base string) {
 		t.Fatalf("Agent B search: expected marker memory, got %+v", foundB)
 	}
 
-	bundleB := compileRecallClientWithSituation(t, agentB, base, []string{tag}, situation)
+	bundleB := compileRecallClientWithSituation(t, agentB, base, tagsT, situation)
 	if !bundleHasKindSubstrings(bundleB, "constraint", marker, tag) {
 		t.Fatalf("Agent B recall: expected same marker or tag in bundle, constraints=%+v", bundleB.GoverningConstraints)
 	}
 }
 
 func runProofContinuitySecondStep(t *testing.T, base string) {
-	digestBody := fmt.Sprintf(`{"work_summary":"Proof scenario work summary for digest pipeline minimum length.","curation_answers":{"decision":%q}}`,
-		fmt.Sprintf("We will use feature flags for rollout of the new API surface. [proof-continuity:%s]", uuid.New()))
-	resp := postJSON(t, base+"/v1/curation/digest", digestBody)
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		b := readBody(t, resp)
-		t.Fatalf("digest status=%d body=%s", resp.StatusCode, b)
+	situationTag, marker, _ := proofDigestMaterializeFeatureFlagsDecision(t, base, "proof-continuity")
+	tagsT := mergeProofEphemeralTags([]string{situationTag})
+	query := situationTag + " feature flags"
+	b1 := compileRecallClientWithSituation(t, proofHTTPClient(), base, tagsT, query)
+	if !bundleHasKindSubstrings(b1, "decision", marker, "feature flags") {
+		t.Fatalf("first recall: expected decision with marker")
 	}
-	var dr struct {
-		Proposals []struct {
-			CandidateID string `json:"candidate_id"`
-		} `json:"proposals"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&dr); err != nil {
-		t.Fatalf("decode digest: %v", err)
-	}
-	candID := dr.Proposals[0].CandidateID
-	mresp := postJSON(t, base+"/v1/curation/candidates/"+candID+"/materialize", "{}")
-	defer mresp.Body.Close()
-	if mresp.StatusCode != http.StatusCreated {
-		b := readBody(t, mresp)
-		t.Fatalf("materialize status=%d body=%s", mresp.StatusCode, b)
-	}
-	b1 := compileRecall(t, base, uuid.Nil)
-	if !bundleHasKindSubstring(b1, "decision", "feature flags") {
-		t.Fatalf("first recall: expected decision")
-	}
-	b2 := compileRecall(t, base, uuid.Nil)
-	if !bundleHasKindSubstring(b2, "decision", "feature flags") {
-		t.Fatalf("second recall: expected decision (continuity)")
+	b2 := compileRecallClientWithSituation(t, proofHTTPClient(), base, tagsT, query)
+	if !bundleHasKindSubstrings(b2, "decision", marker, "feature flags") {
+		t.Fatalf("second recall: expected decision with marker (continuity)")
 	}
 }

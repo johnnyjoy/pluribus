@@ -17,3 +17,8 @@ stimulus:
 expected:
   bundle_contains_kind: decision
   bundle_statement_substring: feature flags
+does_not_prove:
+  - Cross-session continuity without shared pool (single proof flow only)
+  - Empty {} compile recall under production pool noise
+  - MCP record_experience → recall continuity loop
+  - Success when materialize consolidates without situation tag retrieval of this run's marker (hostile verify fails that)

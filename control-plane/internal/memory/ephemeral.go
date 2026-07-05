@@ -4,12 +4,11 @@ import (
 	"control-plane/pkg/api"
 )
 
-// DefaultEphemeralTTLSec is applied on create when an ephemeral tag is present
-// and the client did not set ttl_seconds. Keeps proof/smoke rows from lingering
-// in the shared pool without operator cleanup scripts.
+// DefaultEphemeralTTLSec is applied on create when disposable automation tags are present
+// and the client did not set ttl_seconds.
 const DefaultEphemeralTTLSec = 86400 // 24h
 
-// ApplyEphemeralDefaults sets ttl_seconds when tags include ephemeral and TTL is unset.
+// ApplyEphemeralDefaults sets ttl_seconds when tags mark a disposable automation row and TTL is unset.
 func ApplyEphemeralDefaults(req *CreateRequest) {
 	if req == nil || req.TTLSeconds > 0 {
 		return
@@ -19,5 +18,8 @@ func ApplyEphemeralDefaults(req *CreateRequest) {
 			req.TTLSeconds = DefaultEphemeralTTLSec
 			return
 		}
+	}
+	if api.HasDisposableAutomationTags(req.Tags) {
+		req.TTLSeconds = DefaultEphemeralTTLSec
 	}
 }

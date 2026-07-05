@@ -16,3 +16,7 @@ stimulus:
   intent: change
 expected:
   decision: allow
+does_not_prove:
+  - Semantic near-duplicate proposals that should block but evade substring matchers
+  - MCP enforcement tool path (REST only)
+  - Long-pool false-positive rate across unrelated domains

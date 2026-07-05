@@ -72,9 +72,32 @@ See [`archive/memory-bank/plans/proof-scenario-results-latest.md`](../archive/me
 - Not a replacement for unit tests in `internal/enforcement`, `internal/recall`, etc.
 - Not dependent on a human grader each run — assertions are structured (decisions, kinds, substrings).
 
+## Honesty contract (hostile / skeptical testing)
+
+**PASS is a receipt for a narrow claim, not proof the product is “done.”**
+
+Every **`mode: integration`** scenario **must** document `does_not_prove` in its YAML. `go test ./internal/proofscenarios/` fails if any integration scenario omits it.
+
+| Mechanism | Purpose |
+|-----------|---------|
+| **`does_not_prove` in YAML** | Explicit scope boundary per scenario — what green does *not* mean |
+| **`SuiteHonestyNotes` in code** | Limitations that apply to every run (REST vs MCP, CI vs deployed policy) |
+| **Honesty appendix in results** | `RECALL_PROOF_RESULTS_OUT` markdown includes a “what PASS does not mean” section |
+| **`proofRequireVerifiableWrite`** | Fails when `consolidated=true` but situation tag search cannot find the marker (no “success” without verifiable write) |
+| **Decision + curation scenarios** | Unique `signals` situation tag per run; digest→materialize and direct POST both hostile-verify before recall |
+| **Deployed vs CI** | Documented gap: proof-friendly formation in CI ≠ deployed formation policy on live servers |
+
+When adding a scenario, write **`does_not_prove` first** — if you cannot list honest gaps, the scenario claim is probably too broad.
+
+Chosen gaps we may intentionally not close (documented, not hidden):
+
+- No automated proof of **`resolve_chore`** / **`memory_feedback`** agent loops yet (static grep only in verify scripts).
+- Integration runners use **HTTP**, not MCP tools — tool wiring is covered separately by `verify-integrations-mcp`.
+- **Ranking quality** under a long-lived shared pool is only indirectly stressed (tag-scoped compiles in some scenarios).
+
 ## Continuity (manual + integration)
 
-- **Integration (CI):** [`simulated-multi-agent-continuity.yaml`](../control-plane/proof-scenarios/simulated-multi-agent-continuity.yaml) — two distinct HTTP clients; **shared tag namespace** only (no UUID handoff); same recall marker for Agent B. Results: [`archive/memory-bank/plans/pluribus-simulated-multi-agent-continuity-proof-results-20260327.md`](../archive/memory-bank/plans/pluribus-simulated-multi-agent-continuity-proof-results-20260327.md).
+- **Integration (CI):** [`simulated-multi-agent-continuity.yaml`](../control-plane/proof-scenarios/simulated-multi-agent-continuity.yaml) — two distinct HTTP clients; **shared situation tags + retrieval text** (no UUID handoff); hostile write verification. Results: [`archive/memory-bank/plans/pluribus-simulated-multi-agent-continuity-proof-results-20260327.md`](../archive/memory-bank/plans/pluribus-simulated-multi-agent-continuity-proof-results-20260327.md).
 - **Manual protocol:** [`passive-continuity-same-slug-two-clients.yaml`](../control-plane/proof-scenarios/passive-continuity-same-slug-two-clients.yaml) — shared tags + retrieval text across two notional clients; see [archive/passive-continuity-architecture.md](archive/passive-continuity-architecture.md) (**archived**).
 - **Manual (MCP workflow):** [`functional-quality-workflow.yaml`](../control-plane/proof-scenarios/functional-quality-workflow.yaml) — recall → enforcement → curation tool order; see [mcp-usage.md](mcp-usage.md).
 

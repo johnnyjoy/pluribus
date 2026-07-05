@@ -14,3 +14,8 @@ stimulus:
   type: two_step_recall
 expected:
   both_steps_see_decision: true
+does_not_prove:
+  - Cross-agent or cross-process continuity (single HTTP client, sequential compiles)
+  - Ranking persistence if unrelated memories outscore the materialized decision
+  - MCP multi-step agent workflow fidelity
+  - Success when materialize consolidates without situation tag retrieval of this run's marker (hostile verify fails that)

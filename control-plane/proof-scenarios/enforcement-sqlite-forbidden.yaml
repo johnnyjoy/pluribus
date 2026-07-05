@@ -18,3 +18,7 @@ stimulus:
 expected:
   decision: block
   first_trigger_reason_code: normative_conflict
+does_not_prove:
+  - MCP enforcement tool path (uses REST POST /v1/enforcement/evaluate only)
+  - Enforcement under unrelated pending sinks or consolidate-swallowed constraints without tag verification
+  - That agents will invoke enforcement without integration skill prompts

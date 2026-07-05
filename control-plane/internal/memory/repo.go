@@ -290,15 +290,34 @@ func (r *Repo) MarkSuperseded(ctx context.Context, id uuid.UUID, deprecatedAt ti
 func (r *Repo) ListExpiredCandidates(ctx context.Context, authorityThreshold int, asOf time.Time, probationaryBefore *time.Time) ([]MemoryObject, error) {
 	query := `SELECT m.id, m.kind, m.statement, m.statement_canonical, m.statement_key, m.authority, m.applicability, m.status, m.deprecated_at, m.ttl_seconds, m.payload, m.created_at, m.updated_at, m.occurred_at
 		 FROM memories m
-		 WHERE m.status = 'active' AND m.authority < $1
+		 WHERE m.status = 'active'
 		   AND (
-		     (m.ttl_seconds IS NOT NULL AND m.ttl_seconds > 0
-		      AND m.created_at + (m.ttl_seconds * interval '1 second') < $2)
+		     (
+		       m.authority < $1
+		       AND (
+		         (m.ttl_seconds IS NOT NULL AND m.ttl_seconds > 0
+		          AND m.created_at + (m.ttl_seconds * interval '1 second') < $2)
+		         OR (
+		           $5::timestamptz IS NOT NULL
+		           AND (m.ttl_seconds IS NULL OR m.ttl_seconds <= 0)
+		           AND m.created_at < $5
+		           AND EXISTS (SELECT 1 FROM memories_tags pt WHERE pt.memory_id = m.id AND pt.tag = 'probationary')
+		         )
+		       )
+		     )
 		     OR (
-		       $5::timestamptz IS NOT NULL
-		       AND (m.ttl_seconds IS NULL OR m.ttl_seconds <= 0)
-		       AND m.created_at < $5
-		       AND EXISTS (SELECT 1 FROM memories_tags pt WHERE pt.memory_id = m.id AND pt.tag = 'probationary')
+		       m.ttl_seconds IS NOT NULL AND m.ttl_seconds > 0
+		       AND m.created_at + (m.ttl_seconds * interval '1 second') < $2
+		       AND EXISTS (
+		         SELECT 1 FROM memories_tags et
+		         WHERE et.memory_id = m.id
+		           AND (lower(et.tag) = 'ephemeral' OR lower(et.tag) LIKE 'ephemeral:%')
+		       )
+		       AND EXISTS (
+		         SELECT 1 FROM memories_tags pt
+		         WHERE pt.memory_id = m.id
+		           AND lower(pt.tag) IN ('proof-scenario', 'smoke-shared-memory')
+		       )
 		     )
 		   )` + ttlHistoricalValueExclusionSQL
 	rows, err := r.DB.QueryContext(ctx, query,

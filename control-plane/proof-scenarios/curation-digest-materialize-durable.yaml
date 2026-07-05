@@ -18,3 +18,8 @@ stimulus:
 expected:
   materialize_http_status: 201
   memory_kind: decision
+does_not_prove:
+  - MCP curation/digest tool invocation (REST digest + materialize only)
+  - Formation quality gates identical to deployed formation policy (not CI proof-friendly defaults)
+  - Agent corroboration via resolve_chore for materialized rows
+  - Success when materialize consolidates without situation tag retrieval of this run's marker (hostile verify fails that)

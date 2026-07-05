@@ -28,7 +28,9 @@ This page **surfaces receipts** for what the system has actually demonstrated in
 |---------|----------------|--------|
 | **Deployed benefit receipts** | Same scenario suite against a **running** server (`CONTROL_PLANE_URL` / `PLURIBUS_PROOF_BASE_URL`) under **real** formation/recall policy — closes CI ↔ deploy gap | `./scripts/proof-deployed-benefit-receipts.sh` or `make proof-deployed-benefit-receipts` — latest: [artifacts/deployed-benefit-receipts-latest.md](../artifacts/deployed-benefit-receipts-latest.md) |
 
-CI receipts use proof-friendly formation (seeds **active** at capped authority). Deployed receipts fail when the hive cannot **recall** or **bind** governing memory the scenarios create — usually formation drift (warehouse defaults, or consolidate into non-recallable sinks), not because `pending` is a separate tier.
+CI receipts use proof-friendly formation (seeds **active** at capped authority). Deployed receipts fail when the **shared pool** cannot **recall** or **bind** governing memory the scenarios create — usually formation drift (warehouse defaults, consolidate into non-recallable sinks, or writes that fail hostile tag verification), not because `pending` is a separate tier.
+
+Each integration scenario documents **`does_not_prove`** in YAML; PASS receipts include an [honesty appendix](proof-scenarios.md#honesty-contract-hostile--skeptical-testing) in [`artifacts/deployed-benefit-receipts-latest.md`](../artifacts/deployed-benefit-receipts-latest.md).
 
 ---
 
@@ -40,7 +42,7 @@ CI receipts use proof-friendly formation (seeds **active** at capped authority).
 | **Recall** | `recall-binding-constraint-surfaces`, `recall-decision-relevant-to-work` | Governing memory surfaces in bundles |
 | **Curation** | `curation-digest-materialize-durable`, `curation-then-recall-continuity` | Digest → materialize → recall sees durable memory |
 | **Continuity** | `continuity-second-step-from-first` | Second recall sees same truth |
-| **Simulated multi-agent continuity** | `simulated-multi-agent-continuity` | Two HTTP clients; **B** attaches via **slug only**; same recall marker; no duplicate slug | [pluribus-simulated-multi-agent-continuity-proof-results-20260327.md](../archive/memory-bank/plans/pluribus-simulated-multi-agent-continuity-proof-results-20260327.md) |
+| **Simulated multi-agent continuity** | `simulated-multi-agent-continuity` | Two HTTP clients; **shared situation tags + retrieval text** (no UUID handoff); hostile write verification | [pluribus-simulated-multi-agent-continuity-proof-results-20260327.md](../archive/memory-bank/plans/pluribus-simulated-multi-agent-continuity-proof-results-20260327.md) |
 | **Anti-drift** | `anti-drift-known-bad-pattern` | Receipt variant tied to enforcement |
 
 **Manual protocol (not automated in CI):**
@@ -81,8 +83,10 @@ CI receipts use proof-friendly formation (seeds **active** at capped authority).
 ## What is *not* proven by this bundle
 
 - **Embeddings alone as the authority layer** — authority remains explicit on memory rows; vectors **rank candidates**. Fallback is **explicit** (`[SEMANTIC FALLBACK]`, bundle **`semantic_retrieval`**). **`make proof-rest`** includes **`proof-semantic-fallback-001`**; it proves the **substrate**, not your embedding endpoint wiring.
+- **Agent housekeeping loop end-to-end** — integration receipts are **HTTP**; `resolve_chore` / `memory_feedback` are documented and grep-checked in packs, not yet a CI proof scenario.
+- **Honesty scope** — each scenario's YAML **`does_not_prove`** lists what PASS does not mean; see [proof-scenarios.md — Honesty contract](proof-scenarios.md#honesty-contract-hostile--skeptical-testing).
 - Operational semantic defaults and fallback: [pluribus-operational-guide.md](pluribus-operational-guide.md), [evaluation.md](evaluation.md), [pluribus-release-scope.md](pluribus-release-scope.md).
-- **True multi-host** continuity under network partitions — simulated proof is **in-process**; see limitations in continuity results doc.
+- **True multi-host** continuity under network partitions — proof uses distinct HTTP clients against one server; see scenario **`does_not_prove`**.
 - **Full multi-tenant isolation** — exercise your auth model if you deploy shared infrastructure.
 - **Deployed benefit by default** — CI pass does not imply live benefit. Re-run **deployed benefit receipts** after deploy; see [artifacts/deployed-benefit-receipts-latest.md](../artifacts/deployed-benefit-receipts-latest.md).
 
