@@ -65,8 +65,8 @@ test:
 build:
 	$(MAKE) -C control-plane build
 
-build-control-plane:
-	$(MAKE) -C control-plane build-controlplane
+build-control-plane build-pluribus:
+	$(MAKE) -C control-plane build-pluribus
 
 build-mcp:
 	$(MAKE) -C control-plane build-pluribus-mcp
@@ -91,11 +91,11 @@ stress-eval:
 
 # REST/API-focused integration tests (host-managed Postgres DSN required).
 api-test:
-	cd control-plane && TEST_PG_DSN="$${TEST_PG_DSN}" go test -tags=integration -v ./cmd/controlplane -run TestIntegration_rest
+	cd control-plane && TEST_PG_DSN="$${TEST_PG_DSN}" go test -tags=integration -v ./cm./pluribus -run TestIntegration_rest
 
 # Full integration-tagged control-plane tests (host-managed Postgres DSN required).
 integration-test:
-	cd control-plane && TEST_PG_DSN="$${TEST_PG_DSN}" go test -tags=integration -v ./cmd/controlplane
+	cd control-plane && TEST_PG_DSN="$${TEST_PG_DSN}" go test -tags=integration -v ./cm./pluribus
 
 # Deployed benefit receipts: same proof-scenario suite against a live control-plane.
 # Requires CONTROL_PLANE_URL or PLURIBUS_PROOF_BASE_URL (e.g. http://host:8123).

@@ -33,7 +33,7 @@ Use placeholders only. Do not commit secrets.
 ```bash
 # Record current version (after upgrade candidate built)
 PLURIBUS_HOME=/path/to/pluribus
-$PLURIBUS_HOME/control-plane/controlplane --version
+$PLURIBUS_HOME/control-plane/pluribus --version
 curl -sS http://127.0.0.1:8123/healthz
 
 # Backup config (no secrets in git)

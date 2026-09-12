@@ -32,8 +32,8 @@ There is **no** versioned upgrade path in the product yet (pre-release); boot on
 - **Terminology** for episodes vs candidates (ingest channel vs distill mode) is fixed in [memory-doctrine.md](memory-doctrine.md) (Terminology); wire field names **`source`** and **`pluribus_distill_origin`** are unchanged.
 
 - **REST** is the **canonical service boundary** — proof of core memory/recall/enforcement behavior happens **here first**.
-- **MCP** (`POST /v1/mcp`) is an **adapter** over the same product; **`internal/mcp`** unit tests cover tool → HTTP mapping. **Memory formation through MCP** (JSON-RPC on the real router, advisory ingest → auto-distill → curation tools, dedup, optional stdio smoke) is covered by **integration** tests in **`control-plane/cmd/controlplane/mcp_memory_formation_integration_test.go`** — run with Postgres, e.g.  
-  `cd control-plane && TEST_PG_DSN="$TEST_PG_DSN" go test -tags=integration -count=1 -p=1 ./cmd/controlplane/... -run 'TestIntegration_HTTP_MCP|TestIntegration_stdio'`.  
+- **MCP** (`POST /v1/mcp`) is an **adapter** over the same product; **`internal/mcp`** unit tests cover tool → HTTP mapping. **Memory formation through MCP** (JSON-RPC on the real router, advisory ingest → auto-distill → curation tools, dedup, optional stdio smoke) is covered by **integration** tests in **`control-plane/cm./pluribus/mcp_memory_formation_integration_test.go`** — run with Postgres, e.g.  
+  `cd control-plane && TEST_PG_DSN="$TEST_PG_DSN" go test -tags=integration -count=1 -p=1 ./cm./pluribus/... -run 'TestIntegration_HTTP_MCP|TestIntegration_stdio'`.  
   **`TestIntegration_HTTP_MCP_parityToolsRegistered`** asserts **`tools/list`** includes agent-parity tools (episodic similarity, explicit distill, curation review/reject/auto-promote, contradictions, evidence, memory relationships). **`TestIntegration_HTTP_MCP_memoryContextResolve`** and **`TestIntegration_HTTP_MCP_memoryLogIfRelevant`** cover the autonomous-memory path (deterministic recall wrapper + opportunistic ingest). **Dual-layer MCP scenarios (see [mcp-poc-contract.md](mcp-poc-contract.md) Dual-layer):** **A** — **`TestIntegration_HTTP_MCP_episodeAutoDistillAndCuration`** (ingest → auto-distill → pending, no explicit distill tool); **B** — **`TestIntegration_HTTP_MCP_memoryContextResolve`** (primary recall returns bundle + `mcp_context`); **C** — **`TestIntegration_HTTP_MCP_noAutoDistillNoCandidate`** vs parity tools (optional inspection without affecting default loop). Full memory behavior remains proven at REST + Postgres; MCP integration tests add **HTTP MCP** as a first-class proof surface.
 - **LSP** is **optional enrichment** for recall; it is **not** the memory contract and **not** the primary proof surface.
 
@@ -74,7 +74,7 @@ make test-drive
 | `make test` | Core control-plane package tests (`go test ./...`) |
 | `make eval` | Deterministic eval harness in `internal/eval` (not the adversarial REST proof suite) |
 | `make stress-eval` | Stress-oriented eval execution/log output |
-| `make regression` | **CI batch gate:** Docker Postgres + `go test -tags=integration -count=1 ./...` (includes YAML proof scenarios; memory relationship REST tests in `cmd/controlplane` when `TEST_PG_DSN` is set) |
+| `make regression` | **CI batch gate:** Docker Postgres + `go test -tags=integration -count=1 ./...` (includes YAML proof scenarios; memory relationship REST tests in `cm./pluribus` when `TEST_PG_DSN` is set) |
 | `make test-drive` | Fast confidence path (`test` + `eval`) |
 | `cd control-plane && make proof-rest` | **Canonical memory-substrate proof** — REST-only `proof-*.json` + two-pass determinism |
 | `make proof-episodic` | **Episodic lane stress proof** — all `proof-*.json` (two-pass determinism) + `TestEpisodicProofSprintREST_Postgres` adversarial subtests (see [evidence/episodic-proof.md](../evidence/episodic-proof.md)) |
@@ -131,6 +131,6 @@ make integration-test
 ## References
 
 - [rest-test-matrix.md](rest-test-matrix.md) — REST behavior matrix
-- [proof-scenarios.md](proof-scenarios.md) — YAML scenario suite (runs in `make regression`)
-- [pluribus-proof-index.md](pluribus-proof-index.md) — proof bundle index
-- [pluribus-operational-guide.md](pluribus-operational-guide.md) — CI and operations
+- [proof-scenarios.md](../proof/scenarios.md) — YAML scenario suite (runs in `make regression`)
+- [proof/README.md](proof/README.md) — proof bundle index
+- [operate/guide.md](operate/guide.md) — CI and operations

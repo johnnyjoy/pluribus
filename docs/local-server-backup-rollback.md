@@ -10,7 +10,7 @@ Pluribus replays idempotent embedded SQL on boot; there is **no down-migration**
 
 ## Pre-upgrade backup checklist
 
-- [ ] Record current version: `./control-plane/controlplane --version` (or Docker image tag)
+- [ ] Record current version: `./control-plane/pluribus --version` (or Docker image tag)
 - [ ] Record git commit / release tag used to build current binary
 - [ ] Export config (redact secrets in notes): `cp $CONFIG $PLURIBUS_BACKUP_DIR/`
 - [ ] **Postgres logical backup** (required)
@@ -32,9 +32,9 @@ PLURIBUS_OLD_VERSION=<record-before-upgrade>
 
 ```bash
 mkdir -p "$PLURIBUS_BACKUP_DIR"
-pg_dump -Fc "$PLURIBUS_DB_DSN" -f "$PLURIBUS_BACKUP_DIR/controlplane-pre-upgrade.dump"
+pg_dump -Fc "$PLURIBUS_DB_DSN" -f "$PLURIBUS_BACKUP_DIR/pluribus-pre-upgrade.dump"
 # Verify dump readable
-pg_restore -l "$PLURIBUS_BACKUP_DIR/controlplane-pre-upgrade.dump" | head
+pg_restore -l "$PLURIBUS_BACKUP_DIR/pluribus-pre-upgrade.dump" | head
 ```
 
 **Confirm explicitly before proceeding:** backup file exists and `pg_restore -l` succeeds.
@@ -55,7 +55,7 @@ cp "${CONFIG:-configs/config.local.yaml}" "$PLURIBUS_BACKUP_DIR/config.yaml"
 **Bare metal:**
 
 ```bash
-cp "$PLURIBUS_HOME/control-plane/controlplane" "$PLURIBUS_BACKUP_DIR/controlplane.$PLURIBUS_OLD_VERSION"
+cp "$PLURIBUS_HOME/control-plane/pluribus" "$PLURIBUS_BACKUP_DIR/pluribus.$PLURIBUS_OLD_VERSION"
 cp "$PLURIBUS_HOME/control-plane/pluribus-mcp" "$PLURIBUS_BACKUP_DIR/pluribus-mcp.$PLURIBUS_OLD_VERSION"
 ```
 
@@ -109,7 +109,7 @@ docker compose -f docker-compose.yml stop control-plane
 # ⚠️ DESTRUCTIVE: drops/recreates objects per pg_restore flags — confirm backup path
 dropdb --if-exists -h HOST -U USER controlplane   # OR restore to new DB and swap DSN
 createdb -h HOST -U USER controlplane
-pg_restore -d "$PLURIBUS_DB_DSN" "$PLURIBUS_BACKUP_DIR/controlplane-pre-upgrade.dump"
+pg_restore -d "$PLURIBUS_DB_DSN" "$PLURIBUS_BACKUP_DIR/pluribus-pre-upgrade.dump"
 ```
 
 3. **Restore previous binary/image** from `$PLURIBUS_BACKUP_DIR`.

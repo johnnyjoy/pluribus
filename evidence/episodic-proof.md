@@ -39,7 +39,7 @@ Full `make regression` runs `./...` including these tests against ephemeral Post
 |--------|------------|------|
 | JSON scenarios | `TestProofHarnessREST_Postgres` | All embedded `internal/eval/scenarios/proof-*.json` (HTTP-only), **two-pass** pass/fail signature match |
 | Go sprint | `TestEpisodicProofSprintREST_Postgres` | Stateful adversarial subtests (same router, shared DB, unique tags per case) |
-| **HTTP MCP integration** | `TestIntegration_HTTP_MCP_*` / `TestIntegration_stdio_pluribusMcp_smoke` in **`cmd/controlplane/mcp_memory_formation_integration_test.go`** | **JSON-RPC** on **`POST /v1/mcp`** (same router as production): `mcp_episode_ingest` → advisory + auto-distill; curation tools; **dedup** + optional **stdio** `pluribus-mcp` subprocess smoke. Requires **`go test -tags=integration`** and **`TEST_PG_DSN`**. |
+| **HTTP MCP integration** | `TestIntegration_HTTP_MCP_*` / `TestIntegration_stdio_pluribusMcp_smoke` in **`cm./pluribus/mcp_memory_formation_integration_test.go`** | **JSON-RPC** on **`POST /v1/mcp`** (same router as production): `mcp_episode_ingest` → advisory + auto-distill; curation tools; **dedup** + optional **stdio** `pluribus-mcp` subprocess smoke. Requires **`go test -tags=integration`** and **`TEST_PG_DSN`**. |
 
 Logging: episodic JSON scenarios and sprint lines use **`[EPISODIC PROOF]`**; other proof JSON uses **`[PROOF]`**.
 

@@ -1,5 +1,5 @@
 # Build all control-plane binaries with embedded version metadata.
-.PHONY: build build-controlplane build-pluribus-mcp build-mcp clean test regression migration-dry-run migrate-status
+.PHONY: build build-pluribus build-controlplane build-pluribus-mcp build-mcp clean test regression migration-dry-run migrate-status
 
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 BUILD_TIME ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -13,10 +13,11 @@ LDFLAGS := -s -w \
 regression:
 	$(MAKE) -C .. regression
 
-build: build-controlplane build-pluribus-mcp
+build: build-pluribus build-pluribus-mcp
 
-build-controlplane:
-	go build -ldflags="$(LDFLAGS)" -o controlplane ./cmd/controlplane
+build-pluribus build-controlplane:
+	go build -ldflags="$(LDFLAGS)" -o pluribus ./cm./pluribus
+	@ln -sf pluribus controlplane 2>/dev/null || cp -f pluribus controlplane
 
 build-pluribus-mcp build-mcp:
 	go build -ldflags="$(LDFLAGS)" -o pluribus-mcp ./cmd/pluribus-mcp
@@ -26,7 +27,7 @@ migration-dry-run migrate-status:
 	@../scripts/migration-dry-run.sh
 
 clean:
-	rm -f controlplane pluribus-mcp
+	rm -f pluribus controlplane pluribus-mcp
 
 test:
 	go test ./...

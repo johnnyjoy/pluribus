@@ -1,15 +1,15 @@
 # Control-plane
 
-Go-based **authoritative memory layer** for agents: durable typed memory, **situational recall**, enforcement, curation, evidence, and drift. The product center is **global memory + recall + learning** — see [../docs/memory-doctrine.md](../docs/memory-doctrine.md). Secondary HTTP surfaces may exist for legacy correlation keys; they do **not** define the mental model. See also [../docs/control-plane-design-and-starter.md](../docs/control-plane-design-and-starter.md).
+Go-based **authoritative memory layer** for agents: durable typed memory, **situational recall**, enforcement, curation, evidence, and drift. The product center is **global memory + recall + learning** — see [../docs/memory-doctrine.md](../docs/memory-doctrine.md). Secondary HTTP surfaces may exist for legacy correlation keys; they do **not** define the mental model. See also [../docs/archive/control-plane-design-and-starter.md](../docs/archive/control-plane-design-and-starter.md).
 
-**Public quickstart (Pluribus):** [../docs/pluribus-quickstart.md](../docs/pluribus-quickstart.md) · **Architecture:** [../docs/architecture.md](../docs/architecture.md) · [../docs/pluribus-public-architecture.md](../docs/pluribus-public-architecture.md)
+**Public quickstart:** [../docs/get-started.md](../docs/get-started.md) · **Architecture:** [../docs/architecture.md](../docs/architecture.md)
 
 ## First-run
 
 On a clean machine (or CI):
 
 **Option A — Docker (postgres + redis + control-plane API)**  
-From the **repository root**: `docker compose up -d` starts Postgres, Redis, and **controlplane** on **8123**. Compose **mounts** `control-plane/configs/config.yaml` into the container (first run builds the image). Container startup uses `scripts/entrypoint`; on boot, **control-plane** waits for DB, runs embedded baseline SQL (`migrations/*.sql`), and checks that core tables (e.g. `memories`) exist. **No host `psql`** required. Intended for a **fresh** Postgres database only.
+From the **repository root**: `docker compose up -d` starts Postgres, Redis, and **pluribus** on **8123**. Compose **mounts** `control-plane/configs/config.yaml` into the container (first run builds the image). Container startup uses `scripts/entrypoint`; on boot, **control-plane** waits for DB, runs embedded baseline SQL (`migrations/*.sql`), and checks that core tables (e.g. `memories`) exist. **No host `psql`** required. Intended for a **fresh** Postgres database only.
 
 Verify:
 
@@ -19,7 +19,7 @@ curl -sS http://127.0.0.1:8123/readyz    # readiness (DB reachable + core schema
 ```
 
 - **Databases only** (run API on host): `docker compose up -d postgres redis` — then start control-plane locally; **`Boot`** applies embedded SQL before serving.
-- Compose service name is **`controlplane`** — no trailing `.` on CLI args (`controlplane.` → `no such service`).
+- Compose service name is **`pluribus`** — no trailing `.` on CLI args (`pluribus.` → `no such service`).
 
 **Option B — Local Postgres**
 
@@ -32,11 +32,11 @@ curl -sS http://127.0.0.1:8123/readyz    # readiness (DB reachable + core schema
    ```bash
    make build
    ```
-   Produces: `controlplane`, **`pluribus-mcp`** (optional stdio MCP → HTTP compat; canonical MCP is **`POST /v1/mcp`** on the API — see [../docs/mcp-service-first.md](../docs/mcp-service-first.md), [cmd/pluribus-mcp/README.md](cmd/pluribus-mcp/README.md), [../docs/mcp-poc-contract.md](../docs/mcp-poc-contract.md)).
+   Produces: **`pluribus`**, **`pluribus-mcp`** (optional stdio MCP → HTTP compat; canonical MCP is **`POST /v1/mcp`** on the API — see [../docs/mcp-service-first.md](../docs/mcp-service-first.md), [cmd/pluribus-mcp/README.md](cmd/pluribus-mcp/README.md), [../docs/mcp-poc-contract.md](../docs/mcp-poc-contract.md)).
 
 3. **Start server**
    ```bash
-   ./controlplane          # :8123
+   ./pluribus          # :8123
    ```
 
 4. **Health checks**
@@ -45,7 +45,7 @@ curl -sS http://127.0.0.1:8123/readyz    # readiness (DB reachable + core schema
    ```
 ## Config
 
-Copy `configs/config.example.yaml` to `configs/config.local.yaml` (gitignored) and set `postgres.dsn`, `evidence.root_path`, and optionally `PLURIBUS_API_KEY` (HTTP API authentication) as needed; run with `CONFIG=configs/config.local.yaml ./controlplane`. The tracked `configs/config.yaml` is the Compose/Docker default (service hostnames `postgres` / `redis`). For LSP-based recall and drift (symbol overlap, reference-count risk), see [docs/lsp-features.md](docs/lsp-features.md). **Not** editor LSP: [../docs/pluribus-lsp-mcp-boundary.md](../docs/pluribus-lsp-mcp-boundary.md).
+Copy `configs/config.example.yaml` to `configs/config.local.yaml` (gitignored) and set `postgres.dsn`, `evidence.root_path`, and optionally `PLURIBUS_API_KEY` (HTTP API authentication) as needed; run with `CONFIG=configs/config.local.yaml ./pluribus`. The tracked `configs/config.yaml` is the Compose/Docker default (service hostnames `postgres` / `redis`). For LSP-based recall and drift (symbol overlap, reference-count risk), see [docs/lsp-features.md](docs/lsp-features.md). **Not** editor LSP: [../docs/lsp-mcp-boundary.md](../docs/lsp-mcp-boundary.md).
 
 Startup knobs:
 
@@ -73,12 +73,12 @@ Receipts and limitations: [../evidence/memory-proof.md](../evidence/memory-proof
 
 - **CI batch gate (repo root):** `make regression` — the **`recall-regression`** Compose stack spins up Postgres **without host ports**, runs `go test -tags=integration -count=1 ./...` inside a builder image, then `down -v` **only** that stack (does not tear down your dev `docker compose up` stack). GitHub Actions also runs **`go test ./...`** in **`control-plane/`** — see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 - **Package + handler tests:** `go test ./...`
-- **REST integration tests on a host-managed DB (optional):** `TEST_PG_DSN='postgres://.../controlplane?sslmode=disable' go test -tags=integration -v ./cmd/controlplane -run TestIntegration_rest` — config path defaults to `configs/config.example.yaml` from the module root (or set `CONFIG=/abs/path/to/your.yaml`). Integration tests skip if `TEST_PG_DSN` is unset.
-- **YAML proof scenarios (continuity / benefit receipts):** definitions in [`proof-scenarios/`](proof-scenarios/); suite `TestIntegration_proofScenarioSuite` runs inside **`make regression`**. Authoring: [`docs/proof-scenarios.md`](../docs/proof-scenarios.md). These complement **`make proof-rest`**; they do **not** replace it as the **canonical REST invariant harness** for the memory substrate.
+- **REST integration tests on a host-managed DB (optional):** `TEST_PG_DSN='postgres://.../pluribus?sslmode=disable' go test -tags=integration -v ./cm./pluribus -run TestIntegration_rest` — config path defaults to `configs/config.example.yaml` from the module root (or set `CONFIG=/abs/path/to/your.yaml`). Integration tests skip if `TEST_PG_DSN` is unset.
+- **YAML proof scenarios (continuity / benefit receipts):** definitions in [`proof-scenarios/`](proof-scenarios/); suite `TestIntegration_proofScenarioSuite` runs inside **`make regression`**. Authoring: [`docs/proof/scenarios.md`](../docs/proof/scenarios.md). These complement **`make proof-rest`**; they do **not** replace it as the **canonical REST invariant harness** for the memory substrate.
 
 ## Example workflow (memory-first)
 
-After first-run, **write memory**, **recall**, **enforce**, then optional curation. Use **tags** and **retrieval_query** to shape the situation; see [../docs/memory-doctrine.md](../docs/memory-doctrine.md) and [../docs/pluribus-memory-first-ontology.md](../docs/pluribus-memory-first-ontology.md).
+After first-run, **write memory**, **recall**, **enforce**, then optional curation. Use **tags** and **retrieval_query** to shape the situation; see [../docs/memory-doctrine.md](../docs/memory-doctrine.md) and [../docs/ontology.md](../docs/ontology.md).
 
 ```bash
 # 1) Write governing memory (shared pool)
@@ -118,7 +118,7 @@ curl -s -X POST http://localhost:8123/v1/drift/check -H 'Content-Type: applicati
 curl -s "http://localhost:8123/v1/curation/pending" | jq .
 ```
 
-**Curation digest (structured capture → materialize)** — `POST /v1/curation/digest` (optional `dry_run`; **`work_summary`** required), `POST /v1/curation/candidates/{id}/materialize`; config under `curation.digest_*` and `promotion.*`. See [../docs/curation-loop.md](../docs/curation-loop.md).
+**Curation digest (structured capture → materialize)** — `POST /v1/curation/digest` (optional `dry_run`; **`work_summary`** required), `POST /v1/curation/candidates/{id}/materialize`; config under `curation.digest_*` and `promotion.*`. See [../docs/curation/loop.md](../docs/curation/loop.md).
 
 ```bash
 curl -sS -X POST http://localhost:8123/v1/curation/digest -H 'Content-Type: application/json' \
@@ -127,7 +127,7 @@ curl -sS -X POST http://localhost:8123/v1/curation/digest -H 'Content-Type: appl
 
 **Pre-change enforcement** — `POST /v1/enforcement/evaluate`: compare a bounded **proposal** to **binding** trusted memory (high authority, non-advisory kinds); returns `allow` / `require_review` / `block` / `block_overrideable`. Not the same as **`/v1/drift/check`** (string heuristics + negative pattern overlap) or **`/v1/curation/evaluate`** (candidate salience). Config **`enforcement.*`** (RC1 default on; set **`enabled: false`** to disable). See [../docs/pre-change-enforcement.md](../docs/pre-change-enforcement.md).
 
-**Advisory episodic similarity (optional)** — `POST /v1/advisory-episodes` and `POST /v1/advisory-episodes/similar` (lexical + tag “similar cases”); **subordinate** to canonical recall. Config **`similarity.*`** (shipped default **on**; set **`enabled: false`** to disable). See [../docs/episodic-similarity.md](../docs/episodic-similarity.md). Automated REST proofs: embedded **`proof-episodic-*.json`** (`make proof-rest`) and **`make proof-episodic`** — [../evidence/episodic-proof.md](../evidence/episodic-proof.md).
+**Advisory episodic similarity (optional)** — `POST /v1/advisory-episodes` and `POST /v1/advisory-episodes/similar` (lexical + tag “similar cases”); **subordinate** to canonical recall. Config **`similarity.*`** (shipped default **on**; set **`enabled: false`** to disable). See [../docs/advisory/episodic-similarity.md](../docs/advisory/episodic-similarity.md). Automated REST proofs: embedded **`proof-episodic-*.json`** (`make proof-rest`) and **`make proof-episodic`** — [../evidence/episodic-proof.md](../evidence/episodic-proof.md).
 
 **LSP-backed recall (Phase 8)** — requires **`lsp.enabled: true`** in config and **gopls** available to the server for auto symbols / **`reference_count`**. See [docs/lsp-features.md](docs/lsp-features.md).
 
@@ -239,7 +239,7 @@ Optional **Phase 5.2–5.3** request fields (all off by default): **`merge_stric
 ```bash
 make build
 # Or build a single binary:
-go build -o controlplane ./cmd/controlplane
+go build -o controlplane ./cm./pluribus
 ```
 
 **Docker image** (from repo root, context `control-plane/`):
@@ -251,9 +251,9 @@ docker build -t recall-controlplane -f control-plane/Dockerfile control-plane
 ## Run
 
 ```bash
-CONFIG=configs/config.local.yaml ./controlplane
+CONFIG=configs/config.local.yaml ./pluribus
 # Or with the example config (no auth):
-./controlplane
+./pluribus
 ```
 
 Then: `curl http://localhost:8123/healthz`

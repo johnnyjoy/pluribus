@@ -1,13 +1,31 @@
 # Architecture — memory, recall, enforcement
 
-This document states how the **Recall / Pluribus** stack is shaped **when viewed through** [memory-doctrine.md](memory-doctrine.md). It is not a duplicate of every endpoint; it is the **structural story**.
+How the **Pluribus** stack is shaped when viewed through [memory-doctrine.md](memory-doctrine.md). Structural story — not every endpoint. **Wire map:** [http-api-index.md](http-api-index.md). **RC1 narrative:** [api-contract.md](api-contract.md).
+
+---
+
+## Public summary
+
+**Pluribus** (the **`pluribus`** service in Compose) is **governed, durable memory**: typed rows, **recall compilation** from a **shared pool**, **pre-change enforcement**, **curation** (digest → materialize), drift checks, and evidence links — **Postgres** + **HTTP**.
+
+**Memory-first:** durable memory is **not** owned by silos. **Tags** and **`retrieval_query`** describe the **situation**. Ontology: [ontology.md](ontology.md).
+
+| Access | Role |
+|--------|------|
+| **REST** `GET/POST /v1/*` | Any HTTP client |
+| **MCP over HTTP** `POST /v1/mcp` | Agents — tools, prompts, resources |
+| **Stdio** `pluribus-mcp` | **Compatibility only** — forwards to HTTP |
+
+Editor **LSP ≠ Pluribus** — see [lsp-mcp-boundary.md](lsp-mcp-boundary.md). Service-first details: [mcp-service-first.md](mcp-service-first.md).
+
+**Mechanics:** Write → Recall → Enforce → Curate. Proof receipts: [proof/README.md](proof/README.md).
 
 ---
 
 ## Global memory pool
 
-- **Durable memory** lives in the database (`memories` and related tables) behind the **control-plane** API.
-- The pool is **global** — not a set of isolated per-container truths.
+- **Durable memory** lives in Postgres (`memories` and related tables) behind the **pluribus** API.
+- The pool is **global** — not isolated per-container truths.
 - **Tags**, **kinds**, and **authority** are first-class; they replace “which silo am I in?” as the mental model.
 
 ---
@@ -51,29 +69,30 @@ There is **no** “search only inside container X” as the product contract.
 
 ---
 
-## Control-plane placement
+## Runtime placement
 
 - **HTTP** — canonical integration surface (`/v1/memory/*`, `/v1/recall/*`, `/v1/enforcement/*`, curation, evidence, …).
 - **MCP over HTTP** — `POST /v1/mcp` with tools and prompts aligned to the doctrine.
 - **Postgres** — authoritative durable store; **Redis** optional for cache where configured.
+- **Go module path** — still `control-plane/` (directory name); **binary / Compose service** — **`pluribus`**.
 
 ---
 
 ## Verification (REST-first)
 
-- **Proof of core behavior** is established at the **REST API** first: **`make proof-rest`** in `control-plane/` with **`TEST_PG_DSN`** (Postgres with **pgvector**, clean DB). See [evaluation.md](evaluation.md) and [evidence/memory-proof.md](../evidence/memory-proof.md).
-- **Episodic advisory and distillation** are covered by embedded **`proof-episodic-*.json`** (in **`proof-rest`**) and by **`make proof-episodic`** (adds sprint integration tests). See [evidence/episodic-proof.md](../evidence/episodic-proof.md) and [episodic-similarity.md](episodic-similarity.md).
-- **MCP** is tested as a **thin adapter** once REST behavior is locked; it is not a substitute for service-boundary proof.
-- **LSP**-assisted recall is **optional**; it does not define the memory contract.
-- **CI** runs a broader **`make regression`** gate (integration tests, including YAML proof scenarios); that complements but does not replace the **canonical REST proof harness** for substrate truth.
+- **Proof of core behavior** at **REST** first: **`make proof-rest`** in `control-plane/` with **`TEST_PG_DSN`**. See [evaluation.md](evaluation.md) and [evidence/memory-proof.md](../evidence/memory-proof.md).
+- **Episodic lane:** **`make proof-episodic`**. See [evidence/episodic-proof.md](../evidence/episodic-proof.md) and [advisory/episodic-similarity.md](advisory/episodic-similarity.md).
+- **MCP** is a **thin adapter** once REST behavior is locked.
+- **CI:** **`make regression`** complements REST proof (YAML scenarios under `control-plane/proof-scenarios/`).
 
 ---
 
 ## Related docs
 
-- [memory-doctrine.md](memory-doctrine.md)
-- [anti-regression.md](anti-regression.md)
-- [pluribus-public-architecture.md](pluribus-public-architecture.md)
-- [http-api-index.md](http-api-index.md) — canonical route + MCP map  
-- [api-contract.md](api-contract.md) — RC1 subset narrative  
-- [evaluation.md](evaluation.md) — **`make proof-rest`** and supporting targets
+| Doc | Purpose |
+|-----|---------|
+| [memory-doctrine.md](memory-doctrine.md) | Canonical product model |
+| [anti-regression.md](anti-regression.md) | Reviewer guardrails |
+| [http-api-index.md](http-api-index.md) | Full route + MCP map |
+| [evaluation.md](evaluation.md) | Proof commands |
+| [operate/guide.md](operate/guide.md) | Config, health, migrations |

@@ -16,8 +16,8 @@
 # Usage:
 #   PLURIBUS_DB_DSN=postgres://user:pass@host:5432/controlplane?sslmode=disable \
 #     ./scripts/upgrade-in-place.sh \
-#       --new-binary control-plane/out/controlplane \
-#       --install-path /usr/local/bin/controlplane \
+#       --new-binary control-plane/ou./pluribus \
+#       --install-path /usr/local/bi./pluribus \
 #       [--base-url http://127.0.0.1:8123] \
 #       [--stop-cmd 'systemctl stop pluribus'] [--start-cmd 'systemctl start pluribus'] \
 #       [--backup-dir ./backups] [--skip-smoke]
@@ -77,7 +77,7 @@ start_server() {
   if [[ -n "$START_CMD" ]]; then
     bash -c "$START_CMD"
   else
-    nohup "$INSTALL_PATH" >>"${BACKUP_DIR}/controlplane.log" 2>&1 &
+    nohup "$INSTALL_PATH" >>"${BACKUP_DIR./pluribus.log" 2>&1 &
   fi
 }
 

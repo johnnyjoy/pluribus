@@ -18,7 +18,7 @@ This document is a **frozen integrator narrative** for a **subset** of routes: h
 - **Public JSON** for **`POST /v1/recall/compile`**, **`POST /v1/enforcement/evaluate`**, and **`POST /v1/recall/run-multi`** matches the Go structs in `internal/recall/types.go` and `internal/enforcement/types.go`: there is **no** workspace/partition UUID, **`context_id`**, or **`target_id`** on those requests. Unknown top-level keys still produce **`400`** (`DisallowUnknownFields`).
 - **Correlation** on the wire is **tags**, **retrieval text** / **`retrieval_query`**, and optional **`agent_id`** where the struct allows it — not workspace rows. **`/v1/hives`** is **not** registered on the current router (see `internal/apiserver/router.go`); older writeups that reference it are historical.
 
-Canonical narrative: [pluribus-memory-first-ontology.md](pluribus-memory-first-ontology.md). Historical cutover notes: [archive/pluribus-semantic-cutover-report.md](archive/pluribus-semantic-cutover-report.md) (**archived**).
+Canonical narrative: [pluribus-memory-first-ontology.md](../ontology.md). Historical cutover notes: [archive/pluribus-semantic-cutover-report.md](archive/pluribus-semantic-cutover-report.md) (**archived**).
 
 ### Recall routes not fully specified here
 

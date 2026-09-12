@@ -8,7 +8,7 @@ FAIL=0
 GEN="$REPO_ROOT/integrations/generic-mcp"
 echo "== generic MCP pack =="
 
-for f in README.md examples.json rules.md skill.md skills/pluribus/SKILL.md; do
+for f in README.md examples.json skills/pluribus/SKILL.md; do
   [[ -f "$GEN/$f" ]] || { echo "missing $f" >&2; FAIL=1; }
 done
 

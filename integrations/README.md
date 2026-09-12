@@ -1,38 +1,30 @@
 # Integration packs (behavioral) — **Pluribus**
 
-**Pluribus** is the product surface agents connect to via MCP (or HTTP). **Canonical behavior:** [`pluribus-instructions.md`](pluribus-instructions.md) — mandatory **Pluribus** loop when tools are available:
+**Canonical behavior:** [`pluribus-instructions.md`](pluribus-instructions.md) — mandatory loop when MCP tools are available:
 
 ```text
 wakeup_context / recall_context
-  → housekeeping (resolve_chore + agent_id when chores exist)
+  → pool maintenance (resolve_chore + agent_id when chores exist)
   → plan → act → memory_feedback (when recall items mattered)
   → record_experience
 ```
 
-One copy in **`pluribus-instructions.md`**; platform packs wrap or point to it.
+**One copy in `pluribus-instructions.md`.** Platform folders ship **native install artifacts only** — README, templates, `skills/pluribus/SKILL.md`, MCP JSON. **`skill.md` / `rules.md`** are pointer stubs; do not duplicate loop text there.
 
-Each folder is a **Pluribus control surface**: **`rules.md`** (pointer + native path), **`skill.md`**, **`snippets/context-prime.txt`**, **`README.md`**, **`mcp-config.example.json`**, and optional **`skills/pluribus/`**. **Native** artifacts vary: e.g. **Cursor** — full pack in **`cursor/`** (`plugin-plan.md`, `prompts.md`, `commands.md`, `mcp-config.json`, `helper/`); prefer **user** Pluribus MCP + **user rules** + **`~/.cursor/skills/`**, with **`pluribus.mdc`** optional per-repo; **Continue** **`.continue/rules/pluribus.md`**, **VS Code** **`.github/copilot-instructions.md`**, **Claude Code** **`CLAUDE.md`**.
+| Platform | Folder |
+|----------|--------|
+| **Cursor** | [`cursor/`](cursor/) — `pluribus.mdc`, skills, MCP JSON |
+| **Claude Code** | [`claude-code/`](claude-code/) · plugin: [`claude-code-plugin/`](claude-code-plugin/) |
+| **Claude Desktop** | [`claude-desktop/`](claude-desktop/) |
+| **OpenClaw** | [`openclaw/`](openclaw/) |
+| **OpenCode** | [`opencode/`](opencode/) |
+| **Continue** | [`continue/`](continue/) |
+| **Zed** | [`zed/`](zed/) |
+| **VS Code** | [`vscode/`](vscode/) (extension + Copilot template) |
+| **Any MCP** | [`generic-mcp/`](generic-mcp/) |
 
-Skip a **Pluribus** step on substantive work → misconfigured client.
+**Doc hub (index only):** [docs/integrations/README.md](../docs/integrations/README.md)
 
-Hub index: **[docs/integrations/README.md](../docs/integrations/README.md)**. **Adoption & verification:** **[docs/integrations/usage.md](../docs/integrations/usage.md)** · **[docs/integrations/matrix.md](../docs/integrations/matrix.md)** (tiers).
+**Verify static packs:** `make verify-integrations-static`
 
-```
-integrations/
-  pluribus-instructions.md     ← canonical behavior block
-  cursor/          plugin-plan.md, prompts.md, commands.md, mcp-config.json,
-                     pluribus.mdc, rules.md, helper/,
-                     skills/pluribus/SKILL.md, README.md
-  claude-code/       CLAUDE.template.md (+ skills/pluribus/SKILL.md)
-  claude-desktop/    custom-instructions.template.md
-  openclaw/          policy.template.md
-  opencode/          AGENTS.template.md (+ skills/pluribus/SKILL.md)
-  continue/          rules/pluribus.md  → .continue/rules/pluribus.md
-  zed/               agent-context.template.md
-  vscode/            extension/ (TypeScript VS Code extension), github-copilot-instructions.template.md
-  .claude-plugin/    marketplace.json (Claude Code catalog → claude-code-plugin)
-  generic-mcp/       (+ examples.json, skills/pluribus/SKILL.md)
-  */snippets/context-prime.txt
-```
-
-**Never commit secrets.** Rename templates to your client’s expected paths.
+Skip a loop step on substantive work → misconfigured client, not a Pluribus bug.

@@ -24,7 +24,7 @@ This file is the **build-from-source** and **release-artifacts** reference.
 
 ```bash
 cd control-plane
-go build -o controlplane ./cmd/controlplane
+go build -o controlplane ./cm./pluribus
 ```
 
 ### 2. Build `pluribus-mcp`
@@ -104,7 +104,7 @@ This builds the `control-plane/Dockerfile` image and embeds the same `VERSION` t
 
 Published by CI to `ghcr.io/<owner>/pluribus` (multi-arch) — see:
 
-- [docs/pluribus-image-release-policy.md](docs/pluribus-image-release-policy.md)
+- [docs/release/images.md](docs/release/images.md)
 
 ### `pluribus-mcp` binaries (GitHub Releases)
 

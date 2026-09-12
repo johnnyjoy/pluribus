@@ -189,5 +189,5 @@ The distilled tag **`origin:mcp`** means the episode ingest channel was **`mcp`*
 
 - [anti-regression.md](anti-regression.md) — enforcement and review rules.
 - [architecture.md](architecture.md) — system shape aligned with this doctrine.
-- [pluribus-memory-first-ontology.md](pluribus-memory-first-ontology.md) — narrative companion (must stay consistent with this file).
+- [ontology.md](ontology.md) — narrative companion (must stay consistent with this file).
 - [episodic-similarity.md](episodic-similarity.md) — **advisory** episodic recall only (“what happened / when / involving whom”); subordinate to canonical memory and not enforcement truth.

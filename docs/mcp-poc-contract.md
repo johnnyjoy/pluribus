@@ -74,7 +74,7 @@ Used for **debugging, inspection, deeper control** — **never required** for La
 
 **Terminology:** advisory **`source`** is the **ingest channel**; **`pluribus_distill_origin`** on candidates is the **distill mode**. Wire JSON keys are unchanged — see [memory-doctrine.md](memory-doctrine.md) (Terminology).
 
-Shipped **`tools/list`** is defined in [`control-plane/internal/mcp/tools.go`](../control-plane/internal/mcp/tools.go). **`tools.go` is authoritative** for tool names; [http-api-index.md](http-api-index.md) maps routes to types and notes MCP coverage per route. Anything still **without** a tool is available via **direct HTTP** only. The **RC1 narrative subset** (examples for compile / enforcement / run-multi) is [api-contract.md](api-contract.md). Default agent path is **memory-first** (**tags** + **retrieval_query**) ([pluribus-memory-first-ontology.md](pluribus-memory-first-ontology.md)).
+Shipped **`tools/list`** is defined in [`control-plane/internal/mcp/tools.go`](../control-plane/internal/mcp/tools.go). **`tools.go` is authoritative** for tool names; [http-api-index.md](http-api-index.md) maps routes to types and notes MCP coverage per route. Anything still **without** a tool is available via **direct HTTP** only. The **RC1 narrative subset** (examples for compile / enforcement / run-multi) is [api-contract.md](api-contract.md). Default agent path is **memory-first** (**tags** + **retrieval_query**) ([pluribus-memory-first-ontology.md](../ontology.md)).
 
 | MCP tool | HTTP | Notes |
 |----------|------|--------|
@@ -124,7 +124,7 @@ Shipped **`tools/list`** is defined in [`control-plane/internal/mcp/tools.go`](.
 3. **Before risky proposal:** **`enforcement_evaluate`** (deterministic gate).
 4. **Optional deeper promotion (Layer 2):** **`curation_digest`** → inspect **`curation_pending`** / **`curation_review_candidate`** → **`curation_materialize`** when governance requires explicit promotion.
 
-**Ontology:** [pluribus-memory-first-ontology.md](pluribus-memory-first-ontology.md).
+**Ontology:** [pluribus-memory-first-ontology.md](../ontology.md).
 
 For examples and canon/advisory guidance, see [mcp-discipline-doctrine.md](mcp-discipline-doctrine.md).
 
@@ -189,13 +189,13 @@ Each tool returns **text content** whose `text` is the **raw HTTP response body*
 
 ## Deployment
 
-See [deployment-poc.md](deployment-poc.md) for compose, DB initialization, and ports.
+See [deployment-poc.md](../archive/deployment-poc.md) for compose, DB initialization, and ports.
 
 ---
 
 ## HTTP MCP (preferred)
 
-With **controlplane** listening (e.g. `:8123`), send JSON-RPC to **`POST /v1/mcp`**, header **`Content-Type: application/json`**, optional **`X-API-Key`**. Single request or batch array. Example **`initialize`**:
+With **pluribus** listening (e.g. `:8123`), send JSON-RPC to **`POST /v1/mcp`**, header **`Content-Type: application/json`**, optional **`X-API-Key`**. Single request or batch array. Example **`initialize`**:
 
 ```bash
 curl -sS -X POST http://127.0.0.1:8123/v1/mcp \

@@ -166,7 +166,7 @@ From **repo root** (if Makefile exists):
 make regression
 ```
 
-**Expect:** **`go test ./...`** passes. **`make regression`** requires Docker and **`TEST_PG_DSN`** per project docs — follow **`INSTALL.md`** / **`docs/pluribus-operational-guide.md`** if used.
+**Expect:** **`go test ./...`** passes. **`make regression`** requires Docker and **`TEST_PG_DSN`** per project docs — follow **`INSTALL.md`** / **`docs/operate/guide.md`** if used.
 
 ---
 

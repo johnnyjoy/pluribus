@@ -26,7 +26,7 @@ PLURIBUS_HOME=/path/to/pluribus
 PLURIBUS_BACKUP_DIR=/path/to/backups/pluribus-YYYYMMDD
 PLURIBUS_DB_DSN=postgres://USER:PASSWORD@HOST:5432/controlplane?sslmode=disable
 PLURIBUS_OLD_VERSION=<your-current-version>
-PLURIBUS_NEW_VERSION=$(cd "$PLURIBUS_HOME" && ./control-plane/controlplane --version | head -1)
+PLURIBUS_NEW_VERSION=$(cd "$PLURIBUS_HOME" && ./control-plane/pluribus --version | head -1)
 CONFIG=${CONFIG:-$PLURIBUS_HOME/control-plane/configs/config.local.yaml}
 PLURIBUS_BASE_URL=http://127.0.0.1:8123
 PLURIBUS_API_KEY=<your-key-if-auth-enabled>
@@ -58,7 +58,7 @@ Follow [local-server-backup-rollback.md](local-server-backup-rollback.md).
 cd "$PLURIBUS_HOME"
 git fetch && git checkout <release-commit>   # or use your packaging process
 make build
-./control-plane/controlplane --version
+./control-plane/pluribus --version
 ./scripts/build-proof.sh
 ```
 

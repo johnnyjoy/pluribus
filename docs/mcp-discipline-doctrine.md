@@ -6,7 +6,7 @@ Goal: make correct behavior likely without turning MCP into a hidden workflow en
 
 ## Product stance
 
-**Pluribus is a global memory system.** Request JSON must match the **`json` tags** on the Go structs for each route ([http-api-index.md](http-api-index.md)). [api-contract.md](api-contract.md) documents a **subset** with narrative examples — not every field on every route. Mental model: [pluribus-memory-first-ontology.md](pluribus-memory-first-ontology.md).
+**Pluribus is a global memory system.** Request JSON must match the **`json` tags** on the Go structs for each route ([http-api-index.md](http-api-index.md)). [api-contract.md](api-contract.md) documents a **subset** with narrative examples — not every field on every route. Mental model: [pluribus-memory-first-ontology.md](../ontology.md).
 
 ## Core stance
 

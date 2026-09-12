@@ -99,7 +99,7 @@ None identified for MCP tool names or REST paths. Phase 11 HTTP hard reject (400
 ## Verification
 
 ```bash
-make build && ./control-plane/controlplane --version
+make build && ./control-plane/pluribus --version
 ./scripts/migration-dry-run.sh
 make regression   # maintainer gate
 ```

@@ -1,6 +1,6 @@
 # LSP features (Tasks 100–101; recall enrichment)
 
-> **Boundary:** These features use an **LSP client to gopls inside the control-plane process**. Pluribus is **not** an LSP server for the editor. Cursor and other editors keep using **gopls** locally; agent integration stays **MCP/HTTP**. See [Pluribus — LSP vs MCP boundary](../../docs/pluribus-lsp-mcp-boundary.md).
+> **Boundary:** These features use an **LSP client to gopls inside the control-plane process**. Pluribus is **not** an LSP server for the editor. Cursor and other editors keep using **gopls** locally; agent integration stays **MCP/HTTP**. See [Pluribus — LSP vs MCP boundary](../../docs/lsp-mcp-boundary.md).
 
 The control-plane can use LSP (Language Server Protocol) data to improve **recall** (symbol-overlap scoring, optional auto symbols and **`reference_count`**) and **drift** (reference-count risk). These features are gated by config so you can enable or disable them without code changes. **Quick curls:** [README §Recall](../README.md) (LSP-backed recall examples).
 

@@ -9,11 +9,11 @@ Intended for clones, contributors, operators, and integrators.
 | Category | Examples | Index |
 |----------|----------|-------|
 | Product doctrine | [memory-doctrine.md](memory-doctrine.md), [product-doctrine.md](product-doctrine.md) | [README.md](README.md) |
-| Agent contract | [agent-facing-memory-contract.md](agent-facing-memory-contract.md), Phase 11 telemetry/utility docs | README § Phase 11 |
+| Agent contract | [agent-contract/contract.md](agent-contract/contract.md), Phase 11 telemetry/utility docs | README § Agent contract |
 | Wire truth | [http-api-index.md](http-api-index.md), [rest-test-matrix.md](rest-test-matrix.md) | README § Public release |
-| Operator | [pluribus-operational-guide.md](pluribus-operational-guide.md), [local-server-upgrade-runbook.md](local-server-upgrade-runbook.md) | README |
+| Operator | [operate/guide.md](operate/guide.md), [local-server-upgrade-runbook.md](local-server-upgrade-runbook.md) | README |
 | Integrations | [integrations/](integrations/) — Cursor, Claude, generic MCP | [integrations/README.md](integrations/README.md) |
-| Proof receipts | [pluribus-proof-index.md](pluribus-proof-index.md), [evaluation.md](evaluation.md) | Proof index |
+| Proof receipts | [proof/README.md](proof/README.md), [evaluation.md](evaluation.md) | Proof index |
 | Historical product | [archive/](archive/) — bannered **ARCHIVED**, not active truth | README § Archived |
 
 **Rule:** If a stranger clones the repo and needs it to run, adopt, or integrate Pluribus — it belongs here.
@@ -59,4 +59,4 @@ These stay on your machine and are listed in [`.gitignore`](../.gitignore):
 | `archive/` | Historical memory-bank (not active truth) |
 | `docs/reports/`, `docs/local/*` | Phase audits and editor workflows |
 | `artifacts/*-benchmark.json`, `artifacts/agent-*.json`, … | Regenerated proof outputs (`make proof-*`) |
-| `control-plane/controlplane`, `control-plane/pluribus-mcp` | Built binaries (`make build`) |
+| `control-plane/pluribus`, `control-plane/pluribus-mcp` | Built binaries (`make build`) |

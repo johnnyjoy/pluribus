@@ -97,13 +97,13 @@ func TestMemoryDoctrine_onboardingMarkdownAndREADME(t *testing.T) {
 	paths := []string{
 		filepath.Join(root, "README.md"),
 		filepath.Join(root, "CONTRIBUTING.md"),
+		filepath.Join(root, "docs", "get-started.md"),
 		filepath.Join(root, "docs", "architecture.md"),
-		filepath.Join(root, "docs", "pluribus-quickstart.md"),
+		filepath.Join(root, "docs", "guides", "quickstart-lab.md"),
 		filepath.Join(root, "docs", "mcp-usage.md"),
 		filepath.Join(root, "docs", "http-api-index.md"),
 		filepath.Join(root, "docs", "rest-test-matrix.md"),
-		filepath.Join(root, "docs", "curation-loop.md"),
-		filepath.Join(root, "docs", "control-plane-design-and-starter.md"),
+		filepath.Join(root, "docs", "curation", "loop.md"),
 		filepath.Join(root, "control-plane", "README.md"),
 	}
 	for _, p := range paths {
@@ -161,7 +161,7 @@ func TestMemoryDoctrine_resourcesGoEmbeddedMarkdown(t *testing.T) {
 
 func TestMemoryDoctrine_quickstartsRecallExampleShape(t *testing.T) {
 	root := recallRepositoryRoot(t)
-	for _, doc := range []string{"docs/pluribus-quickstart.md"} {
+	for _, doc := range []string{"docs/guides/quickstart-lab.md"} {
 		p := filepath.Join(root, doc)
 		body := readFile(t, p)
 		if !strings.Contains(body, "retrieval_query") || !strings.Contains(body, `"tags"`) {

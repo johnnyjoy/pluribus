@@ -3,7 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ARTIFACT="${ROOT}/artifacts/local-upgrade-build-proof.json"
-BIN_CP="${ROOT}/control-plane/controlplane"
+BIN_CP="${ROOT}/control-plane/pluribus"
 BIN_MCP="${ROOT}/control-plane/pluribus-mcp"
 mkdir -p "${ROOT}/artifacts"
 

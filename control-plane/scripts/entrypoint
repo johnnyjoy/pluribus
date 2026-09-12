@@ -11,6 +11,6 @@ if [ ! -f "$CONFIG" ]; then
 	exit 1
 fi
 
-echo "startup: controlplane entrypoint begin (CONFIG=$CONFIG)"
-echo "startup: launching /usr/local/bin/controlplane (DB wait + baseline SQL replay in app.Boot — not a versioned DB upgrade)"
-exec /usr/local/bin/controlplane
+echo "startup: pluribus entrypoint begin (CONFIG=$CONFIG)"
+echo "startup: launching /usr/local/bin/pluribus (DB wait + baseline SQL replay in app.Boot — not a versioned DB upgrade)"
+exec /usr/local/bin/pluribus

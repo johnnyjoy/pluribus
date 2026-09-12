@@ -51,6 +51,7 @@ control-plane/configs/config.local.yaml
 control-plane/toolapi
 
 # Built binaries (regenerate: `make build` from repo root or control-plane/)
+control-plane/pluribus
 control-plane/controlplane
 control-plane/pluribus-mcp
 

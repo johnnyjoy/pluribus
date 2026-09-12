@@ -16,12 +16,12 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath \
 	-ldflags="-s -w -X control-plane/internal/buildinfo.Version=${VERSION} -X control-plane/internal/buildinfo.GitCommit=${VERSION}" \
-	-o /out/controlplane ./cmd/controlplane
+	-o /out/pluribus ./cmd/controlplane
 
 FROM alpine:3.19
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /
-COPY --from=build /out/controlplane /usr/local/bin/controlplane
+COPY --from=build /out/pluribus /usr/local/bin/pluribus
 COPY scripts/entrypoint /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint
 # Reference only — not loaded unless copied/mounted. Compose must mount a real config

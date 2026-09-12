@@ -27,7 +27,7 @@ command -v pg_restore >/dev/null || { echo "FAIL: pg_restore not found" >&2; exi
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$OUT_DIR"
-DUMP="$OUT_DIR/controlplane-$STAMP.dump"
+DUMP="$OUT_DI./pluribus-$STAMP.dump"
 
 MEM_COUNT="$(psql "$DSN" -Atc 'SELECT COUNT(*) FROM memories;' 2>/dev/null || echo 'unknown')"
 

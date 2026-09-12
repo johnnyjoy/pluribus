@@ -41,7 +41,7 @@ services:
       timeout: 3s
       retries: 5
 
-  controlplane:
+  pluribus:
     restart: unless-stopped
     image: ${PLURIBUS_IMAGE:?Set PLURIBUS_IMAGE in .env or use --env-file pluribus.install.env.example}
     ports:

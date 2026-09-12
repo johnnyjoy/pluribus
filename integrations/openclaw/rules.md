@@ -1,4 +1,1 @@
-# Pluribus — rules pointer
-
-- **Canonical behavior:** [`pluribus-instructions.md`](../pluribus-instructions.md)  
-- **OpenClaw:** pin **`policy.template.md`** in gateway policy / system prompt; append **`snippets/context-prime.txt`**.
+> **Pointer only — do not duplicate rules here.** Canonical behavior: [`pluribus-instructions.md`](../pluribus-instructions.md). Install steps: [README.md](README.md).

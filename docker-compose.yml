@@ -1,8 +1,8 @@
 # Recall stack — one command from repo root:
 #   docker compose up -d
-# Starts: postgres, redis, controlplane (:8123). Migrations run when controlplane starts.
+# Starts: postgres, redis, pluribus (:8123). Migrations run when pluribus starts.
 # Runtime config: control-plane/configs/config.yaml is mounted into the container (not baked
-# into the image). Edit on the host, then restart controlplane to apply.
+# into the image). Edit on the host, then restart pluribus to apply.
 #
 # Databases only (run controlplane on the host instead):
 #   docker compose up -d postgres redis
@@ -46,7 +46,7 @@ services:
       timeout: 3s
       retries: 5
 
-  controlplane:
+  pluribus:
     restart: unless-stopped
     build:
       context: ./control-plane

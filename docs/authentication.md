@@ -58,5 +58,5 @@ MCP over HTTP direct calls should include the same API key header (or MCP token 
 ## Where auth is defined
 
 - Contract-level behavior: [api-contract.md](api-contract.md) (subset) + full route map [http-api-index.md](http-api-index.md)
-- Operational notes: `docs/pluribus-operational-guide.md`
+- Operational notes: `docs/operate/guide.md`
 - Build/run notes: `BUILD.md`

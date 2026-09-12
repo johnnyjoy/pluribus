@@ -44,11 +44,11 @@ PG_CONTAINER="pluribus-upgrade-e2e-$$"
 PG_PORT="$(( 20000 + RANDOM % 20000 ))"
 HTTP_PORT="$(( 20000 + RANDOM % 20000 ))"
 BASE_URL="http://127.0.0.1:${HTTP_PORT}"
-DSN="postgres://controlplane:controlplane@127.0.0.1:${PG_PORT}/controlplane?sslmode=disable"
+DSN="postgres://controlplane:controlplane@127.0.0.1:${PG_PORT./pluribus?sslmode=disable"
 
 cleanup() {
   local code=$?
-  pkill -f "^$WORK/install/controlplane" 2>/dev/null || true
+  pkill -f "^$WORK/instal./pluribus" 2>/dev/null || true
   docker rm -f "$PG_CONTAINER" >/dev/null 2>&1 || true
   if [[ "$KEEP" -ne 1 ]]; then rm -rf "$WORK"; else echo "kept workdir: $WORK"; fi
   exit $code
@@ -68,9 +68,9 @@ for i in $(seq 1 30); do
 done
 
 echo "== 2. Build + install binary"
-( cd "$REPO_ROOT/control-plane" && go build -o "$WORK/controlplane-v1" ./cmd/controlplane )
+( cd "$REPO_ROOT/control-plane" && go build -o "$WOR./pluribus-v1" ./cm./pluribus )
 mkdir -p "$WORK/install" "$WORK/backups"
-cp "$WORK/controlplane-v1" "$WORK/install/controlplane"
+cp "$WOR./pluribus-v1" "$WORK/instal./pluribus"
 
 cat > "$WORK/config.yaml" <<EOF
 server:
@@ -81,8 +81,8 @@ EOF
 
 # Anchored pattern: match only the server process itself, not scripts that
 # carry the install path in their argument list (e.g. upgrade-in-place.sh).
-start_server_cmd="CONFIG=$WORK/config.yaml nohup $WORK/install/controlplane >> $WORK/server.log 2>&1 & sleep 1"
-stop_server_cmd="pkill -f '^$WORK/install/controlplane' || true; sleep 1"
+start_server_cmd="CONFIG=$WORK/config.yaml nohup $WORK/instal./pluribus >> $WORK/server.log 2>&1 & sleep 1"
+stop_server_cmd="pkill -f '^$WORK/instal./pluribus' || true; sleep 1"
 
 echo "== 3. Start server + seed ${SEED_COUNT} memories"
 bash -c "$start_server_cmd"
@@ -104,10 +104,10 @@ PRE_COUNT="$(psql "$DSN" -Atc 'SELECT COUNT(*) FROM memories;')"
 echo "seeded ${#SEEDED_IDS[@]} memories (table count: $PRE_COUNT)"
 
 echo "== 4. In-place upgrade with a new build"
-( cd "$REPO_ROOT/control-plane" && go build -o "$WORK/controlplane-v2" ./cmd/controlplane )
+( cd "$REPO_ROOT/control-plane" && go build -o "$WOR./pluribus-v2" ./cm./pluribus )
 PLURIBUS_DB_DSN="$DSN" "$SCRIPT_DIR/upgrade-in-place.sh" \
-  --new-binary "$WORK/controlplane-v2" \
-  --install-path "$WORK/install/controlplane" \
+  --new-binary "$WOR./pluribus-v2" \
+  --install-path "$WORK/instal./pluribus" \
   --base-url "$BASE_URL" \
   --backup-dir "$WORK/backups" \
   --stop-cmd "$stop_server_cmd" \

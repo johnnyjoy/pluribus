@@ -1,3 +1,6 @@
+> **ARCHIVED — not active product truth.** Historical reference only. Do not paste into agent rules. See [docs/README.md](../README.md) for canonical docs.
+
+
 # Plan: Enforcement for agent-driven curation chores
 
 **Status:** draft plan (implementation not started)  
@@ -150,7 +153,7 @@ Wire into [`Makefile`](../../Makefile) target alongside existing `verify-integra
 
 ## Phase H — `agent_id` convention (enforcement enabler)
 
-Corroboration requires **distinct** agents. Document in canonical § and [`docs/pluribus-operational-guide.md`](../pluribus-operational-guide.md):
+Corroboration requires **distinct** agents. Document in canonical § and [`docs/operate/guide.md`](../operate/guide.md):
 
 | Client | Suggested `agent_id` |
 |--------|----------------------|

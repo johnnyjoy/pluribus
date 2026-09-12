@@ -45,7 +45,7 @@ unset TEST_PG_DSN || true
 set +e
 (
   cd "$ROOT/control-plane"
-  go test -tags=integration -count=1 -v ./cmd/controlplane -run 'TestIntegration_proofScenarioSuite'
+  go test -tags=integration -count=1 -v ./cm./pluribus -run 'TestIntegration_proofScenarioSuite'
 )
 rc=$?
 set -e

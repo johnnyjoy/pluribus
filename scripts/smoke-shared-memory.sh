@@ -94,7 +94,7 @@ if [[ "$consolidated" == "true" ]]; then
           and ((.statement // "") | ascii_downcase | contains("sqlite"))
         )] | length
   ')"
-  echo "  note — consolidated write: recall checks Postgres/SQLite constraint text, not unique marker (see docs/proof-scenarios.md honesty contract)"
+  echo "  note — consolidated write: recall checks Postgres/SQLite constraint text, not unique marker (see docs/proof/scenarios.md honesty contract)"
 else
   found="$(echo "$bundle" | jq -r --arg m "$MARKER" --arg id "$mem_id" '
     [.governing_constraints[]?, .decisions[]?, .known_failures[]?, .applicable_patterns[]?]

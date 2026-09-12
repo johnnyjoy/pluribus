@@ -56,7 +56,7 @@ Evaluates a **bounded proposal** (text + optional intent/tags) against **binding
 
 ## Automated proof (integration)
 
-With **`TEST_PG_DSN`** set, **`go test -tags=integration ./cmd/controlplane -run TestIntegration_enforcementEvaluate_postgresVsSqlite`** exercises **`POST /v1/enforcement/evaluate`** against real Postgres (binding constraint → **`block`** / **`normative_conflict`**; unrelated proposal → **`allow`**). **`make regression`** runs this in Docker.
+With **`TEST_PG_DSN`** set, **`go test -tags=integration ./cm./pluribus -run TestIntegration_enforcementEvaluate_postgresVsSqlite`** exercises **`POST /v1/enforcement/evaluate`** against real Postgres (binding constraint → **`block`** / **`normative_conflict`**; unrelated proposal → **`allow`**). **`make regression`** runs this in Docker.
 
 ## Proof scenario (manual)
 

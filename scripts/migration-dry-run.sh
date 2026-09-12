@@ -58,7 +58,7 @@ docker exec "$CID" pg_isready -U controlplane -d controlplane >/dev/null 2>&1 ||
   exit 1
 }
 
-export TEST_PG_DSN="postgres://controlplane:controlplane@127.0.0.1:${PORT}/controlplane?sslmode=disable"
+export TEST_PG_DSN="postgres://controlplane:controlplane@127.0.0.1:${PORT./pluribus?sslmode=disable"
 export SCHEMA_PROOF_JSON="$ARTIFACT"
 
 cd "${ROOT}/control-plane"

@@ -10,7 +10,7 @@ Pluribus is most effective when used in a **before/after loop**: **recall** befo
 
 ## Prerequisites
 
-1. **Control-plane is running** and reachable (e.g. `docker compose up -d` from the repo root → `http://127.0.0.1:8123`). Check [pluribus-quickstart.md](pluribus-quickstart.md).
+1. **Control-plane is running** and reachable (e.g. `docker compose up -d` from the repo root → `http://127.0.0.1:8123`). Check [guides/quickstart-lab.md](../guides/quickstart-lab.md).
 2. Know whether **API auth** is on: if the server has **`PLURIBUS_API_KEY`** set, every MCP client must send that value (see [authentication.md](authentication.md)). If unset, you can omit headers.
 
 ---
@@ -98,7 +98,7 @@ If your Claude Desktop build documents **URL-based** MCP servers, you can try th
 
 ### OpenCode
 
-OpenCode reads MCP servers from **`mcp`** in **`opencode.json`** (per-repo file) or **`~/.config/opencode/opencode.json`**. Prefer **remote** HTTP to the control plane; set **`oauth": false`** so OpenCode does not treat Pluribus as OAuth MCP. Copy **[integrations/opencode/mcp-config.example.json](../integrations/opencode/mcp-config.example.json)** and merge; add **`headers.X-API-Key`** with **`{env:PLURIBUS_API_KEY}`** when the server uses **`PLURIBUS_API_KEY`**. **Local stdio** is supported via **`type": "local"`** and the **`pluribus-mcp`** binary—see [integrations/opencode.md](integrations/opencode.md) and [OpenCode MCP servers](https://dev.opencode.ai/docs/mcp-servers).
+OpenCode reads MCP servers from **`mcp`** in **`opencode.json`** (per-repo file) or **`~/.config/opencode/opencode.json`**. Prefer **remote** HTTP to the control plane; set **`oauth": false`** so OpenCode does not treat Pluribus as OAuth MCP. Copy **[integrations/opencode/mcp-config.example.json](../integrations/opencode/mcp-config.example.json)** and merge; add **`headers.X-API-Key`** with **`{env:PLURIBUS_API_KEY}`** when the server uses **`PLURIBUS_API_KEY`**. **Local stdio** is supported via **`type": "local"`** and the **`pluribus-mcp`** binary—see [integrations/opencode/README.md](../integrations/opencode/README.md) and [OpenCode MCP servers](https://dev.opencode.ai/docs/mcp-servers).
 
 ### VS Code, Zed, Windsurf, and other editors
 
@@ -129,7 +129,7 @@ MCP is the **agent** control interface for:
 - durable writes (`memory_create`, `memory_promote`) and curation (`curation_digest`, `curation_materialize`)
 - **memory formation (advisory only):** **`record_experience`** / **`mcp_episode_ingest`** → `POST /v1/advisory-episodes` with ingest channel **`source: mcp`**; visibility into candidates (`curation_pending`, `curation_promotion_suggestions`, `curation_strengthened`)
 
-It is **not** the editor Go language server — **gopls** stays local. See [pluribus-lsp-mcp-boundary.md](pluribus-lsp-mcp-boundary.md).
+It is **not** the editor Go language server — **gopls** stays local. See [lsp-mcp-boundary.md](lsp-mcp-boundary.md).
 
 ### Memory formation (experience → episode → candidate)
 
@@ -156,7 +156,7 @@ Regression coverage for **memory formation through MCP** uses the **same** **`PO
 5. **Curate** — **`memory_feedback`** when recalled items helped or misled (no vote is neutral).
 6. **Learn** — after meaningful work, **`record_experience`** (or **`mcp_episode_ingest`** / opportunistic **`memory_log_if_relevant`**); optional governed path `curation_digest` → review → `curation_materialize`.
 
-Tool **`arguments`** must match the same JSON as the underlying REST body or GET query mapping ([http-api-index.md](http-api-index.md), Go `json` tags). They do **not** define where memory lives. See [pluribus-memory-first-ontology.md](pluribus-memory-first-ontology.md).
+Tool **`arguments`** must match the same JSON as the underlying REST body or GET query mapping ([http-api-index.md](http-api-index.md), Go `json` tags). They do **not** define where memory lives. See [ontology.md](../ontology.md).
 
 **Prompts (embedded):** `pluribus_memory_grounding`, `pluribus_pre_change_enforcement`, `pluribus_memory_curation`, `pluribus_canon_vs_advisory` — names in `control-plane/internal/mcp/prompts.go`.
 
@@ -230,4 +230,4 @@ Operator receipt sequence: [control-plane/proof-scenarios/functional-quality-wor
 - [mcp-poc-contract.md](mcp-poc-contract.md)
 - [curation-loop.md](curation-loop.md)
 - [pre-change-enforcement.md](pre-change-enforcement.md)
-- [proof-scenarios.md](proof-scenarios.md)
+- [proof-scenarios.md](../proof/scenarios.md)
