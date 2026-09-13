@@ -26,6 +26,9 @@ func TestPopulateAgentGrounding_fromGroupedSlices(t *testing.T) {
 	if !strings.Contains(b.AgentGrounding.Formatted, "Continuity:") || !strings.Contains(b.AgentGrounding.Formatted, "Use POST") {
 		t.Fatalf("formatted: %q", b.AgentGrounding.Formatted)
 	}
+	if !strings.Contains(b.AgentGrounding.Formatted, "[1] Use POST") {
+		t.Fatalf("formatted must prefix usable id: %q", b.AgentGrounding.Formatted)
+	}
 }
 
 func TestPopulateAgentGrounding_fallbackBuckets(t *testing.T) {

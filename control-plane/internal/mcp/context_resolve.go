@@ -258,17 +258,12 @@ func execMemoryContextResolve(client *http.Client, base, apiKey string, argument
 		"mcp_context":   meta,
 		"recall_bundle": bundle,
 	}
-	out, err := json.Marshal(wrap)
-	if err != nil {
-		return ToolResultErr(err.Error())
-	}
-	// MCP spec only allows text/image/audio/resource_link/resource content types.
-	// Serialized JSON goes in the text block; structuredContent carries the object.
+	// Text is the curatable surface (grounding + ids + hints). Full dump stays in structuredContent.
 	return map[string]any{
 		"content": []map[string]any{
 			{
 				"type": "text",
-				"text": string(out),
+				"text": formatRecallAgentText(bundle, meta),
 			},
 		},
 		"structuredContent": wrap,
@@ -360,9 +355,12 @@ func execMemoryLogIfRelevant(client *http.Client, base, apiKey string, arguments
 }
 
 type recallItemLite struct {
+	ID            string             `json:"id"`
 	Statement     string             `json:"statement"`
 	Justification *justificationLite `json:"justification,omitempty"`
 }
+
+const mcpCurateHint = "These are candidate memories you can use. Apply only the items that constrain this task (constraints, decisions, failures). After you use one, pass its id as used_memory_ids on record_experience."
 
 type justificationLite struct {
 	Reason string `json:"reason"`
@@ -397,6 +395,11 @@ func enrichMCPContextFromRecallBundle(meta map[string]any, bundle json.RawMessag
 		}
 	}
 	meta["bundle_counts"] = counts
+	ids := collectCandidateMemoryIDs(raw)
+	if len(ids) > 0 {
+		meta["candidate_memory_ids"] = ids
+	}
+	meta["curate_hint"] = mcpCurateHint
 	if total == 0 {
 		meta["why_now"] = "No memories matched this situation in the pool yet; episodic ingest strengthens the next recall."
 		return
@@ -451,8 +454,8 @@ func enrichMCPContextFromRecallBundle(meta map[string]any, bundle json.RawMessag
 const (
 	mcpDecisionHintAlways      = "Use this context before making changes or repeating similar work."
 	mcpRelevanceHintStrong     = "Prior decisions or patterns may affect this task."
-	mcpAfterWorkHintWeakPool   = "No strong prior memory found. Consider recording the outcome after completing this task."
-	mcpAfterWorkHintStrongPool = "After completing meaningful work, consider recording the outcome."
+	mcpAfterWorkHintWeakPool   = "No strong prior memory found. After meaningful work, record_experience; include used_memory_ids for any memories you kept and used."
+	mcpAfterWorkHintStrongPool = "After completing meaningful work, record_experience and pass used_memory_ids for memories you kept and used."
 )
 
 // bundleCountTotal sums bundle_counts from enrichMCPContextFromRecallBundle (0 if missing or unparseable).
@@ -497,4 +500,146 @@ func applyMCPRecallBehaviorHints(meta map[string]any) {
 		return
 	}
 	meta["after_work_hint"] = mcpAfterWorkHintWeakPool
+}
+
+var candidateIDBucketKeys = []string{
+	"governing_constraints", "known_failures", "applicable_patterns",
+	"decisions", "constraints", "continuity", "experience",
+}
+
+func collectCandidateMemoryIDs(raw map[string]json.RawMessage) []string {
+	seen := map[string]struct{}{}
+	var out []string
+	for _, k := range candidateIDBucketKeys {
+		v, ok := raw[k]
+		if !ok {
+			continue
+		}
+		var items []recallItemLite
+		if json.Unmarshal(v, &items) != nil {
+			continue
+		}
+		for _, it := range items {
+			id := strings.TrimSpace(it.ID)
+			if id == "" {
+				continue
+			}
+			if _, dup := seen[id]; dup {
+				continue
+			}
+			seen[id] = struct{}{}
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func formatRecallAgentText(bundle json.RawMessage, meta map[string]any) string {
+	var sb strings.Builder
+	if h, ok := meta["curate_hint"].(string); ok && strings.TrimSpace(h) != "" {
+		sb.WriteString(h)
+	} else {
+		sb.WriteString(mcpCurateHint)
+	}
+	sb.WriteByte('\n')
+	if h, ok := meta["after_work_hint"].(string); ok && strings.TrimSpace(h) != "" {
+		sb.WriteString(h)
+		sb.WriteByte('\n')
+	}
+	sb.WriteByte('\n')
+	formatted := extractAgentGroundingFormatted(bundle)
+	if fromItems := formatGroundingFromBundleItems(bundle); strings.Contains(fromItems, "[") {
+		// Prefer id-prefixed bullets so the agent can use and later upvote a specific memory.
+		formatted = fromItems
+	} else if formatted == "" {
+		formatted = fromItems
+	}
+	if formatted == "" {
+		sb.WriteString("(none)\n")
+	} else {
+		sb.WriteString(formatted)
+		if !strings.HasSuffix(formatted, "\n") {
+			sb.WriteByte('\n')
+		}
+	}
+	return strings.TrimSpace(sb.String())
+}
+
+// formatGroundingFromBundleItems builds id-prefixed bullets when agent_grounding.formatted is missing or stale.
+func formatGroundingFromBundleItems(bundle json.RawMessage) string {
+	var raw map[string]json.RawMessage
+	if json.Unmarshal(bundle, &raw) != nil {
+		return ""
+	}
+	var sb strings.Builder
+	write := func(title string, keys ...string) {
+		var items []recallItemLite
+		seen := map[string]struct{}{}
+		for _, k := range keys {
+			v, ok := raw[k]
+			if !ok {
+				continue
+			}
+			var more []recallItemLite
+			if json.Unmarshal(v, &more) != nil {
+				continue
+			}
+			for _, it := range more {
+				key := strings.TrimSpace(it.ID)
+				if key == "" {
+					key = strings.TrimSpace(it.Statement)
+				}
+				if key == "" {
+					continue
+				}
+				if _, dup := seen[key]; dup {
+					continue
+				}
+				seen[key] = struct{}{}
+				items = append(items, it)
+			}
+		}
+		sb.WriteString(title)
+		sb.WriteString(":\n")
+		if len(items) == 0 {
+			sb.WriteString("(none)\n")
+			return
+		}
+		for _, it := range items {
+			st := strings.TrimSpace(it.Statement)
+			if st == "" {
+				continue
+			}
+			sb.WriteString("- ")
+			if id := strings.TrimSpace(it.ID); id != "" {
+				sb.WriteByte('[')
+				sb.WriteString(id)
+				sb.WriteString("] ")
+			}
+			sb.WriteString(st)
+			sb.WriteByte('\n')
+		}
+	}
+	write("Continuity", "continuity", "decisions")
+	write("Constraints", "constraints", "governing_constraints", "known_failures")
+	write("Experience", "experience", "applicable_patterns")
+	return strings.TrimSpace(sb.String())
+}
+
+func extractAgentGroundingFormatted(bundle json.RawMessage) string {
+	var raw map[string]json.RawMessage
+	if json.Unmarshal(bundle, &raw) != nil {
+		return ""
+	}
+	v, ok := raw["agent_grounding"]
+	if !ok {
+		return ""
+	}
+	var g struct {
+		Formatted string `json:"formatted"`
+	}
+	if json.Unmarshal(v, &g) != nil {
+		return ""
+	}
+	return strings.TrimSpace(g.Formatted)
 }

@@ -1,8 +1,8 @@
 package mcp
 
 import (
-	"control-plane/internal/formation"
 	"bytes"
+	"control-plane/internal/formation"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -57,7 +57,7 @@ func TestHTTPHandler_initialize(t *testing.T) {
 		t.Fatalf("serverInfo.version = %v", si["version"])
 	}
 	inst, _ := out.Result["instructions"].(string)
-	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") {
+	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") || !strings.Contains(inst, "used_memory_ids") {
 		t.Fatalf("initialize instructions should bias the memory loop, got %q", inst)
 	}
 }

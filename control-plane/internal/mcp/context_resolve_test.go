@@ -169,6 +169,42 @@ func TestEnrichMCPContextFromRecallBundle(t *testing.T) {
 	if meta["primary_signal"] != "tag_match" {
 		t.Fatalf("primary_signal: %v", meta["primary_signal"])
 	}
+	if meta["curate_hint"] != mcpCurateHint {
+		t.Fatalf("curate_hint: %v", meta["curate_hint"])
+	}
+}
+
+func TestEnrichMCPContextFromRecallBundle_candidateIDsAndText(t *testing.T) {
+	meta := map[string]any{}
+	bundle := json.RawMessage(`{
+		"governing_constraints":[{"id":"11111111-1111-4111-8111-111111111111","statement":"Never skip recall"}],
+		"decisions":[{"id":"22222222-2222-4222-8222-222222222222","statement":"Agents curate"}],
+		"agent_grounding":{"formatted":"Continuity:\n(none)\n\nConstraints:\n- Never skip recall\n\nExperience:\n(none)"}
+	}`)
+	enrichMCPContextFromRecallBundle(meta, bundle)
+	applyMCPRecallBehaviorHints(meta)
+	ids, _ := meta["candidate_memory_ids"].([]string)
+	if len(ids) != 2 {
+		t.Fatalf("candidate_memory_ids: %v", ids)
+	}
+	text := formatRecallAgentText(bundle, meta)
+	if !strings.Contains(text, "Never skip recall") {
+		t.Fatalf("text missing grounding: %q", text)
+	}
+	if !strings.Contains(text, "[11111111-1111-4111-8111-111111111111] Never skip recall") {
+		t.Fatalf("text must pair id with statement for use: %q", text)
+	}
+	useHintAt := strings.Index(text, "These are candidate memories you can use")
+	bulletAt := strings.Index(text, "[11111111-1111-4111-8111-111111111111]")
+	if useHintAt < 0 || bulletAt < 0 || useHintAt > bulletAt {
+		t.Fatalf("use hint must precede usable bullets: %q", text)
+	}
+	if strings.Contains(text, `"recall_bundle"`) {
+		t.Fatal("formatted text must not dump recall_bundle JSON")
+	}
+	if !strings.Contains(text, "used_memory_ids") {
+		t.Fatalf("text missing upvote hint: %q", text)
+	}
 }
 
 func TestApplyMCPRecallBehaviorHints_weakPool(t *testing.T) {

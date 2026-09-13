@@ -28,6 +28,8 @@ func TestToolDefinitions_recallRecordLoopDescriptions(t *testing.T) {
 		{recallDesc, "prior constraints"},
 		{recordDesc, "after solving"},
 		{recordDesc, "meaningful outcomes"},
+		{recordDesc, "used_memory_ids"},
+		{recallDesc, "curate"},
 	} {
 		if !strings.Contains(pair.desc, pair.needle) {
 			t.Fatalf("description must contain %q, got %q", pair.needle, pair.desc)
@@ -38,7 +40,7 @@ func TestToolDefinitions_recallRecordLoopDescriptions(t *testing.T) {
 func TestInitializeResult_memoryLoopInstructions(t *testing.T) {
 	res := InitializeResult("test", "0.0.0")
 	inst, _ := res["instructions"].(string)
-	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") {
+	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") || !strings.Contains(inst, "used_memory_ids") {
 		t.Fatalf("instructions: %q", inst)
 	}
 }

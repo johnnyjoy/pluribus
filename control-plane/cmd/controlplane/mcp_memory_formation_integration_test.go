@@ -109,6 +109,23 @@ func mcpToolText(t *testing.T, base string, tool string, args map[string]any) (t
 	return text, isErr
 }
 
+func mcpToolStructured(t *testing.T, base string, tool string, args map[string]any) map[string]any {
+	t.Helper()
+	res := mcpCall(t, base, "tools/call", map[string]any{"name": tool, "arguments": args})
+	rmap, _ := res["result"].(map[string]any)
+	if rmap == nil {
+		t.Fatalf("no result: %v", res)
+	}
+	if ie, ok := rmap["isError"].(bool); ok && ie {
+		t.Fatalf("%s isError: %v", tool, rmap)
+	}
+	sc, _ := rmap["structuredContent"].(map[string]any)
+	if sc == nil {
+		t.Fatalf("missing structuredContent: %v", rmap)
+	}
+	return sc
+}
+
 func countMemories(t *testing.T, db *sql.DB) int {
 	t.Helper()
 	var n int
@@ -489,10 +506,12 @@ func TestIntegration_HTTP_MCP_memoryContextResolve(t *testing.T) {
 	if errCall {
 		t.Fatalf("memory_context_resolve isError: %s", txt)
 	}
-	var wrap map[string]any
-	if err := json.Unmarshal([]byte(txt), &wrap); err != nil {
-		t.Fatalf("parse json: %v text=%s", err, txt[:min(400, len(txt))])
+	if !strings.Contains(txt, "used_memory_ids") {
+		t.Fatalf("recall text should curate/upvote, got %q", txt[:min(400, len(txt))])
 	}
+	wrap := mcpToolStructured(t, base, "memory_context_resolve", map[string]any{
+		"task_description": "We must not skip policy review before deploy due to prior timeout incident",
+	})
 	if wrap["mcp_context"] == nil || wrap["recall_bundle"] == nil {
 		t.Fatalf("expected mcp_context and recall_bundle: %v", wrap)
 	}

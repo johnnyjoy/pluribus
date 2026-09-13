@@ -32,13 +32,14 @@ Preferred default:
 
 Use a compile variant when tags or intent materially improve retrieval for the current work.
 
-### Step 2 — Ground in recalled truth
-Read the returned memory bundle and extract the items that govern the current work, especially:
-- constraints that must be obeyed
-- decisions that should not be rediscovered or contradicted
-- failures that must not be repeated
+### Step 2 — Assemble working context
+Recall returns **candidates**. **You** curate them into a short working context before acting:
+- Prefer **`agent_grounding`** (Continuity / Constraints / Experience) over the raw JSON dump.
+- Keep only items that constrain **this** task; discard cross-project or unused-looking junk.
+- Hold kept **`memory_id`**s. After you use them, pass those IDs as **`used_memory_ids`** on **`record_experience`** (server upvotes). Do not also call **`memory_feedback`** helpful for the same IDs.
+- Extract especially: constraints that must be obeyed, decisions that should not be rediscovered, failures that must not be repeated.
 
-Use these as the planning baseline.
+Use this assembled context as the planning baseline.
 
 ### Step 3 — Act (substantive work)
 Only after Steps 1–2 are complete may you:

@@ -26,16 +26,16 @@ const (
 
 // ToolSpec is the canonical MCP tool registration (schema, docs, routing metadata).
 type ToolSpec struct {
-	Name        string
-	Aliases     []string
-	Description string
-	InputSchema map[string]any
-	LoopRole    AgentLoopRole
-	Risk        RiskLevel
-	Backend     string
-	Output      string
-	Mutates          bool
-	TestCoverage     string // unit | integration | both | none (legacy doc field)
+	Name               string
+	Aliases            []string
+	Description        string
+	InputSchema        map[string]any
+	LoopRole           AgentLoopRole
+	Risk               RiskLevel
+	Backend            string
+	Output             string
+	Mutates            bool
+	TestCoverage       string // unit | integration | both | none (legacy doc field)
 	CallCoverage       CallCoverageCategory
 	CallCoverageNote   string // test file or proof script reference
 	CallCoverageReason string // required when CallCoverage is unsafe_or_impossible_with_justification
@@ -60,13 +60,14 @@ var (
 	}()
 
 	schemaRecordExperience = schemaObject(map[string]any{
-		"summary":        propString("Required. What happened — outcome, failure, pattern, or decision (min length enforced server-side)."),
-		"tags":           schemaTags(),
-		"correlation_id": propString("Optional session correlation."),
-		"event_kind":     propString("Optional; becomes mcp:event:<kind> tag."),
-		"entities":       propStringArray("Optional entity tokens."),
-		"agent_id":       propString("Optional agent or client identifier for attribution (persisted with the episode)."),
-		"repo_root":      propString("Optional workspace path; basename becomes a situational tag."),
+		"summary":         propString("Required. What happened — outcome, failure, pattern, or decision (min length enforced server-side)."),
+		"tags":            schemaTags(),
+		"correlation_id":  propString("Optional session correlation."),
+		"event_kind":      propString("Optional; becomes mcp:event:<kind> tag."),
+		"entities":        propStringArray("Optional entity tokens."),
+		"agent_id":        propString("Optional agent or client identifier for attribution (persisted with the episode)."),
+		"repo_root":       propString("Optional workspace path; basename becomes a situational tag."),
+		"used_memory_ids": propStringArray("UUIDs of recalled memories you kept and used. Server applies helpful (upvote). Cap 8. Do not also call memory_feedback helpful for the same IDs."),
 	}, []string{"summary"})
 
 	schemaMemoryLogIfRelevant = schemaObject(map[string]any{
@@ -185,12 +186,12 @@ var (
 	}, nil)
 
 	schemaRecallAdvanced = schemaObject(map[string]any{
-		"query":            propString("Situation text."),
-		"retrieval_query":  propString("Alias for query."),
-		"mode":             propEnumString("Recall shaping.", "continuity", "constraint", "pattern", "episodic"),
-		"tags":             schemaTags(),
-		"symbols":          propStringArray("Optional code symbols."),
-		"repo_root":        propString("Optional repo path."),
+		"query":           propString("Situation text."),
+		"retrieval_query": propString("Alias for query."),
+		"mode":            propEnumString("Recall shaping.", "continuity", "constraint", "pattern", "episodic"),
+		"tags":            schemaTags(),
+		"symbols":         propStringArray("Optional code symbols."),
+		"repo_root":       propString("Optional repo path."),
 	}, []string{"query"})
 
 	schemaPreflight = schemaObject(map[string]any{
@@ -260,8 +261,8 @@ var (
 
 // toolRegistry is the single source of truth for MCP tool registration.
 func toolRegistry() []ToolSpec {
-	recallDesc := "Use at the start of a substantive task, after context changes, or when uncertain whether prior constraints, decisions, failures, or patterns apply. Returns a bounded memory bundle (governing_constraints, failures, patterns, decisions, continuity) plus mcp_context. Mutates nothing. Part of the default agent loop (before complex work). Do not treat unrelated recall hits as binding — check applicability and authority. Same handler as memory_context_resolve." + layer1DefaultLoop
-	recordDesc := "Use after solving a problem, encountering a failure, discovering a reusable pattern, or confirming a decision. Mutates state: creates advisory experience and may form probationary memory. Part of the default agent loop (after meaningful outcomes). Weak text may go to reject bucket only. Not a substitute for explicit memory_create for canonical constraints. Same handler as mcp_episode_ingest." + layer1DefaultLoop
+	recallDesc := "Use at the start of a substantive task, after context changes, or when uncertain whether prior constraints, decisions, failures, or patterns apply. Returns candidates (agent_grounding plus mcp_context); you must curate them into a short working context before acting. Full recall_bundle is in structuredContent — do not treat the JSON dump as context. Mutates nothing. Part of the default agent loop (before complex work). Do not treat unrelated recall hits as binding — check applicability and authority. Same handler as memory_context_resolve." + layer1DefaultLoop
+	recordDesc := "Use after solving a problem, encountering a failure, discovering a reusable pattern, or confirming a decision. Mutates state: creates advisory experience and may form probationary memory. Pass used_memory_ids for memories you kept and used (server upvotes). Part of the default agent loop (after meaningful outcomes). Weak text may go to reject bucket only. Not a substitute for explicit memory_create for canonical constraints. Same handler as mcp_episode_ingest." + layer1DefaultLoop
 	enforceDesc := "Use before large refactors, policy-sensitive edits, or high-risk proposals when binding memory may apply. Mutates nothing. Does NOT run automatically — you must call this tool. Engine is rule-based heuristic v1 (postgres/sqlite keywords, word overlap, negative patterns) — not full semantic NL policy enforcement. If decision is block or next_action is revise/reject, do not proceed without revision."
 
 	return []ToolSpec{

@@ -49,6 +49,39 @@ for f in "${PACK_FILES[@]}"; do
   check_file "$(basename "$f")" "$f"
 done
 
+echo "== assemble/upvote loop (static grep) =="
+check_curate() {
+  local label="$1"
+  local file="$2"
+  if [[ ! -f "$file" ]]; then
+    echo "missing: $label ($file)" >&2
+    FAIL=1
+    return
+  fi
+  if grep -q 'used_memory_ids' "$file" && grep -qE 'assemble working context|agent_grounding' "$file"; then
+    echo "ok: $label assemble/upvote"
+  else
+    echo "drift: $label (need used_memory_ids and assemble/agent_grounding)" >&2
+    FAIL=1
+  fi
+}
+
+CURATE_FILES=(
+  "$REPO_ROOT/integrations/pluribus-instructions.md"
+  "$REPO_ROOT/.cursor/rules/pluribus.mdc"
+  "$REPO_ROOT/integrations/cursor/pluribus.mdc"
+  "$REPO_ROOT/integrations/cursor/skills/pluribus/SKILL.md"
+  "$REPO_ROOT/integrations/generic-mcp/skills/pluribus/SKILL.md"
+  "$REPO_ROOT/integrations/claude-code/skills/pluribus/SKILL.md"
+  "$REPO_ROOT/integrations/continue/rules/pluribus.md"
+  "$REPO_ROOT/integrations/opencode/skills/pluribus/SKILL.md"
+  "$REPO_ROOT/control-plane/internal/mcp/init.go"
+)
+
+for f in "${CURATE_FILES[@]}"; do
+  check_curate "$(basename "$f")" "$f"
+done
+
 if grep -q 'tools_call_resolve_chore' "$REPO_ROOT/integrations/generic-mcp/examples.json"; then
   echo "ok: generic-mcp examples.json resolve_chore"
 else

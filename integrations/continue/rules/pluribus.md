@@ -22,13 +22,17 @@ Run **`recall_context`** (tags + `retrieval_query` / situation text) **before** 
 
 **Do not** skip **Pluribus** recall because the task “seems small” once you have read files—if it matches the list, **`recall_context`** first.
 
+## Assemble working context (you curate)
+
+Recall returns **candidates**. Prefer **`agent_grounding`**. Keep only items that constrain **this** task. Do **not** treat the JSON dump as context.
+
 ## Housekeeping (when chores exist)
 
 After recall/wakeup, if **`housekeeping`** is present or **`list_chores`** is non-empty: call **`resolve_chore`** with **`chore_id`**, **`action`**, and **`agent_id`** when you can judge; otherwise defer with reason in **`record_experience`**. See **[`pluribus-instructions.md`](../pluribus-instructions.md#housekeeping-when-chores-exist)**.
 
 ## Curate (utility feedback)
 
-When recall items helped or misled you: **`memory_feedback`** (`helpful`, `harmful`, `wrong`, `outdated`). No vote is neutral.
+Kept and used: pass those IDs as **`used_memory_ids`** on **`record_experience`** (server upvotes). Do **not** also call **`memory_feedback`** helpful for the same IDs. Misled/wrong/outdated: **`memory_feedback`** with reason. Recalled but not kept: no upvote.
 
 ## Record (after outcomes)
 

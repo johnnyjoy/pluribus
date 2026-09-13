@@ -23,15 +23,15 @@ const EnforcementMaxProposalBytes = 32768
 // Their arguments are filtered to declared schema properties before forwarding
 // (REST decodes with DisallowUnknownFields).
 var rawForwardTools = map[string]bool{
-	"recall_compile":                  true,
-	"recall_run_multi":                true,
-	"memory_create":                   true,
-	"memory_promote":                  true,
-	"curation_digest":                 true,
-	"curation_auto_promote":           true,
-	"memory_relationships_create":     true,
-	"enforcement_evaluate":            true,
-	"compliance_evaluate":             true,
+	"recall_compile":              true,
+	"recall_run_multi":            true,
+	"memory_create":               true,
+	"memory_promote":              true,
+	"curation_digest":             true,
+	"curation_auto_promote":       true,
+	"memory_relationships_create": true,
+	"enforcement_evaluate":        true,
+	"compliance_evaluate":         true,
 	// agent_telemetry_* and agent_utility_* endpoints decode tolerantly (no
 	// DisallowUnknownFields) and accept richer bodies than their schemas
 	// advertise; never filter them.
@@ -424,6 +424,9 @@ func HandleToolsCall(client *http.Client, base, apiKey string, params json.RawMe
 	}
 	if resp.StatusCode < 400 && method == http.MethodPost && strings.HasSuffix(fullURL, "/v1/advisory-episodes") {
 		rawBody = augmentAdvisoryEpisodeSuccessJSON(rawBody)
+		if p.Name == "record_experience" || p.Name == "mcp_episode_ingest" {
+			rawBody = applyUsedMemoryIDsFeedback(client, base, apiKey, p.Arguments, rawBody)
+		}
 	}
 	text := string(rawBody)
 	if resp.StatusCode >= 400 {

@@ -369,9 +369,12 @@ func TestHandleToolsCall_recallContext_alias(t *testing.T) {
 	}
 	content, _ := m["content"].([]map[string]any)
 	text, _ := content[0]["text"].(string)
-	var wrap map[string]any
-	if err := json.Unmarshal([]byte(text), &wrap); err != nil {
-		t.Fatalf("parse: %v", err)
+	if !strings.Contains(text, "used_memory_ids") {
+		t.Fatalf("expected curate/upvote hint in text: %q", text)
+	}
+	wrap, _ := m["structuredContent"].(map[string]any)
+	if wrap == nil {
+		t.Fatalf("missing structuredContent: %+v", m)
 	}
 	mc, _ := wrap["mcp_context"].(map[string]any)
 	if mc["decision_hint"] == nil {
@@ -380,7 +383,7 @@ func TestHandleToolsCall_recallContext_alias(t *testing.T) {
 	if mc["relevance_hint"] != nil {
 		t.Fatalf("expected no relevance_hint for empty recall buckets: %v", mc["relevance_hint"])
 	}
-	wantWeak := "No strong prior memory found. Consider recording the outcome after completing this task."
+	wantWeak := "No strong prior memory found. After meaningful work, record_experience; include used_memory_ids for any memories you kept and used."
 	if mc["after_work_hint"] != wantWeak {
 		t.Fatalf("after_work_hint: got %q want %q", mc["after_work_hint"], wantWeak)
 	}
@@ -405,15 +408,21 @@ func TestHandleToolsCall_recallContext_strongPoolHints(t *testing.T) {
 	}
 	content, _ := m["content"].([]map[string]any)
 	text, _ := content[0]["text"].(string)
-	var wrap map[string]any
-	if err := json.Unmarshal([]byte(text), &wrap); err != nil {
-		t.Fatalf("parse: %v", err)
+	if !strings.Contains(text, "used_memory_ids") {
+		t.Fatalf("expected curate/upvote hint in text: %q", text)
+	}
+	if strings.Contains(text, `"recall_bundle"`) {
+		t.Fatal("text must not dump recall_bundle JSON")
+	}
+	wrap, _ := m["structuredContent"].(map[string]any)
+	if wrap == nil || wrap["recall_bundle"] == nil {
+		t.Fatalf("structuredContent must keep wrap: %+v", wrap)
 	}
 	mc, _ := wrap["mcp_context"].(map[string]any)
 	if mc["decision_hint"] == nil || mc["relevance_hint"] == nil || mc["after_work_hint"] == nil {
 		t.Fatalf("expected decision_hint, relevance_hint, after_work_hint: %v", mc)
 	}
-	wantStrong := "After completing meaningful work, consider recording the outcome."
+	wantStrong := "After completing meaningful work, record_experience and pass used_memory_ids for memories you kept and used."
 	if mc["after_work_hint"] != wantStrong {
 		t.Fatalf("after_work_hint: got %q want %q", mc["after_work_hint"], wantStrong)
 	}

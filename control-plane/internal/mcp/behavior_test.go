@@ -45,7 +45,7 @@ func TestMCPBehavior_initialize(t *testing.T) {
 		t.Fatalf("missing serverInfo: %+v", result)
 	}
 	inst, _ := result["instructions"].(string)
-	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") {
+	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") || !strings.Contains(inst, "used_memory_ids") || !strings.Contains(inst, "agent_grounding") {
 		t.Fatalf("instructions missing loop tools: %q", inst)
 	}
 }
@@ -97,12 +97,19 @@ func TestMCPBehavior_toolsCallRecall(t *testing.T) {
 	}
 	c0, _ := content[0].(map[string]any)
 	text, _ := c0["text"].(string)
-	if !strings.Contains(text, "recall_bundle") && !strings.Contains(text, "mcp_context") {
+	if !strings.Contains(text, "used_memory_ids") || !strings.Contains(text, "candidate memories you can use") {
 		preview := text
-		if len(preview) > 200 {
-			preview = preview[:200]
+		if len(preview) > 240 {
+			preview = preview[:240]
 		}
-		t.Fatalf("expected recall wrapper, got %q", preview)
+		t.Fatalf("expected use-then-upvote hint in recall text, got %q", preview)
+	}
+	if strings.Contains(text, `"recall_bundle"`) {
+		t.Fatal("recall text must not dump the full recall_bundle JSON")
+	}
+	sc, _ := result["structuredContent"].(map[string]any)
+	if sc["recall_bundle"] == nil || sc["mcp_context"] == nil {
+		t.Fatalf("structuredContent must keep wrap: %+v", sc)
 	}
 }
 

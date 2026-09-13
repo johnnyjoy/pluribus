@@ -20,6 +20,16 @@ Run **`recall_context`** (tags + `retrieval_query` / situation text) **before** 
 
 **Do not** defer recall on substantive work when **Pluribus** MCP is connected—no “I’ll recall later” for multi-file refactors, architecture or API shifts, incident investigation, or non-trivial feature work.
 
+## Assemble working context (you curate)
+
+Recall returns **candidates you can use**, not finished context. Prefer **`agent_grounding`**: each line is **`[memory_id] statement`**. **You** apply what belongs to this task:
+
+1. Read Continuity / Constraints / Experience. Treat a line as usable only if it constrains **this** task.
+2. Discard cross-project, unused-looking, or low-applicability junk.
+3. Act using the kept statements (constraints first, then decisions, failures, patterns).
+4. After you **used** a line, keep its **`memory_id`** for **`used_memory_ids`** (upvote is the receipt of use).
+5. Do **not** treat the raw JSON dump as the working context.
+
 ## Housekeeping (when chores exist)
 
 After **`recall_context`** or **`wakeup_context`**, check for **pool maintenance** (open curation chores). The server surfaces at most one line in **`mcp_context.housekeeping`** or **`housekeeping`**; you may also call **`list_chores`**.
@@ -42,11 +52,11 @@ When **you** create throwaway test or demo memories (CI receipts, local smoke, s
 
 ## Curate (utility feedback)
 
-After you act on work informed by **`recall_context`** or **`wakeup_context`**, vote on memories that shaped your behavior:
+After you act on work informed by **`recall_context`** or **`wakeup_context`**:
 
-1. **If a recalled memory helped:** **`memory_feedback`** with **`event_type: helpful`** (and optional **`reason`**).
-2. **If it misled or was wrong:** **`harmful`**, **`wrong`**, or **`outdated`** as appropriate.
-3. **If you did not use recalled items:** no call — **no vote is neutral**.
+1. **Used:** pass those **`memory_id`**s as **`used_memory_ids`** on **`record_experience`**. The server applies **`helpful`** (upvote). Do **not** also call **`memory_feedback`** with **`helpful`** for the same IDs.
+2. **Misled / wrong / stale:** **`memory_feedback`** with **`harmful`**, **`wrong`**, or **`outdated`** (reason required).
+3. **Recalled but unused:** no upvote.
 
 This is how agents on a trusted network police the shared pool without a separate curator AI. Ranking uses utility over time; chores handle structural mess (dupes, contradictions, quarantine).
 

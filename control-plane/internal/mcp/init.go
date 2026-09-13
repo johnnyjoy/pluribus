@@ -6,8 +6,9 @@ const MemoryLoopInstructions = `Pluribus is your memory system.
 For best results:
 - Optional at session start: wakeup_context for compact L0/L1 (POST /v1/recall/wakeup); use recall_context when you have task text for deeper situational recall.
 - Use recall_context before complex reasoning or multi-step actions.
+- After recall: use the grounded items from agent_grounding (id + statement). Apply only those that constrain this task; discard the rest. Do not treat the JSON dump as context.
 - When recall_context or wakeup_context returns housekeeping (or list_chores is non-empty): call resolve_chore with chore_id, action, and agent_id if you can judge; otherwise defer with reason in record_experience. Empty chores = no-op.
-- After acting on memories recall surfaced: call memory_feedback with memory_id and event_type (helpful, harmful, wrong, outdated) when a memory guided or misled you; no vote is neutral.
+- After you used a memory: pass its id as used_memory_ids on record_experience (upvote). Do not also call memory_feedback helpful for the same IDs. Misled/wrong/outdated: memory_feedback with reason. Recalled but unused: no upvote.
 - Use record_experience after meaningful outcomes, fixes, failures, or discoveries.
 
 This helps you avoid repeating mistakes and reuse proven solutions.`

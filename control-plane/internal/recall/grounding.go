@@ -15,7 +15,7 @@ type AgentGrounding struct {
 var (
 	kindsContinuity  = []string{"state", "decision"}
 	kindsConstraints = []string{"constraint", "failure"}
-	kindsExperience    = []string{"pattern"}
+	kindsExperience  = []string{"pattern"}
 )
 
 // populateAgentGrounding fills b.AgentGrounding from grouped slices, with fallback to bucket lists.
@@ -65,6 +65,11 @@ func formatGroundingSection(title string, items []MemoryItem) string {
 			continue
 		}
 		sb.WriteString("- ")
+		if id := strings.TrimSpace(it.ID); id != "" {
+			sb.WriteByte('[')
+			sb.WriteString(id)
+			sb.WriteString("] ")
+		}
 		sb.WriteString(line)
 		sb.WriteByte('\n')
 	}
