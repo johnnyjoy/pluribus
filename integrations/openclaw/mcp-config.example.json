@@ -6,6 +6,22 @@
   "pluribus_stdio_command": "/absolute/path/to/control-plane/pluribus-mcp",
   "pluribus_stdio_env": {
     "CONTROL_PLANE_URL": "http://127.0.0.1:8123",
-    "CONTROL_PLANE_API_KEY": "${PLURIBUS_API_KEY}"
+    "CONTROL_PLANE_API_KEY": "${PLURIBUS_API_KEY}",
+    "PLURIBUS_TOOLS": "core"
+  },
+  "toolFilter": {
+    "include": [
+      "wakeup_context",
+      "recall_context",
+      "record_experience",
+      "memory_feedback",
+      "list_chores",
+      "resolve_chore",
+      "health"
+    ]
+  },
+  "notes": {
+    "never_auto_capture": "Do not set autoCapture or captureMatcher to *. Write only after a judged outcome via record_experience.",
+    "do_not_replace": "Keep OpenClaw MEMORY.md / memory_search / dreaming. Pluribus is the shared store across harnesses."
   }
 }

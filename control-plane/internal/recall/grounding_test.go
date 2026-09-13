@@ -31,7 +31,7 @@ func TestPopulateAgentGrounding_fromGroupedSlices(t *testing.T) {
 	}
 }
 
-func TestPopulateAgentGrounding_fallbackBuckets(t *testing.T) {
+func TestPopulateAgentGrounding_noFallbackBuckets(t *testing.T) {
 	b := &RecallBundle{
 		GoverningConstraints: []MemoryItem{
 			{ID: "c1", Kind: string(api.MemoryKindConstraint), Statement: "Constraint text."},
@@ -44,10 +44,13 @@ func TestPopulateAgentGrounding_fallbackBuckets(t *testing.T) {
 	if b.AgentGrounding == nil {
 		t.Fatal("expected agent_grounding")
 	}
-	if !strings.Contains(b.AgentGrounding.Constraints, "Constraint text") {
-		t.Fatalf("constraints: %q", b.AgentGrounding.Constraints)
+	if strings.Contains(b.AgentGrounding.Constraints, "Constraint text") {
+		t.Fatalf("must not refill constraints from legacy buckets: %q", b.AgentGrounding.Constraints)
 	}
-	if !strings.Contains(b.AgentGrounding.Experience, "Pattern text") {
-		t.Fatalf("experience: %q", b.AgentGrounding.Experience)
+	if strings.Contains(b.AgentGrounding.Experience, "Pattern text") {
+		t.Fatalf("must not refill experience from legacy buckets: %q", b.AgentGrounding.Experience)
+	}
+	if !strings.Contains(b.AgentGrounding.Constraints, "(none)") {
+		t.Fatalf("empty constraints should stay empty: %q", b.AgentGrounding.Constraints)
 	}
 }

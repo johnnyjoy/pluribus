@@ -11,7 +11,7 @@ const (
 	ToolsTierCore     = "core"
 )
 
-var activeToolsTier = ToolsTierAll
+var activeToolsTier = ToolsTierCore
 
 // SetToolsTier configures which tools appear in tools/list (tools/call still accepts all names).
 func SetToolsTier(tier string) {
@@ -40,20 +40,17 @@ func InitToolsTier(configTier string) {
 		SetToolsTier(configTier)
 		return
 	}
-	SetToolsTier(ToolsTierAll)
+	SetToolsTier(ToolsTierCore)
 }
 
 var coreToolNames = map[string]struct{}{
-	"wakeup_context":         {},
-	"recall_context":         {},
-	"memory_context_resolve": {},
-	"record_experience":      {},
-	"mcp_episode_ingest":     {},
-	"enforcement_evaluate":   {},
-	"list_chores":            {},
-	"resolve_chore":          {},
-	"memory_feedback":        {},
-	"health":                 {},
+	"wakeup_context":    {},
+	"recall_context":    {},
+	"record_experience": {},
+	"memory_feedback":   {},
+	"list_chores":       {},
+	"resolve_chore":     {},
+	"health":            {},
 }
 
 var standardExtraToolNames = map[string]struct{}{

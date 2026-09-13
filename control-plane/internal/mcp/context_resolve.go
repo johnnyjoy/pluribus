@@ -34,6 +34,8 @@ var (
 	}
 	episodicCueSubstrings = []string{
 		"last time", "previously", "we tried", "learned when", "earlier", "yesterday",
+		"how did we", "how we did", "what were you doing", "what did we do",
+		"last friday", "friday at", " at 3", "3pm", "15:00",
 	}
 )
 
@@ -258,12 +260,20 @@ func execMemoryContextResolve(client *http.Client, base, apiKey string, argument
 		"mcp_context":   meta,
 		"recall_bundle": bundle,
 	}
+	text := formatRecallAgentText(bundle, meta)
+	oa, ob := activityLaneBounds(arguments)
+	if wantsActivityLane(activityStrategyFromMeta(meta), oa, ob) {
+		if act := fetchActivityLaneText(client, base, apiKey, activityQueryFromMeta(meta), oa, ob); act != "" {
+			text = appendActivityLane(text, act)
+			meta["activity_lane"] = true
+		}
+	}
 	// Text is the curatable surface (grounding + ids + hints). Full dump stays in structuredContent.
 	return map[string]any{
 		"content": []map[string]any{
 			{
 				"type": "text",
-				"text": formatRecallAgentText(bundle, meta),
+				"text": text,
 			},
 		},
 		"structuredContent": wrap,
@@ -279,7 +289,7 @@ func mustJSONMeta(meta map[string]any) string {
 	return string(b)
 }
 
-// execMemoryLogIfRelevant ingests an advisory episode when deterministic signals match (same policy as mcp_episode_ingest).
+// execMemoryLogIfRelevant ingests an experience when deterministic signals match (same policy as mcp_episode_ingest).
 func execMemoryLogIfRelevant(client *http.Client, base, apiKey string, arguments json.RawMessage, pol *MemoryFormationPolicy, gate *formation.Gate) map[string]any {
 	if len(bytes.TrimSpace(arguments)) == 0 {
 		return ToolResultErr("memory_log_if_relevant requires arguments with text_block")
@@ -620,9 +630,9 @@ func formatGroundingFromBundleItems(bundle json.RawMessage) string {
 			sb.WriteByte('\n')
 		}
 	}
-	write("Continuity", "continuity", "decisions")
-	write("Constraints", "constraints", "governing_constraints", "known_failures")
-	write("Experience", "experience", "applicable_patterns")
+	write("Continuity", "continuity")
+	write("Constraints", "constraints")
+	write("Experience", "experience")
 	return strings.TrimSpace(sb.String())
 }
 

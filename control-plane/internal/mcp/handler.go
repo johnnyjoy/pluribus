@@ -12,14 +12,23 @@ import (
 	"time"
 
 	"control-plane/internal/app"
+	"control-plane/internal/buildinfo"
 	"control-plane/internal/compliance"
 	"control-plane/internal/formation"
 
 	"github.com/google/uuid"
 )
 
-// Version is the MCP serverInfo.version (stdio and HTTP share this).
+// Version is the fallback MCP serverInfo.version when link-time buildinfo is unset.
 const Version = "0.1.8"
+
+// ServerInfoVersion returns the version advertised on initialize (ldflags buildinfo, else Version).
+func ServerInfoVersion() string {
+	if v := strings.TrimSpace(buildinfo.Version); v != "" {
+		return v
+	}
+	return Version
+}
 
 const (
 	loopbackHost      = "mcp.loopback.invalid"
@@ -71,13 +80,14 @@ func (t *loopbackTransport) RoundTrip(req *http.Request) (*http.Response, error)
 }
 
 type httpHandler struct {
-	client    *http.Client
-	base      string
-	policy    *MemoryFormationPolicy
-	telemetry *compliance.Service
-	formation *formation.Gate
-	req       *http.Request
-	sessionID uuid.UUID
+	client     *http.Client
+	base       string
+	policy     *MemoryFormationPolicy
+	telemetry  *compliance.Service
+	formation  *formation.Gate
+	req        *http.Request
+	sessionID  uuid.UUID
+	clientName string
 }
 
 type jsonRPCWire struct {
@@ -226,7 +236,10 @@ func (h *httpHandler) dispatch(method string, params json.RawMessage, apiKey str
 			_ = h.telemetry.EnsureSession(context.Background(), mc)
 		}
 		h.sessionID = mc.SessionID
-		res := InitializeResult(mcpServerNameHTTP, Version)
+		if name := strings.TrimSpace(initParams.ClientInfo.Name); name != "" {
+			h.clientName = name
+		}
+		res := InitializeResult(mcpServerNameHTTP, ServerInfoVersion())
 		return enrichInitializeResult(res, mc.SessionID.String()), nil
 	case "ping":
 		return map[string]any{}, nil
@@ -248,6 +261,7 @@ func (h *httpHandler) dispatch(method string, params json.RawMessage, apiKey str
 			h.recordToolCall(p.Name, p.Arguments, callStarted, &jsonRPCErrorObj{Code: -32602, Message: err.Error()}, nil)
 			return nil, &jsonRPCErrorObj{Code: -32602, Message: err.Error()}
 		}
+		p.Arguments = ensureDefaultAgentID(p.Name, p.Arguments, h.clientName)
 		callParams, _ := json.Marshal(p)
 		res, err := HandleToolsCall(h.client, h.base, apiKey, callParams, h.policy, h.formation)
 		if err != nil {

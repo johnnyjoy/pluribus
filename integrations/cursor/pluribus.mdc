@@ -13,7 +13,7 @@ alwaysApply: true
 3. If `mcp_context.housekeeping` or `housekeeping` is present (or `list_chores` is non-empty): call `resolve_chore` with `chore_id`, `action`, and stable `agent_id` when you can judge, or defer with reason in the next `record_experience`.
 4. Perform planning and actions.
 5. Kept and used memories: pass their ids as `used_memory_ids` on `record_experience` (server upvotes). Do not also call `memory_feedback` helpful for the same IDs. Misled/wrong/outdated: `memory_feedback` with reason.
-6. Use `record_experience` AFTER meaningful outcomes.
+6. Use `record_experience` AFTER meaningful outcomes. Optional `occurred_at` (RFC3339). One dense claim, not an essay. Clock questions: pass RFC3339 `occurred_after`/`occurred_before` on `recall_context`.
 
 ## When to Use
 

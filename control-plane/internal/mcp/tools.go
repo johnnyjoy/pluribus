@@ -27,17 +27,24 @@ var wakeupContextInputSchema = map[string]any{
 	},
 }
 
-// ToolDefinitions returns MCP tool descriptors from the canonical registry (stdio and HTTP MCP).
-func ToolDefinitions() []map[string]any {
-	reg := registryForList()
+func definitionsFromRegistry(reg []ToolSpec) []map[string]any {
 	out := make([]map[string]any, len(reg))
 	for i, t := range reg {
-		desc := t.Description + toolDoctrineHint
 		out[i] = map[string]any{
 			"name":        t.Name,
-			"description": desc,
+			"description": t.Description + toolDoctrineHint,
 			"inputSchema": t.InputSchema,
 		}
 	}
 	return out
+}
+
+// ToolDefinitions returns tools/list descriptors for the active tier.
+func ToolDefinitions() []map[string]any {
+	return definitionsFromRegistry(registryForList())
+}
+
+// AllToolDefinitions returns every registered tool (tools/call still accepts all names).
+func AllToolDefinitions() []map[string]any {
+	return definitionsFromRegistry(toolRegistry())
 }

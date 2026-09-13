@@ -223,6 +223,9 @@ func validateToolSemantics(toolName string, m map[string]any) error {
 		if err := ValidateMcpEpisodeSummary(firstString(m, "summary"), DefaultMemoryFormationPolicy()); err != nil {
 			return err
 		}
+		if err := validateOptionalRFC3339(m, "occurred_at"); err != nil {
+			return err
+		}
 	case "memory_log_if_relevant", "auto_log_episode_if_relevant":
 		if strings.TrimSpace(firstString(m, "text_block")) == "" {
 			return fmt.Errorf("missing required argument: text_block")

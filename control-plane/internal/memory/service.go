@@ -287,6 +287,9 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*MemoryObject,
 	if req.Statement == "" {
 		return nil, fmt.Errorf("statement is required")
 	}
+	if len([]rune(strings.TrimSpace(req.Statement))) > formation.MaxLessonStatementRunes {
+		return nil, fmt.Errorf("statement too long: max %d characters", formation.MaxLessonStatementRunes)
+	}
 	if !validBehaviorKind(req.Kind) {
 		return nil, fmt.Errorf("invalid kind %q", req.Kind)
 	}

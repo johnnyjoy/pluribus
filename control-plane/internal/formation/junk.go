@@ -84,9 +84,52 @@ func isKeywordSpamOnly(lower string) bool {
 	return false
 }
 
-// IsWeakRecordExperienceSummary rejects vague advisory summaries before probationary formation.
+// Soft rune caps. Over = reject, not silent truncate. Lesson cap keeps long constraints (~1200).
+const (
+	MaxExperienceSummaryRunes = 600
+	MaxLessonStatementRunes   = 1200
+)
+
+// IsPaddedEssay rejects salesman/filler prose that hides one claim.
+func IsPaddedEssay(text string) bool {
+	lower := strings.ToLower(strings.TrimSpace(text))
+	if lower == "" {
+		return false
+	}
+	pads := []string{
+		"happy to help", "happy to", "comprehensive overview", "in this document",
+		"as mentioned above", "please note that", "it is important to note",
+		"without further ado", "i hope this", "feel free to", "in conclusion",
+		"as an ai", "next steps:", "let me know if",
+	}
+	hits := 0
+	for _, p := range pads {
+		if strings.Contains(lower, p) {
+			hits++
+		}
+	}
+	if hits >= 2 {
+		return true
+	}
+	if hits >= 1 && wordCount(lower) > 60 {
+		return true
+	}
+	return false
+}
+
+func exceedsRuneLimit(s string, max int) bool {
+	return len([]rune(strings.TrimSpace(s))) > max
+}
+
+// IsWeakRecordExperienceSummary rejects vague or padded summaries before formation.
 func IsWeakRecordExperienceSummary(summary string, minActionableWords int) bool {
 	if IsJunkStatement(summary) {
+		return true
+	}
+	if IsPaddedEssay(summary) {
+		return true
+	}
+	if exceedsRuneLimit(summary, MaxExperienceSummaryRunes) {
 		return true
 	}
 	s := strings.TrimSpace(summary)

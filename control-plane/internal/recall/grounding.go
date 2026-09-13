@@ -3,7 +3,7 @@ package recall
 import "strings"
 
 // AgentGrounding is a plain-text view of grouped recall for agent consumption (system-shaped output).
-// Populated from Continuity / Constraints / Experience slices when non-empty; otherwise derived from legacy buckets.
+// Populated from Continuity / Constraints / Experience after the score floor. Empty stays empty.
 type AgentGrounding struct {
 	Continuity  string `json:"continuity"`
 	Constraints string `json:"constraints"`
@@ -12,29 +12,15 @@ type AgentGrounding struct {
 	Formatted string `json:"formatted"`
 }
 
-var (
-	kindsContinuity  = []string{"state", "decision"}
-	kindsConstraints = []string{"constraint", "failure"}
-	kindsExperience  = []string{"pattern"}
-)
-
-// populateAgentGrounding fills b.AgentGrounding from grouped slices, with fallback to bucket lists.
+// populateAgentGrounding fills b.AgentGrounding from grouped slices only.
+// Empty sections stay empty — do not refill from legacy buckets after the score floor.
 func populateAgentGrounding(b *RecallBundle) {
 	if b == nil {
 		return
 	}
 	cont := b.Continuity
-	if len(cont) == 0 {
-		cont = itemsFromBucketsByKinds(b, kindsContinuity)
-	}
 	cons := b.Constraints
-	if len(cons) == 0 {
-		cons = itemsFromBucketsByKinds(b, kindsConstraints)
-	}
 	exp := b.Experience
-	if len(exp) == 0 {
-		exp = itemsFromBucketsByKinds(b, kindsExperience)
-	}
 
 	g := &AgentGrounding{
 		Continuity:  formatGroundingSection("Continuity", cont),
@@ -74,24 +60,4 @@ func formatGroundingSection(title string, items []MemoryItem) string {
 		sb.WriteByte('\n')
 	}
 	return sb.String()
-}
-
-func itemsFromBucketsByKinds(b *RecallBundle, kinds []string) []MemoryItem {
-	want := make(map[string]struct{}, len(kinds))
-	for _, k := range kinds {
-		want[k] = struct{}{}
-	}
-	var out []MemoryItem
-	take := func(items []MemoryItem) {
-		for _, it := range items {
-			if _, ok := want[it.Kind]; ok {
-				out = append(out, it)
-			}
-		}
-	}
-	take(b.GoverningConstraints)
-	take(b.Decisions)
-	take(b.KnownFailures)
-	take(b.ApplicablePatterns)
-	return out
 }

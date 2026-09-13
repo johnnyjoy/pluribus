@@ -155,6 +155,12 @@ func (g *Gate) RejectRecordExperienceSummary(summary string) (reject bool, reaso
 	if !g.cfg.RecordExperience.RejectJunk {
 		return false, ""
 	}
+	if IsPaddedEssay(summary) {
+		return true, "padded_essay"
+	}
+	if exceedsRuneLimit(summary, MaxExperienceSummaryRunes) {
+		return true, "summary_too_long"
+	}
 	if IsWeakRecordExperienceSummary(summary, g.cfg.RecordExperience.MinActionableWords) {
 		return true, "junk_or_vague_summary"
 	}

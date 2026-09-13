@@ -179,6 +179,7 @@ func TestEnrichMCPContextFromRecallBundle_candidateIDsAndText(t *testing.T) {
 	bundle := json.RawMessage(`{
 		"governing_constraints":[{"id":"11111111-1111-4111-8111-111111111111","statement":"Never skip recall"}],
 		"decisions":[{"id":"22222222-2222-4222-8222-222222222222","statement":"Agents curate"}],
+		"constraints":[{"id":"11111111-1111-4111-8111-111111111111","statement":"Never skip recall"}],
 		"agent_grounding":{"formatted":"Continuity:\n(none)\n\nConstraints:\n- Never skip recall\n\nExperience:\n(none)"}
 	}`)
 	enrichMCPContextFromRecallBundle(meta, bundle)

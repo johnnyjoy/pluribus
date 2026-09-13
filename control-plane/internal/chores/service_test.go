@@ -97,6 +97,7 @@ func TestResolve_invalidActionForType(t *testing.T) {
 func TestResolve_singleVoteDoesNotApply(t *testing.T) {
 	svc, mock, done := newTestService(t)
 	defer done()
+	svc.MinResolvers = 2
 	rel := memRel
 	now := time.Now()
 	mock.ExpectQuery(`FROM curation_chores c WHERE`).WithArgs(choreID).
@@ -161,9 +162,48 @@ func TestResolve_secondDistinctAgentApplies_consolidate(t *testing.T) {
 	}
 }
 
+func TestResolve_soloDefaultApplies(t *testing.T) {
+	svc, mock, done := newTestService(t)
+	defer done()
+	rel := memRel
+	now := time.Now()
+	mock.ExpectQuery(`FROM curation_chores c WHERE`).WithArgs(choreID).
+		WillReturnRows(choreRows(choreID, TypeDuplicatePair, memSubj, &rel, duplicateEvidence{CosineSimilarity: 0.95}))
+	expectGetMemory(mock, memSubj, "use pg 16", "active", "author-a", 5, now.Add(-2*time.Hour))
+	expectGetMemory(mock, memRel, "use postgres 16", "active", "author-b", 3, now)
+	mock.ExpectExec(`INSERT INTO curation_chore_votes`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`FROM curation_chore_votes`).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	expectGetMemory(mock, memRel, "use postgres 16", "active", "author-b", 3, now)
+	mock.ExpectExec(`UPDATE memories SET status = 'superseded'`).
+		WithArgs(sqlmock.AnyArg(), memRel).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`FROM memories WHERE id IN`).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+	mock.ExpectQuery(`INSERT INTO memory_relationships`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "from_memory_id", "to_memory_id", "relationship_type", "reason", "source", "created_at"}).
+			AddRow(uuid.New(), memSubj, memRel, "supersedes", "r", choreSource, time.Now()))
+	mock.ExpectExec(`UPDATE curation_chores SET state`).
+		WithArgs(StateResolved, ActionConsolidate, sqlmock.AnyArg(), choreID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	resp, err := svc.Resolve(context.Background(), choreID, ResolveRequest{AgentID: "agent-y", Action: ActionConsolidate})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !resp.Applied || resp.MinResolvers != 1 {
+		t.Fatalf("solo default should apply on one non-author vote: %+v", resp)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("expectations: %v", err)
+	}
+}
+
 func TestResolve_sameAgentDoubleVoteRejected(t *testing.T) {
 	svc, mock, done := newTestService(t)
 	defer done()
+	svc.MinResolvers = 2
 	rel := memRel
 	now := time.Now()
 	mock.ExpectQuery(`FROM curation_chores c WHERE`).WithArgs(choreID).

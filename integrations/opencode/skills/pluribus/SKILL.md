@@ -12,7 +12,7 @@ description: Memory loop — recall before work, housekeeping when chores exist,
 3. If **`housekeeping`** / open chores → **`resolve_chore`** with **`chore_id`**, **`action`**, **`agent_id`** (or defer in **`record_experience`**)
 4. Plan / act
 5. Kept and used → **`used_memory_ids`** on **`record_experience`** (server upvotes). Do not also call **`memory_feedback`** helpful for the same IDs. Misled/wrong/outdated → **`memory_feedback`**
-6. **`record_experience`** (after outcome)
+6. **`record_experience`** (after outcome). Optional **`occurred_at`** (RFC3339). One dense claim, not an essay. Clock questions: pass **`occurred_after` / `occurred_before`**.
 
 Canonical detail: [pluribus-instructions.md](../../../pluribus-instructions.md)
 

@@ -5,10 +5,10 @@ server:
   bind: ":8123"
 
 # MCP: JSON-RPC over HTTP at POST /v1/mcp (default on). Set disabled: true to skip the MCP wrapper.
-# Optional: gates tool mcp_episode_ingest (low-noise advisory episodes; never canonical).
+# Optional: gates tool mcp_episode_ingest (experience writes; recallable via recall_context).
 # mcp:
 #   disabled: true
-#   # tools_tier: all   # tools/list filter: core | standard | all (default all). tools/call accepts every name. Env PLURIBUS_TOOLS overrides.
+#   # tools_tier: core   # tools/list filter: core | standard | all (default core). tools/call accepts every name. Env PLURIBUS_TOOLS overrides.
 #   memory_formation:
 #     episode_ingest_enabled: true
 #     min_summary_chars: 12

@@ -511,7 +511,7 @@ func augmentAdvisoryEpisodeSuccessJSON(raw []byte) []byte {
 	if json.Unmarshal(raw, &m) != nil {
 		return raw
 	}
-	m["mcp_affordance"] = "Outcome recorded. Prefer recall_context before complex work next time; use record_experience after meaningful outcomes. Advisory experience stored — server may create probationary memory when learning signals qualify; otherwise reject bucket only. Optional auto-distill may add pending candidates."
+	m["mcp_affordance"] = "Outcome recorded. Prefer recall_context before complex work next time; use record_experience after meaningful outcomes."
 	b, err := json.Marshal(m)
 	if err != nil {
 		return raw
@@ -554,6 +554,9 @@ func buildAdvisoryEpisodeMCPBody(arguments json.RawMessage, pol *MemoryFormation
 	ents := parseStringSliceField(m, "entities")
 	if len(ents) > 0 {
 		out["entities"] = ents
+	}
+	if oa := strings.TrimSpace(firstString(m, "occurred_at")); oa != "" {
+		out["occurred_at"] = oa
 	}
 	return out, nil
 }

@@ -17,6 +17,7 @@ import (
 func TestRedTeam_hostileLoneConsolidateCannotApply(t *testing.T) {
 	svc, mock, done := newTestService(t)
 	defer done()
+	svc.MinResolvers = 2
 	rel := memRel
 	now := time.Now()
 	mock.ExpectQuery(`FROM curation_chores c WHERE`).WithArgs(choreID).

@@ -45,8 +45,11 @@ func TestMCPBehavior_initialize(t *testing.T) {
 		t.Fatalf("missing serverInfo: %+v", result)
 	}
 	inst, _ := result["instructions"].(string)
-	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") || !strings.Contains(inst, "used_memory_ids") || !strings.Contains(inst, "agent_grounding") {
+	if !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") || !strings.Contains(inst, "used_memory_ids") || !strings.Contains(inst, "RFC3339") {
 		t.Fatalf("instructions missing loop tools: %q", inst)
+	}
+	if len(inst) > 2048 {
+		t.Fatalf("instructions length %d exceeds 2048", len(inst))
 	}
 }
 

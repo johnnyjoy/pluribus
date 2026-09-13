@@ -32,28 +32,8 @@ func (c *Compiler) fetchLifecycleCandidates(ctx context.Context, req CompileRequ
 		return nil, nil
 	}
 	var objs []memory.MemoryObject
-	for _, st := range statuses {
-		batch, err := c.Memory.Search(ctx, memory.SearchRequest{
-			Tags:   req.Tags,
-			Status: string(st),
-			Max:    100,
-		})
-		if err != nil {
-			return nil, err
-		}
-		objs = mergeUniqueMemoryObjects(objs, batch)
-	}
-	// Legacy current-mode path: merge superseded when query explicitly asks about lifecycle change.
-	if mode == RecallModeCurrent && includeSupersededCandidates(situationQuery) {
-		supReq := memory.SearchRequest{
-			Tags:   req.Tags,
-			Status: string(api.StatusSuperseded),
-			Max:    50,
-		}
-		if superseded, serr := c.Memory.Search(ctx, supReq); serr == nil {
-			objs = mergeUniqueMemoryObjects(objs, superseded)
-		}
-	}
+	// Aboutness first when the situation has text. Authority-top-100 is fallback
+	// (empty query, or too few aboutness hits).
 	if strings.TrimSpace(situationQuery) != "" {
 		searchStatuses := statuses
 		if mode == RecallModeCurrent && includeSupersededCandidates(situationQuery) {
@@ -91,6 +71,30 @@ func (c *Compiler) fetchLifecycleCandidates(ctx context.Context, req CompileRequ
 				}
 				extra = filterKeywordBridgeCandidates(req.Tags, kw, keywords, extra)
 				objs = mergeUniqueMemoryObjects(objs, extra)
+			}
+		}
+	}
+	needAuthority := strings.TrimSpace(situationQuery) == "" || len(objs) < 20
+	if needAuthority {
+		for _, st := range statuses {
+			batch, err := c.Memory.Search(ctx, memory.SearchRequest{
+				Tags:   req.Tags,
+				Status: string(st),
+				Max:    100,
+			})
+			if err != nil {
+				return nil, err
+			}
+			objs = mergeUniqueMemoryObjects(objs, batch)
+		}
+		if mode == RecallModeCurrent && includeSupersededCandidates(situationQuery) {
+			supReq := memory.SearchRequest{
+				Tags:   req.Tags,
+				Status: string(api.StatusSuperseded),
+				Max:    50,
+			}
+			if superseded, serr := c.Memory.Search(ctx, supReq); serr == nil {
+				objs = mergeUniqueMemoryObjects(objs, superseded)
 			}
 		}
 	}

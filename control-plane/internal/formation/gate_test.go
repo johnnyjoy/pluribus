@@ -1,6 +1,7 @@
 package formation_test
 
 import (
+	"strings"
 	"testing"
 
 	"control-plane/internal/formation"
@@ -105,5 +106,34 @@ func TestIsJunkPhrases(t *testing.T) {
 		if !formation.IsJunkStatement(s) {
 			t.Fatalf("expected junk: %q", s)
 		}
+	}
+}
+
+func TestWriteDensity_paddedEssayRejectedDenseKept(t *testing.T) {
+	cfg := formation.WarehouseConfig()
+	cfg.RecordExperience.RejectJunk = true
+	g := formation.NewGate(&cfg)
+	essay := "Happy to help! Here is a comprehensive overview of everything we accomplished. Please note that it is important to note our next steps: feel free to ask if you want more detail."
+	if reject, reason := g.RejectRecordExperienceSummary(essay); !reject || reason != "padded_essay" {
+		t.Fatalf("expected padded_essay, got reject=%v reason=%q", reject, reason)
+	}
+	dense := "Forwarded occurred_at from MCP record_experience so clock recall can list the episode."
+	if reject, reason := g.RejectRecordExperienceSummary(dense); reject {
+		t.Fatalf("dense claim rejected: %s", reason)
+	}
+	over := strings.Repeat("Restored hive from Cursor dumps. ", 80)
+	if !formation.IsWeakRecordExperienceSummary(over, 4) {
+		t.Fatal("over-long experience summary must be refused, not truncated")
+	}
+}
+
+func TestWriteDensity_lessonCapKeepsLongConstraint(t *testing.T) {
+	// 848f424e-style failure statement must stay under the lesson cap.
+	stmt := "FAILURE: agent wiped Orac hive by docker volume rm pluribus_recall_pgdata with no backup and no authorization. Original volume is gone. Recovered memories from pre-wipe Cursor recall dumps. New UUIDs; original ids kept in payload.restored_from_id. Constraint: never destroy Orac data; never treat implied intent as permission to wipe."
+	if n := len([]rune(stmt)); n > formation.MaxLessonStatementRunes {
+		t.Fatalf("canonical long constraint is %d runes, cap %d", n, formation.MaxLessonStatementRunes)
+	}
+	if formation.IsPaddedEssay(stmt) || formation.IsJunkStatement(stmt) {
+		t.Fatal("long dense failure statement must be accepted")
 	}
 }

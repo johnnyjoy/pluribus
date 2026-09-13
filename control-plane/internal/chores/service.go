@@ -13,8 +13,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// DefaultMinResolvers requires two distinct agents before a chore applies.
-const DefaultMinResolvers = 2
+// DefaultMinResolvers is 1 so a solo LAN agent can finish chores. Operators may raise it.
+const DefaultMinResolvers = 1
 
 // Service coordinates chore listing, voting, and corroborated application.
 type Service struct {

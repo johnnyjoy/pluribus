@@ -1,6 +1,6 @@
 # Generic MCP
 
-1. **MCP:** `POST /v1/mcp` per root **README** / **`examples.json`**. Server advertises **59 tools** by default (`PLURIBUS_TOOLS=core|standard|all` filters `tools/list`; see [docs/mcp-tools.md](../../docs/mcp-tools.md)).
+1. **MCP:** `POST /v1/mcp` per root **README** / **`examples.json`**. Server advertises the **core** loop tools by default (`PLURIBUS_TOOLS=core|standard|all` filters `tools/list`; see [docs/mcp-tools.md](../../docs/mcp-tools.md)). `tools/call` still accepts all registered names.
 2. Paste **[`pluribus-instructions.md`](../pluribus-instructions.md)** + **`snippets/context-prime.txt`** into system / developer instructions.
 3. **Agent Skills (optional):** copy **`skills/pluribus/`** if the client supports Agent Skills.
 

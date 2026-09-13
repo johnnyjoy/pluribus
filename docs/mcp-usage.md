@@ -127,13 +127,13 @@ MCP is the **agent** control interface for:
 - recall retrieval (`recall_get`, `recall_compile`, optional `recall_run_multi`)
 - pre-change validation (`enforcement_evaluate`)
 - durable writes (`memory_create`, `memory_promote`) and curation (`curation_digest`, `curation_materialize`)
-- **memory formation (advisory only):** **`record_experience`** / **`mcp_episode_ingest`** → `POST /v1/advisory-episodes` with ingest channel **`source: mcp`**; visibility into candidates (`curation_pending`, `curation_promotion_suggestions`, `curation_strengthened`)
+- **memory formation (experiences):** **`record_experience`** / **`mcp_episode_ingest`** → `POST /v1/advisory-episodes` with ingest channel **`source: mcp`**. Optional **`occurred_at`** (RFC3339). `recall_context` reads matching experiences for clock/last-time when the agent passes **`occurred_after` / `occurred_before`** or last-time/clock cues. Visibility into candidates (`curation_pending`, `curation_promotion_suggestions`, `curation_strengthened`)
 
 It is **not** the editor Go language server — **gopls** stays local. See [lsp-mcp-boundary.md](lsp-mcp-boundary.md).
 
 ### Memory formation (experience → episode → candidate)
 
-MCP is a **producer** of advisory **experience**, not a shortcut to canonical memory:
+MCP is a **producer** of **experience** (what happened). Experiences are recallable. Enforcement still does not bind on a diary row:
 
 - **`record_experience`** and **`mcp_episode_ingest`** map to the same **`POST /v1/advisory-episodes`** handler with ingest channel **`source: mcp`**. Configure **`mcp.memory_formation`** in server YAML to turn episodic ingest off or tune minimum length / keyword requirements (deterministic; no LLM in the gate).
 - When **`distillation.auto_from_advisory_episodes`** is enabled, **auto-distill** uses the same pipeline as REST ingest; proposals record **`pluribus_distill_origin`** **`auto:mcp`** (distill mode **auto_from_advisory_mcp**; see [memory-doctrine.md](memory-doctrine.md) Terminology).

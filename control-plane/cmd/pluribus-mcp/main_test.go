@@ -13,6 +13,8 @@ import (
 )
 
 func TestToolDefinitions_includeCurationTools(t *testing.T) {
+	t.Cleanup(func() { mcp.SetToolsTier(mcp.ToolsTierCore) })
+	mcp.SetToolsTier(mcp.ToolsTierAll)
 	tools := mcp.ToolDefinitions()
 	want := map[string]bool{
 		"recall_context":                 false,

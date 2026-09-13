@@ -53,7 +53,7 @@ func TestHTTPHandler_initialize(t *testing.T) {
 	if si["name"] != mcpServerNameHTTP {
 		t.Fatalf("serverInfo.name = %v", si["name"])
 	}
-	if si["version"] != Version {
+	if si["version"] != ServerInfoVersion() {
 		t.Fatalf("serverInfo.version = %v", si["version"])
 	}
 	inst, _ := out.Result["instructions"].(string)

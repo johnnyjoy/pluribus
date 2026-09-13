@@ -16,8 +16,8 @@
 # Usage:
 #   PLURIBUS_DB_DSN=postgres://user:pass@host:5432/controlplane?sslmode=disable \
 #     ./scripts/upgrade-in-place.sh \
-#       --new-binary control-plane/ou./pluribus \
-#       --install-path /usr/local/bi./pluribus \
+#       --new-binary control-plane/out/pluribus \
+#       --install-path /usr/local/bin/pluribus \
 #       [--base-url http://127.0.0.1:8123] \
 #       [--stop-cmd 'systemctl stop pluribus'] [--start-cmd 'systemctl start pluribus'] \
 #       [--backup-dir ./backups] [--skip-smoke]
@@ -77,7 +77,7 @@ start_server() {
   if [[ -n "$START_CMD" ]]; then
     bash -c "$START_CMD"
   else
-    nohup "$INSTALL_PATH" >>"${BACKUP_DIR./pluribus.log" 2>&1 &
+    nohup "$INSTALL_PATH" >>"${BACKUP_DIR}/pluribus.log" 2>&1 &
   fi
 }
 
@@ -96,6 +96,10 @@ memory_count() {
   psql "$DSN" -Atc 'SELECT COUNT(*) FROM memories;' 2>/dev/null || echo "-1"
 }
 
+experience_count() {
+  psql "$DSN" -Atc 'SELECT COUNT(*) FROM advisory_experiences;' 2>/dev/null || echo "-1"
+}
+
 rollback() {
   echo "ROLLBACK: restoring previous binary and database backup" >&2
   stop_server
@@ -111,8 +115,9 @@ rollback() {
 
 # --- 1. Pre-upgrade count -----------------------------------------------
 PRE_COUNT="$(memory_count)"
+PRE_EP="$(experience_count)"
 [[ "$PRE_COUNT" != "-1" ]] || fail "cannot query memories table via DSN (is the DB reachable?)"
-echo "pre-upgrade memory count: $PRE_COUNT"
+echo "pre-upgrade memory count: $PRE_COUNT experiences: $PRE_EP"
 
 # --- 2. Verified backup --------------------------------------------------
 mkdir -p "$BACKUP_DIR"
@@ -134,9 +139,14 @@ wait_healthy || rollback
 
 # --- 6. Data durability assertion ----------------------------------------
 POST_COUNT="$(memory_count)"
-echo "post-upgrade memory count: $POST_COUNT"
+POST_EP="$(experience_count)"
+echo "post-upgrade memory count: $POST_COUNT experiences: $POST_EP"
 if [[ "$POST_COUNT" == "-1" ]] || (( POST_COUNT < PRE_COUNT )); then
-  echo "DATA LOSS DETECTED: $PRE_COUNT -> $POST_COUNT" >&2
+  echo "DATA LOSS DETECTED: memories $PRE_COUNT -> $POST_COUNT" >&2
+  rollback
+fi
+if [[ "$PRE_EP" != "-1" && "$POST_EP" != "-1" ]] && (( POST_EP < PRE_EP )); then
+  echo "DATA LOSS DETECTED: experiences $PRE_EP -> $POST_EP" >&2
   rollback
 fi
 
@@ -145,4 +155,4 @@ if [[ "$SKIP_SMOKE" -ne 1 && -x "$SCRIPT_DIR/smoke/local-rest-smoke.sh" ]]; then
   "$SCRIPT_DIR/smoke/local-rest-smoke.sh" --base-url "$BASE_URL" || rollback
 fi
 
-echo "PASS: in-place upgrade complete; memories preserved ($PRE_COUNT -> $POST_COUNT); backup at $DUMP_PATH"
+echo "PASS: in-place upgrade complete; memories $PRE_COUNT -> $POST_COUNT experiences $PRE_EP -> $POST_EP; backup at $DUMP_PATH"

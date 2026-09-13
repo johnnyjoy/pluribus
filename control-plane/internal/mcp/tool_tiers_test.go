@@ -6,7 +6,7 @@ import (
 )
 
 func TestFilterRegistryByTier_coreIncludesMemoryFeedback(t *testing.T) {
-	t.Cleanup(func() { SetToolsTier(ToolsTierAll) })
+	t.Cleanup(func() { SetToolsTier(ToolsTierCore) })
 	reg := toolRegistry()
 	core := filterRegistryByTier(reg, ToolsTierCore)
 	found := false
@@ -22,7 +22,7 @@ func TestFilterRegistryByTier_coreIncludesMemoryFeedback(t *testing.T) {
 }
 
 func TestFilterRegistryByTier_core(t *testing.T) {
-	t.Cleanup(func() { SetToolsTier(ToolsTierAll) })
+	t.Cleanup(func() { SetToolsTier(ToolsTierCore) })
 	reg := toolRegistry()
 	core := filterRegistryByTier(reg, ToolsTierCore)
 	if len(core) != len(coreToolNames) {
@@ -36,7 +36,7 @@ func TestFilterRegistryByTier_core(t *testing.T) {
 }
 
 func TestFilterRegistryByTier_standard(t *testing.T) {
-	t.Cleanup(func() { SetToolsTier(ToolsTierAll) })
+	t.Cleanup(func() { SetToolsTier(ToolsTierCore) })
 	reg := toolRegistry()
 	std := filterRegistryByTier(reg, ToolsTierStandard)
 	want := len(coreToolNames) + len(standardExtraToolNames)
@@ -48,7 +48,7 @@ func TestFilterRegistryByTier_standard(t *testing.T) {
 func TestInitToolsTier_envOverridesConfig(t *testing.T) {
 	t.Cleanup(func() {
 		os.Unsetenv("PLURIBUS_TOOLS")
-		SetToolsTier(ToolsTierAll)
+		SetToolsTier(ToolsTierCore)
 	})
 	t.Setenv("PLURIBUS_TOOLS", "core")
 	InitToolsTier("standard")

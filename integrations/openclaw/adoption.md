@@ -1,24 +1,11 @@
-# OpenClaw — deep adoption (real integrations only)
+# OpenClaw adoption
 
-OpenClaw does **not** expose a stable, documented “lifecycle hook” API in this repository. **Deep integration** here means:
+Pluribus is an optional shared store. Do not replace `MEMORY.md`, dreaming, or `memory_search`. Those stay the workspace ritual. Pluribus is what an OpenClaw agent and a Cursor agent can both see.
 
-1. **MCP** — Register Pluribus (`HTTP POST /v1/mcp` or stdio `pluribus-mcp`) so the agent can call **`recall_context`** and **`record_experience`**.
-2. **Policy** — Pin **[`policy.template.md`](policy.template.md)** + **[`snippets/context-prime.txt`](snippets/context-prime.txt)** in the gateway **system / policy** field so every run is primed with the mandatory loop.
-3. **Skill** — Optional **[`skill.md`](skill.md)** for the step table inline.
+1. Register the MCP server from [`mcp-config.example.json`](mcp-config.example.json).
+2. Set `toolFilter.include` to the loop names only: `wakeup_context`, `recall_context`, `record_experience`, `memory_feedback`, `list_chores`, `resolve_chore`, `health`.
+3. Optional: a `before_prompt_build` hook may call `wakeup_context` or a tight `recall_context` with the user prompt. See [`snippets/before-prompt-build.md`](snippets/before-prompt-build.md).
+4. Never set `autoCapture` / `captureMatcher` to `*`. Write after a judged outcome via `record_experience` only. Optional `occurred_at` (RFC3339). Clock questions use RFC3339 bounds on `recall_context`.
+5. Cross-harness Friday 3pm is Pluribus experiences, not `memory/YYYY-MM-DD.md`.
 
-That combination is what makes Pluribus part of the **execution loop**: the model sees the loop in policy, and the tools exist to run it.
-
-## What we do *not* ship
-
-- **No fake plugin** that claims to intercept OpenClaw’s internal task scheduler without a real vendor API.
-- **No invented JSON** for “before every task” / “after every task” unless OpenClaw documents it for your version.
-
-If your OpenClaw build adds **documented** hooks (e.g. pre/post shell, webhook, or plugin entry points), wrap **`curl`** calls to **`POST /v1/recall/compile`** and **`POST /v1/advisory-episodes`** the same way you would for any HTTP client—still backed by this control plane.
-
-## Verification
-
-- **`openclaw mcp`** (or your version’s equivalent) lists Pluribus with the URL you configured.
-- Agent transcripts or logs show **`recall_context`** (or **`memory_context_resolve`**) before substantive work and **`record_experience`** after meaningful outcomes.
-- Optional: **`GET /v1/curation/pending`** shows candidates when distillation/promotion is in play.
-
-Canonical behavior: **[`../pluribus-instructions.md`](../pluribus-instructions.md)** · Hub: **[../../docs/integrations/openclaw.md](../../docs/integrations/openclaw.md)**
+Canonical loop: [`pluribus-instructions.md`](../pluribus-instructions.md).

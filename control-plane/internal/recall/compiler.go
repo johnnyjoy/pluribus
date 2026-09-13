@@ -490,14 +490,14 @@ func (c *Compiler) Compile(ctx context.Context, req CompileRequest) (*RecallBund
 			}
 		}
 		b.SemanticRetrieval = semRetrievalDbg
-		fillGroupedViews(b, scored, objs, weights != nil, maxPerKind, req.Mode, corrID, itemEnrich)
+		fillGroupedViews(b, scored, objs, weights != nil, maxPerKind, req.Mode, corrID, situationQuery, itemEnrich)
 	}
 	populateAgentGrounding(b)
 	setRecallPreamble(b)
 	return b, nil
 }
 
-func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.MemoryObject, hasRanking bool, maxPerKind int, mode string, corrID string, enrich memoryItemEnrichment) {
+func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.MemoryObject, hasRanking bool, maxPerKind int, mode string, corrID string, situationQuery string, enrich memoryItemEnrichment) {
 	if maxPerKind <= 0 {
 		maxPerKind = 5
 	}
@@ -519,7 +519,7 @@ func fillGroupedViews(b *RecallBundle, scored []ScoredMemory, raw []memory.Memor
 		return
 	}
 	var cont, cons, exp []MemoryItem
-	for _, s := range scored {
+	for _, s := range filterScoredByFloor(scored, situationQuery) {
 		o := s.Object
 		item := memoryItemFromScored(o, s, corrID, enrich)
 		switch o.Kind {

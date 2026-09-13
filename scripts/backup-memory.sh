@@ -27,14 +27,15 @@ command -v pg_restore >/dev/null || { echo "FAIL: pg_restore not found" >&2; exi
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$OUT_DIR"
-DUMP="$OUT_DI./pluribus-$STAMP.dump"
+DUMP="$OUT_DIR/pluribus-$STAMP.dump"
 
 MEM_COUNT="$(psql "$DSN" -Atc 'SELECT COUNT(*) FROM memories;' 2>/dev/null || echo 'unknown')"
+EP_COUNT="$(psql "$DSN" -Atc 'SELECT COUNT(*) FROM advisory_experiences;' 2>/dev/null || echo 'unknown')"
 
 pg_dump -Fc "$DSN" -f "$DUMP"
 
 # Verify the dump is readable before declaring success.
 pg_restore -l "$DUMP" >/dev/null
 
-echo "PASS: backup written: $DUMP (memories at backup time: $MEM_COUNT)"
+echo "PASS: backup written: $DUMP (memories=$MEM_COUNT experiences=$EP_COUNT)"
 echo "$DUMP"

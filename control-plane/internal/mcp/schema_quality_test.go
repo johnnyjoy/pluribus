@@ -15,9 +15,9 @@ func TestSchemaQuality_noBareObjectSchemas(t *testing.T) {
 }
 
 func TestSchemaQuality_allToolsRegistered(t *testing.T) {
-	defs := ToolDefinitions()
+	defs := AllToolDefinitions()
 	if len(defs) != len(toolRegistry()) {
-		t.Fatalf("ToolDefinitions count %d != registry %d", len(defs), len(toolRegistry()))
+		t.Fatalf("AllToolDefinitions count %d != registry %d", len(defs), len(toolRegistry()))
 	}
 	seen := map[string]bool{}
 	for _, d := range defs {

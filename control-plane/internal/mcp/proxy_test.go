@@ -40,14 +40,16 @@ func TestToolDefinitions_recallRecordLoopDescriptions(t *testing.T) {
 func TestInitializeResult_memoryLoopInstructions(t *testing.T) {
 	res := InitializeResult("test", "0.0.0")
 	inst, _ := res["instructions"].(string)
-	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") || !strings.Contains(inst, "used_memory_ids") {
+	if !strings.Contains(inst, "wakeup_context") || !strings.Contains(inst, "recall_context") || !strings.Contains(inst, "record_experience") || !strings.Contains(inst, "resolve_chore") || !strings.Contains(inst, "memory_feedback") || !strings.Contains(inst, "used_memory_ids") || !strings.Contains(inst, "RFC3339") {
 		t.Fatalf("instructions: %q", inst)
+	}
+	if len(inst) > 2048 {
+		t.Fatalf("instructions length %d exceeds 2048", len(inst))
 	}
 }
 
 func TestToolDefinitions_noProjectCRUDTools(t *testing.T) {
-	tools := ToolDefinitions()
-	for _, tool := range tools {
+	for _, tool := range AllToolDefinitions() {
 		name, _ := tool["name"].(string)
 		if name == "project_get_by_slug" || name == "project_list" || name == "project_create" {
 			t.Fatalf("project-first MCP tool should not be exposed: %s", name)
@@ -55,7 +57,30 @@ func TestToolDefinitions_noProjectCRUDTools(t *testing.T) {
 	}
 }
 
+func TestToolDefinitions_coreHidesAliases(t *testing.T) {
+	t.Cleanup(func() { SetToolsTier(ToolsTierCore) })
+	SetToolsTier(ToolsTierCore)
+	tools := ToolDefinitions()
+	found := map[string]bool{}
+	for _, tool := range tools {
+		name, _ := tool["name"].(string)
+		found[name] = true
+	}
+	for _, name := range []string{"wakeup_context", "recall_context", "record_experience", "memory_feedback", "list_chores", "resolve_chore", "health"} {
+		if !found[name] {
+			t.Fatalf("core tools/list must include %q", name)
+		}
+	}
+	for _, name := range []string{"memory_context_resolve", "mcp_episode_ingest", "episode_search_similar"} {
+		if found[name] {
+			t.Fatalf("core tools/list must hide alias %q", name)
+		}
+	}
+}
+
 func TestToolDefinitions_behaviorFirstAndCompatAliases(t *testing.T) {
+	t.Cleanup(func() { SetToolsTier(ToolsTierCore) })
+	SetToolsTier(ToolsTierAll)
 	tools := ToolDefinitions()
 	found := map[string]string{}
 	order := []string{}

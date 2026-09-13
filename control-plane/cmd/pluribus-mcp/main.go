@@ -70,7 +70,7 @@ func run() error {
 
 		switch req.Method {
 		case "initialize":
-			writeResult(req.ID, mcp.InitializeResult("pluribus-mcp", mcp.Version))
+			writeResult(req.ID, mcp.InitializeResult("pluribus-mcp", mcp.ServerInfoVersion()))
 		case "ping":
 			writeResult(req.ID, map[string]any{})
 		case "tools/list":
