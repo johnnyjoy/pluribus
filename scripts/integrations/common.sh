@@ -48,9 +48,13 @@ grep_file() {
 }
 
 CORE_LOOP_TOOLS=(
+  wakeup_context
   recall_context
   record_experience
-  wakeup_context
+  memory_feedback
+  list_chores
+  resolve_chore
+  health
 )
 
 TELEMETRY_TOOL_PREFIX=agent_telemetry_
@@ -98,8 +102,8 @@ verify_mcp_live() {
   local count
   count="$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('result',{}).get('tools',[])))")"
   echo "tools/list count: $count"
-  if [[ "$count" != "59" ]]; then
-    echo "expected 59 tools, got $count" >&2
+  if [[ "$count" != "7" ]]; then
+    echo "expected 7 core tools, got $count" >&2
     return 1
   fi
   local t
@@ -110,19 +114,6 @@ verify_mcp_live() {
     }
     echo "ok tool: $t"
   done
-  local telem n
-  telem="$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(sum(1 for x in d.get('result',{}).get('tools',[]) if x['name'].startswith('agent_telemetry_')))")"
-  n="$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(sum(1 for x in d.get('result',{}).get('tools',[]) if x['name'].startswith('agent_utility_')))")"
-  echo "agent_telemetry_* count: $telem"
-  echo "agent_utility_* count: $n"
-  if [[ "$telem" -lt 9 ]]; then
-    echo "expected >=9 agent_telemetry_* tools" >&2
-    return 1
-  fi
-  if [[ "$n" -lt 8 ]]; then
-    echo "expected >=8 agent_utility_* tools" >&2
-    return 1
-  fi
   echo "live MCP surface: OK"
 }
 

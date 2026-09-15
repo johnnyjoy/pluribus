@@ -108,13 +108,13 @@ d=json.load(sys.stdin)
 tools=d.get('result',{}).get('tools',[])
 print(len(tools))
 ")"
-if (( TOOL_COUNT >= 30 )); then
-  pass "tools/list count=$TOOL_COUNT (>=30)"
+if (( TOOL_COUNT == 7 )); then
+  pass "tools/list count=$TOOL_COUNT (core)"
 else
-  fail "tools/list count=$TOOL_COUNT expected >=30"
+  fail "tools/list count=$TOOL_COUNT expected 7 (core tier)"
 fi
 
-REQUIRED_TOOLS=(recall_context record_experience enforcement_evaluate curation_pending wakeup_context)
+REQUIRED_TOOLS=(wakeup_context recall_context record_experience memory_feedback list_chores resolve_chore health)
 if echo "$LIST_RESP" | python3 -c "
 import json,sys
 required=set('${REQUIRED_TOOLS[*]}'.split())
@@ -155,6 +155,23 @@ fi
 RECALL_BODY='{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"recall_context","arguments":{"task":"Phase 1 MCP docker proof recall"}}}'
 RECALL_RESP="$(mcp_post "$RECALL_BODY")" || { fail "recall_context HTTP"; exit 1; }
 assert_no_rpc_error "$RECALL_RESP" "tools/call recall_context" || true
+if echo "$RECALL_RESP" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+r=d.get('result') or {}
+content=r.get('content') or []
+if not content or content[0].get('type')!='text':
+    sys.exit(1)
+if 'json' in content[0]:
+    sys.exit(2)
+sc=r.get('structuredContent') or {}
+if 'recall_bundle' not in sc:
+    sys.exit(3)
+"; then
+  pass "recall_context content=text + structuredContent.recall_bundle"
+else
+  fail "recall_context result shape (want text + structuredContent)"
+fi
 
 RECORD_BODY='{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"record_experience","arguments":{"summary":"Phase 1 MCP docker proof recorded an advisory episode for schema and behavior validation."}}}'
 RECORD_RESP="$(mcp_post "$RECORD_BODY")" || { fail "record_experience HTTP"; exit 1; }

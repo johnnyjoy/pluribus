@@ -21,6 +21,7 @@ import (
 
 	"control-plane/internal/apiserver"
 	"control-plane/internal/app"
+	"control-plane/internal/mcp"
 	"control-plane/internal/migrate"
 
 	"github.com/google/uuid"
@@ -174,9 +175,18 @@ func TestIntegration_HTTP_MCP_initializeAndToolsList(t *testing.T) {
 		n, _ := m["name"].(string)
 		found[n] = true
 	}
-	for _, name := range []string{"recall_context", "record_experience", "mcp_episode_ingest", "memory_context_resolve", "curation_pending", "curation_promotion_suggestions", "curation_strengthened"} {
+	want := []string{"wakeup_context", "recall_context", "record_experience", "memory_feedback", "list_chores", "resolve_chore", "health"}
+	if len(tools) != len(want) {
+		t.Fatalf("tools/list count %d want %d (core tier)", len(tools), len(want))
+	}
+	for _, name := range want {
 		if !found[name] {
-			t.Fatalf("tools/list missing %q", name)
+			t.Fatalf("tools/list missing core %q", name)
+		}
+	}
+	for _, name := range []string{"mcp_episode_ingest", "memory_context_resolve", "curation_pending"} {
+		if found[name] {
+			t.Fatalf("core tools/list must hide %q", name)
 		}
 	}
 }
@@ -225,15 +235,15 @@ func TestIntegration_HTTP_MCP_memoryLoopSequence(t *testing.T) {
 	init := mcpCall(t, base, "initialize", map[string]any{})
 	res, _ := init["result"].(map[string]any)
 	inst, _ := res["instructions"].(string)
-	if !strings.Contains(inst, "Pluribus is your memory system") {
-		t.Fatalf("expected initialize instructions, got %q", inst)
+	if !strings.Contains(inst, "Recall then record") || !strings.Contains(inst, "used_memory_ids") {
+		t.Fatalf("expected initialize loop instructions, got %q", inst)
 	}
 
 	text, isErr := mcpToolText(t, base, "recall_context", map[string]any{
 		"task": "integration multi-step MCP memory loop sequence test",
 		"tags": []string{"integration", "mcp"},
 	})
-	if isErr || !strings.Contains(text, "mcp_context") {
+	if isErr || !strings.Contains(text, "used_memory_ids") || !strings.Contains(text, "candidate memories you can use") {
 		t.Fatalf("recall_context: isErr=%v text_prefix=%.200q", isErr, text)
 	}
 
@@ -250,7 +260,7 @@ func TestIntegration_HTTP_MCP_memoryLoopSequence(t *testing.T) {
 	runMCPRecordExperienceRecallContinuity(t, base)
 }
 
-// TestIntegration_HTTP_MCP_parityToolsRegistered ensures agent-parity tools appear in tools/list (MCP parity sprint).
+// TestIntegration_HTTP_MCP_parityToolsRegistered ensures hidden parity tools still work on tools/call.
 func TestIntegration_HTTP_MCP_parityToolsRegistered(t *testing.T) {
 	dsn := os.Getenv("TEST_PG_DSN")
 	if dsn == "" {
@@ -260,26 +270,19 @@ func TestIntegration_HTTP_MCP_parityToolsRegistered(t *testing.T) {
 	defer cleanup()
 	base := srv.URL
 	mcpCall(t, base, "initialize", map[string]any{})
-	list := mcpCall(t, base, "tools/list", map[string]any{})
-	toolsRaw, _ := list["result"].(map[string]any)["tools"]
-	tools, _ := toolsRaw.([]any)
-	found := map[string]bool{}
-	for _, row := range tools {
-		m, _ := row.(map[string]any)
-		n, _ := m["name"].(string)
-		found[n] = true
-	}
 	for _, name := range []string{
-		"memory_context_resolve", "wakeup_context", "memory_log_if_relevant", "auto_log_episode_if_relevant",
-		"episode_search_similar", "episode_distill_explicit",
-		"memory_recall_advanced", "memory_preflight_check",
-		"curation_review_candidate", "curation_reject_candidate", "curation_auto_promote", "curation_promote_candidate",
-		"memory_detect_contradictions", "memory_list_contradictions",
-		"evidence_attach", "evidence_list",
-		"memory_relationships_get", "memory_relationships_create",
+		"memory_context_resolve", "wakeup_context",
+		"episode_search_similar", "memory_recall_advanced", "memory_preflight_check",
+		"curation_pending", "evidence_list", "memory_relationships_get",
 	} {
-		if !found[name] {
-			t.Fatalf("tools/list missing %q", name)
+		args, err := mcp.MinValidToolCallArguments(name)
+		if err != nil {
+			t.Fatalf("%s: min args: %v", name, err)
+		}
+		res := mcpCall(t, base, "tools/call", map[string]any{"name": name, "arguments": args})
+		rmap, _ := res["result"].(map[string]any)
+		if rmap == nil {
+			t.Fatalf("%s: no result %v", name, res)
 		}
 	}
 }
@@ -490,7 +493,7 @@ func TestIntegration_stdio_pluribusMcp_smoke(t *testing.T) {
 	}
 }
 
-// TestIntegration_HTTP_MCP_memoryContextResolve scenario B (partial): primary recall tool returns mcp_context + recall_bundle JSON.
+// TestIntegration_HTTP_MCP_memoryContextResolve: recall text is grounding; dump is structuredContent.
 func TestIntegration_HTTP_MCP_memoryContextResolve(t *testing.T) {
 	dsn := os.Getenv("TEST_PG_DSN")
 	if dsn == "" {

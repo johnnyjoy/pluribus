@@ -112,8 +112,8 @@ func main() {
 	} else {
 		res, _ := list["result"].(map[string]any)
 		tools, _ := res["tools"].([]any)
-		if len(tools) < 30 {
-			bad("tools/list count", fmt.Sprintf("got %d", len(tools)))
+		if len(tools) != 7 {
+			bad("tools/list count", fmt.Sprintf("got %d want 7 (core)", len(tools)))
 		} else {
 			ok("stdio tools/list")
 		}
@@ -146,7 +146,25 @@ func main() {
 	if recall["error"] != nil {
 		bad("tools/call recall_context", fmt.Sprintf("%v", recall["error"]))
 	} else {
-		ok("stdio tools/call recall_context")
+		res, _ := recall["result"].(map[string]any)
+		content, _ := res["content"].([]any)
+		var c0 map[string]any
+		if len(content) > 0 {
+			c0, _ = content[0].(map[string]any)
+		}
+		if c0 == nil || c0["type"] != "text" {
+			bad("recall_context content type", fmt.Sprintf("want text, got %+v", c0))
+		} else if _, hasJSON := c0["json"]; hasJSON {
+			bad("recall_context content", "legacy json field")
+		} else {
+			ok("stdio tools/call recall_context")
+		}
+		sc, _ := res["structuredContent"].(map[string]any)
+		if sc["recall_bundle"] == nil {
+			bad("recall_context structuredContent", "missing recall_bundle")
+		} else {
+			ok("stdio recall_context structuredContent.recall_bundle")
+		}
 	}
 
 	unknown := call(4, "tools/call", map[string]any{"name": "does_not_exist", "arguments": map[string]any{}})

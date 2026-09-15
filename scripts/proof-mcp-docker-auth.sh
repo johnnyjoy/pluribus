@@ -99,6 +99,12 @@ assert_no_rpc_error "$INIT_RESP" "MCP initialize with correct X-API-Key" || true
 
 LIST_RESP="$(mcp_post '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' "$PLURIBUS_API_KEY")" || { fail "tools/list"; exit 1; }
 assert_no_rpc_error "$LIST_RESP" "MCP tools/list with correct key" || true
+TOOL_COUNT="$(echo "$LIST_RESP" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('result',{}).get('tools',[])))")"
+if [[ "$TOOL_COUNT" == "7" ]]; then
+  pass "tools/list count=$TOOL_COUNT (core)"
+else
+  fail "tools/list count=$TOOL_COUNT expected 7 (core tier)"
+fi
 
 RECALL='{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"recall_context","arguments":{"task":"authenticated MCP proof recall"}}}'
 RECALL_RESP="$(mcp_post "$RECALL" "$PLURIBUS_API_KEY")" || { fail "recall_context"; exit 1; }

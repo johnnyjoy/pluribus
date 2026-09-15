@@ -472,40 +472,11 @@ func mcpRecallBundleFromRESTBundle(t *testing.T, bundle *recall.RecallBundle) *r
 		t.Fatal(err)
 	}
 
-	raw, err := json.Marshal(toolResp)
+	got, err := MCPRecallBundleFromTool(toolResp)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	type mcpContentItem struct {
-		Type string `json:"type"`
-		JSON struct {
-			McpContext   json.RawMessage `json:"mcp_context"`
-			RecallBundle json.RawMessage `json:"recall_bundle"`
-		} `json:"json"`
-	}
-	var out struct {
-		Content []mcpContentItem `json:"content"`
-	}
-
-	if err := json.Unmarshal(raw, &out); err != nil {
-		t.Fatal(err)
-	}
-	if len(out.Content) == 0 {
-		t.Fatal("mcp tools/call response missing content")
-	}
-	if out.Content[0].Type != "json" {
-		t.Fatalf("expected mcp content[0].type=json, got %q", out.Content[0].Type)
-	}
-	if len(out.Content[0].JSON.RecallBundle) == 0 {
-		t.Fatal("mcp content[0].json missing recall_bundle")
-	}
-
-	var got recall.RecallBundle
-	if err := json.Unmarshal(out.Content[0].JSON.RecallBundle, &got); err != nil {
-		t.Fatal(err)
-	}
-	return &got
+	return got
 }
 
 func safeDiv(num, denom float64) float64 {

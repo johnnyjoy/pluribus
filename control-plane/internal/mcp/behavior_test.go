@@ -99,6 +99,12 @@ func TestMCPBehavior_toolsCallRecall(t *testing.T) {
 		t.Fatal("empty content")
 	}
 	c0, _ := content[0].(map[string]any)
+	if c0["type"] != "text" {
+		t.Fatalf("content[0].type = %v want text", c0["type"])
+	}
+	if _, hasJSON := c0["json"]; hasJSON {
+		t.Fatal("content[0] must not carry a legacy json field")
+	}
 	text, _ := c0["text"].(string)
 	if !strings.Contains(text, "used_memory_ids") || !strings.Contains(text, "candidate memories you can use") {
 		preview := text

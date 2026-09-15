@@ -11,7 +11,7 @@ Usage: $0 [--base-url URL] [--api-key KEY]
 
 Verifies POST /v1/mcp:
   initialize
-  tools/list (expects >= 50 tools including agent_telemetry_* and agent_utility_*)
+  tools/list (expects 7 core loop tools; tools/call still accepts hidden names)
 
 Does not call mutating tools.
 EOF
@@ -42,10 +42,13 @@ pass "initialize"
 
 tools="$(rpc 2 tools/list '{}')"
 count="$(echo "$tools" | jq '.result.tools | length')"
-[[ "$count" -ge 50 ]] || fail "tools/list count ${count} < 50"
-echo "$tools" | jq -e '.result.tools[] | select(.name=="recall_context")' >/dev/null || fail "recall_context missing"
-echo "$tools" | jq -e '.result.tools[] | select(.name=="agent_telemetry_start_session")' >/dev/null || fail "agent_telemetry_start_session missing"
-echo "$tools" | jq -e '.result.tools[] | select(.name=="agent_utility_evaluate_candidate")' >/dev/null || fail "agent_utility_evaluate_candidate missing"
+[[ "$count" -eq 7 ]] || fail "tools/list count ${count} want 7 (core)"
+for name in wakeup_context recall_context record_experience memory_feedback list_chores resolve_chore health; do
+  echo "$tools" | jq -e --arg n "$name" '.result.tools[] | select(.name==$n)' >/dev/null || fail "$name missing from core tools/list"
+done
+if echo "$tools" | jq -e '.result.tools[] | select(.name=="agent_telemetry_start_session")' >/dev/null 2>&1; then
+  fail "core tools/list must hide agent_telemetry_start_session"
+fi
 pass "tools/list count=${count}"
 
 echo "MCP smoke: ALL PASS"
