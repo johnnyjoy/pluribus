@@ -1,5 +1,5 @@
-# Phase 1 authenticated MCP proof overlay — sets PLURIBUS_API_KEY for controlplane.
+# Phase 1 authenticated MCP proof overlay — sets PLURIBUS_API_KEY on the API service.
 services:
-  controlplane:
+  pluribus:
     environment:
       PLURIBUS_API_KEY: phase1-mcp-auth-proof-key

@@ -1,5 +1,5 @@
 # One-shot test image: run control-plane unit + integration tests against a linked Postgres (compose).
-# Build context: repository root (must include docs/ for guardrails Recall repo root detection).
+# Build context: repository root (docs/ + integrations/ for guardrails doctrine path checks).
 FROM golang:1.22-bookworm
 WORKDIR /work
 ENV CGO_ENABLED=0
@@ -7,6 +7,7 @@ COPY control-plane/go.mod control-plane/go.sum ./control-plane/
 RUN cd control-plane && go mod download
 COPY control-plane/ ./control-plane/
 COPY docs/ ./docs/
+COPY integrations/ ./integrations/
 COPY README.md CONTRIBUTING.md ./
 WORKDIR /work/control-plane
 # -tags=integration compiles integration tests in cmd/controlplane; other packages unchanged.
