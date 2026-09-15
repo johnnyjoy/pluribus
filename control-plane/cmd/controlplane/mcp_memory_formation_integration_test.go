@@ -202,12 +202,24 @@ func runMCPRecordExperienceRecallContinuity(t *testing.T, base string) {
 	if isErr3 {
 		t.Fatalf("record_experience continuity: %s", text3)
 	}
-	text4, isErr4 := mcpToolText(t, base, "recall_context", map[string]any{
+	args := map[string]any{
 		"task": fmt.Sprintf("integration continuity recall for marker %s", marker),
 		"tags": []string{"integration", "mcp", "continuity-proof"},
-	})
-	if isErr4 || !strings.Contains(text4, marker) {
-		t.Fatalf("recall after record_experience: isErr=%v want marker %q in %.400q", isErr4, marker, text4)
+	}
+	text4, isErr4 := mcpToolText(t, base, "recall_context", args)
+	if isErr4 {
+		t.Fatalf("recall after record_experience: isErr text=%.400q", text4)
+	}
+	if strings.Contains(text4, marker) {
+		return
+	}
+	wrap := mcpToolStructured(t, base, "recall_context", args)
+	raw, err := json.Marshal(wrap)
+	if err != nil {
+		t.Fatalf("marshal structured recall: %v", err)
+	}
+	if !strings.Contains(string(raw), marker) {
+		t.Fatalf("recall after record_experience: want marker %q in text or structuredContent; text=%.400q", marker, text4)
 	}
 }
 

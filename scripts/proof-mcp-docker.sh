@@ -194,9 +194,25 @@ MISSING_ARG='{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"rec
 MISSING_RESP="$(mcp_post "$MISSING_ARG")" || { fail "missing arg HTTP"; exit 1; }
 assert_rpc_error_code "$MISSING_RESP" "-32602" "missing required argument" || true
 
+# Unknown arguments are dropped at forwarding (H2). Clients attach agent_id/repo_root
+# to every call; extras must not produce -32602.
 EXTRA_ARG='{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"enforcement_evaluate","arguments":{"proposal_text":"x","extra":1}}}'
 EXTRA_RESP="$(mcp_post "$EXTRA_ARG")" || { fail "extra arg HTTP"; exit 1; }
-assert_rpc_error_code "$EXTRA_RESP" "-32602" "extra argument rejected" || true
+assert_no_rpc_error "$EXTRA_RESP" "extra argument tolerated" || true
+if echo "$EXTRA_RESP" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+r=d.get('result') or {}
+if r.get('isError') is True:
+    sys.exit(1)
+content=r.get('content') or []
+if not content or content[0].get('type')!='text':
+    sys.exit(2)
+"; then
+  pass "extra argument dropped; call still succeeds"
+else
+  fail "extra argument must be tolerated (dropped), not rejected"
+fi
 
 UNKNOWN_METHOD='{"jsonrpc":"2.0","id":10,"method":"nope/method","params":{}}'
 UNKNOWN_METHOD_RESP="$(mcp_post "$UNKNOWN_METHOD")" || { fail "unknown method HTTP"; exit 1; }
